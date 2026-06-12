@@ -8,84 +8,119 @@ This workspace contains the DealerConnect full-stack starter for a mobile-first 
 - `flutter_app/` - Flutter mobile frontend
 - `web_app/` - Static fallback frontend ready for free online hosting
 
-## Online hosting
+## 🚀 Quick Start - Get Everything Running Online
 
-### Frontend (Static Web App)
+### ✅ Frontend Status
+- **Web App**: 🟢 **LIVE** at https://fleaners.github.io/marketplace/
+- Deployed to GitHub Pages
+- Shows demo content when backend unavailable, live data when connected
 
-The `web_app/` folder is deployed to **GitHub Pages** at: **https://fleaners.github.io/marketplace/**
+### Deploy Backend to Production (Railway) - 10 minutes
 
-The site displays live data when the backend is online, or shows demo content when offline.
+**Step 1:** Go to https://railway.app → Sign up (free) → Click "New Project"
 
-**Status**: ✅ **LIVE** at https://fleaners.github.io/marketplace/
+**Step 2:** Select "Deploy from GitHub" → Choose `Fleaners/marketplace` repo
 
-### Backend API (Node.js + Express)
+**Step 3:** Railway auto-detects the Dockerfile. Click "Deploy"
 
-Deploy the backend to a free service like **Railway**, **Render**, or **Heroku**.
+**Step 4:** Once deployed, click your service → "Variables" → Add these:
 
-#### Deploy to Railway (Recommended)
+| Variable | Value |
+|----------|-------|
+| `NODE_ENV` | `production` |
+| `PORT` | `5000` |
+| `DATABASE_URL` | (Railway PostgreSQL - see below) |
+| `JWT_SECRET` | `your-secure-random-string` |
+| `CLOUDINARY_CLOUD_NAME` | Your Cloudinary username |
+| `CLOUDINARY_API_KEY` | Your Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Your Cloudinary secret |
 
-1. Go to [railway.app](https://railway.app) and sign up (free tier available)
-2. Click "New Project" → "Deploy from GitHub"
-3. Connect your GitHub repo (`Fleaners/marketplace`)
-4. Railway will auto-detect the `Dockerfile` and deploy the backend
-5. Set environment variables in Railway dashboard:
-   - `NODE_ENV=production`
-   - `PORT=5000`
-   - `DATABASE_URL=<Railway PostgreSQL connection string>`
-   - `JWT_SECRET=<your-secret-key>`
-   - `CLOUDINARY_CLOUD_NAME=<your-cloudinary-name>`
-   - `CLOUDINARY_API_KEY=<your-api-key>`
-   - `CLOUDINARY_API_SECRET=<your-api-secret>`
-6. Railway will provide a public URL (e.g., `https://your-app.railway.app`)
-7. Connect the web_app to your backend:
-   - Visit: `https://fleaners.github.io/marketplace/?api=https://your-app.railway.app`
-   - Or add to localStorage: `localStorage.setItem('API_URL', 'https://your-app.railway.app')`
+**Get DATABASE_URL from Railway:**
+1. In Railway dashboard → Click "New" → "PostgreSQL"
+2. Wait for it to provision
+3. Click the PostgreSQL service → "Connection" tab
+4. Copy the connection string, paste as `DATABASE_URL`
 
-#### Deploy to Render
+**Step 5:** Railway provides your public URL (e.g., `https://app-name.railway.app`)
 
-1. Go to [render.com](https://render.com) and sign up (free tier available)
-2. Click "New+" → "Web Service"
-3. Connect your GitHub repo
-4. Set runtime to Node.js 18+
-5. Build command: `npm install` (in `backend` folder)
-6. Start command: `npm start`
-7. Add environment variables (same as Railway)
-8. Deploy and get your public URL
+**Step 6:** Connect Frontend to Backend - Pick ONE method:
 
-#### Connect Web App to Backend
-
-Once your backend is deployed, connect the web_app:
-
-```html
-<!-- Option 1: Pass API URL as query param -->
-https://fleaners.github.io/marketplace/?api=https://your-backend-url.com
-
-<!-- Option 2: Set in browser console -->
-localStorage.setItem('API_URL', 'https://your-backend-url.com');
-
-<!-- Option 3: Local development (auto-detects localhost:5000) -->
-http://localhost:3000/  (web_app)
-http://localhost:5000/  (backend)
+**Option A (Easiest)** - Visit with query parameter:
+```
+https://fleaners.github.io/marketplace/?api=https://app-name.railway.app
 ```
 
-## Next steps
+**Option B (Persistent)** - Open browser console and run:
+```javascript
+localStorage.setItem('API_URL', 'https://app-name.railway.app')
+location.reload()
+```
 
-1. Install backend dependencies:
+**Option C (Development)** - Run locally with `http://localhost:5000`
+
+✅ Done! Your marketplace is now live with both frontend and backend running!
+
+## Local Development Setup
+
+### Backend (Node.js + PostgreSQL)
+
+**Prerequisites:**
+- Node.js 18+ (https://nodejs.org)
+- PostgreSQL 12+ (https://www.postgresql.org/download/)
+
+**Setup Steps:**
+
+1. Navigate to backend folder:
    ```bash
    cd backend
+   ```
+
+2. Install dependencies:
+   ```bash
    npm install
    ```
-2. Create `backend/.env` from `backend/.env.example` and configure PostgreSQL + Cloudinary.
-3. Initialize the database schema:
+
+3. Create `.env` file from `.env.example`:
    ```bash
-   psql $DATABASE_URL -f backend/sql/schema.sql
+   cp .env.example .env
    ```
-4. Start backend in development:
+
+4. Edit `backend/.env` and configure:
+   - `DATABASE_URL`: your PostgreSQL connection string
+   - `JWT_SECRET`: any random string for development
+   - `CLOUDINARY_*`: your Cloudinary credentials (optional for demo)
+
+5. Initialize database:
    ```bash
-   cd backend
+   psql $DATABASE_URL -f sql/schema.sql
+   ```
+
+6. Start the backend:
+   ```bash
    npm run dev
    ```
-5. Open `flutter_app/` in a Flutter-capable editor and run the app.
+   Backend runs at: http://localhost:5000
+
+7. Visit in browser:
+   - Backend API: http://localhost:5000
+   - Web App (with local backend): http://localhost:5000
+   - Static files are served from `web_app/` folder
+
+### Flutter Mobile App
+
+1. Install Flutter: https://flutter.dev/docs/get-started/install
+2. Navigate to flutter_app:
+   ```bash
+   cd flutter_app
+   ```
+3. Get dependencies:
+   ```bash
+   flutter pub get
+   ```
+4. Run on device/emulator:
+   ```bash
+   flutter run
+   ```
 
 ## Backend API
 
