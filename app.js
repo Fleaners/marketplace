@@ -1,6 +1,14 @@
 const statusEl = document.getElementById('status');
 const dataEl = document.getElementById('data');
 
+// Detect API endpoint: use query param, localStorage, or defaults
+const params = new URLSearchParams(window.location.search);
+const storedApi = localStorage.getItem('API_URL');
+const queryApi = params.get('api');
+const API_URL = queryApi || storedApi || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '') || '';
+
+if (queryApi) localStorage.setItem('API_URL', queryApi);
+
 const fallbackData = {
   status: { message: 'Marketplace online demo (backend offline)' },
   products: [
@@ -17,7 +25,8 @@ function showFallback() {
 
 async function checkBackend() {
   try {
-    const res = await fetch('/api/status', { cache: 'no-store' });
+    const endpoint = API_URL ? `${API_URL}/api/status` : '/api/status';
+    const res = await fetch(endpoint, { cache: 'no-store', mode: API_URL ? 'cors' : 'same-origin' });
     const json = await res.json();
     statusEl.textContent = JSON.stringify(json);
   } catch (e) {
@@ -28,7 +37,8 @@ async function checkBackend() {
 
 async function fetchProducts() {
   try {
-    const res = await fetch('/api/products', { cache: 'no-store' });
+    const endpoint = API_URL ? `${API_URL}/api/products` : '/api/products';
+    const res = await fetch(endpoint, { cache: 'no-store', mode: API_URL ? 'cors' : 'same-origin' });
     if (!res.ok) { showFallback(); return; }
     const items = await res.json();
     if (!items || !items.length) { showFallback(); return; }
