@@ -1,0 +1,53 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: dealerconnect
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  init-db:
+    image: postgres:15
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/sql:/schema:ro
+    environment:
+      PGPASSWORD: password
+    entrypoint: ["/bin/sh", "-c", "until pg_isready -h db -p 5432 -U postgres; do sleep 1; done; psql -h db -U postgres -d dealerconnect -f /schema/schema.sql || true; echo 'schema applied';"]
+    restart: 'no'
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    working_dir: /usr/src/app
+    env_file:
+      - ./backend/.env
+    ports:
+      - '5000:5000'
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/usr/src/app
+    command: ["npm", "run", "dev"]
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:5000/', res => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
