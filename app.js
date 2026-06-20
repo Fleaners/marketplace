@@ -13,6 +13,9 @@ const profileMetaEl = document.getElementById('profileMeta');
 const myUploadsEl = document.getElementById('myUploads');
 const exploreTab = document.getElementById('exploreTab');
 const myUploadsTab = document.getElementById('myUploadsTab');
+const feedCountEl = document.getElementById('feedCount');
+const activeFilterLabelEl = document.getElementById('activeFilterLabel');
+const subbarButtons = Array.from(document.querySelectorAll('.subbarBtn'));
 
 const params = new URLSearchParams(window.location.search);
 const storedApi = localStorage.getItem('API_URL');
@@ -28,6 +31,8 @@ let productsCache = [];
 let myUploadsCache = [];
 let currentBusiness = null;
 let pendingOtpPhone = '';
+let activeFilter = 'all';
+let activeView = 'explore';
 
 const fallbackData = [
   { name: 'Brake Pad Premium Set', description: 'High-demand listing, backend fallback mode.' },
@@ -83,26 +88,46 @@ function hydrateBusinessFromToken() {
 }
 
 function renderProducts(items) {
+  feedCountEl.textContent = String((items || []).length);
+  const filterNames = {
+    all: 'All items',
+    trending: 'Trending parts',
+    suppliers: 'Top suppliers',
+    deals: 'Daily deals',
+    network: 'Explore network',
+  };
+  activeFilterLabelEl.textContent = filterNames[activeFilter] || 'All items';
+
   const list = (items || []).map((product, index) => {
     const name = product.name || product.title || 'Untitled Listing';
     const description = product.description || 'Professional listing from your dealer network.';
     const image = product.image_url ? `<img class="feedImage" src="${product.image_url}" alt="${name}" />` : '';
-    const price = product.price ? `₹${product.price}` : 'Price on request';
+    const price = product.price ? `₹${Number(product.price).toLocaleString('en-IN')}` : 'Price on request';
+    const supplier = product.shop_name || product.business_name || 'Verified supplier';
+    const city = product.city || 'Live marketplace';
     return `
       <article class="feedCard">
         <div class="feedHead">
-          <span>Supplier Spotlight</span>
+          <span>${supplier}</span>
           <span>#${index + 1}</span>
         </div>
         <div class="feedTitle">${name}</div>
         ${image}
+        <div class="productMetaRow">
+          <span class="metaBadge">${city}</span>
+          <span class="metaBadge metaBadgeSoft">${supplier}</span>
+        </div>
         <p class="feedMeta">${description}</p>
         <p class="feedMeta">${price}</p>
+        <div class="cardActions">
+          <button class="actionPrimary" type="button" data-action="inquire" data-product-name="${name}">Contact seller</button>
+          <button class="actionSecondary" type="button" data-action="details">View details</button>
+        </div>
       </article>
     `;
   });
 
-  dataEl.innerHTML = list.join('');
+  dataEl.innerHTML = list.length ? list.join('') : '<article class="feedCard"><p class="feedMeta">No listings match your current filter.</p></article>';
 }
 
 function renderMyUploads(items) {
@@ -137,21 +162,57 @@ function renderMyUploads(items) {
 }
 
 function setActiveTab(tab) {
+  activeView = tab;
   const showUploads = tab === 'uploads';
   exploreTab.classList.toggle('tabActive', !showUploads);
   myUploadsTab.classList.toggle('tabActive', showUploads);
   dataEl.classList.toggle('hidden', showUploads);
   myUploadsEl.classList.toggle('hidden', !showUploads);
+  document.querySelector('.feedIntro').textContent = showUploads
+    ? 'Review and manage your own listings.'
+    : 'Fast discovery like Amazon, with supplier context like LinkedIn.';
 }
 
-function filterProducts(query) {
-  if (!query.trim()) {
-    renderProducts(productsCache);
+function inferFilterTags(item) {
+  const text = `${item.name || ''} ${item.description || ''} ${item.city || ''} ${item.shop_name || ''} ${item.business_name || ''}`.toLowerCase();
+  const tags = new Set(['all']);
+  if (text.match(/premium|fast|deal|top|hot|best|featured/)) tags.add('trending');
+  if (text.match(/supplier|shop|store|vendor|verified|dealer/)) tags.add('suppliers');
+  if (text.match(/deal|offer|discount|sale|cheap/)) tags.add('deals');
+  if (text.match(/network|connect|community|explore/)) tags.add('network');
+  return tags;
+}
+
+function matchesActiveFilter(item) {
+  if (activeFilter === 'all') return true;
+  return inferFilterTags(item).has(activeFilter);
+}
+
+function applyFilters() {
+  const query = globalSearch.value.trim().toLowerCase();
+  const source = activeView === 'uploads' ? myUploadsCache : productsCache;
+  const filtered = source.filter((item) => {
+    const searchable = `${item.name || ''} ${item.description || ''} ${item.city || ''} ${item.shop_name || ''} ${item.business_name || ''}`.toLowerCase();
+    const queryMatch = !query || searchable.includes(query);
+    return queryMatch && matchesActiveFilter(item);
+  });
+
+  if (activeView === 'uploads') {
+    renderMyUploads(filtered);
+    feedCountEl.textContent = String(filtered.length);
+    activeFilterLabelEl.textContent = `${filtered.length} of your listings`;
     return;
   }
-  const q = query.toLowerCase();
-  const filtered = productsCache.filter((item) => (item.name || '').toLowerCase().includes(q) || (item.description || '').toLowerCase().includes(q));
+
   renderProducts(filtered);
+}
+
+function setActiveFilter(filter) {
+  activeFilter = filter;
+  subbarButtons.forEach((button) => {
+    button.classList.toggle('subbarActive', button.dataset.filter === filter);
+  });
+  applyFilters();
 }
 
 async function requestAuth(endpoint, payload) {
@@ -169,7 +230,7 @@ async function checkBackend() {
   try {
     const response = await fetch(`${API_URL}/api/status`, { cache: 'no-store', mode: 'cors' });
     const json = await response.json();
-    statusEl.textContent = json.message || 'Backend online';
+    statusEl.textContent = (json.message || 'Backend online').replace(/DealerConnect/gi, 'MarketPlace.Store');
   } catch (error) {
     statusEl.textContent = 'Backend currently unreachable';
   }
@@ -185,7 +246,7 @@ async function fetchProducts() {
     productsCache = fallbackData;
   }
 
-  renderProducts(productsCache);
+  applyFilters();
 }
 
 async function fetchMyUploads() {
@@ -208,6 +269,7 @@ async function fetchMyUploads() {
   }
 
   renderMyUploads(myUploadsCache);
+  if (activeView === 'uploads') applyFilters();
 }
 
 async function handleLogin(event) {
@@ -388,14 +450,37 @@ async function handleMyUploadAction(event) {
   }
 }
 
+async function handleFeedAction(event) {
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+
+  if (button.dataset.action === 'inquire') {
+    const productName = button.dataset.productName || 'this listing';
+    const text = `Hi, I’m interested in ${productName} from MarketPlace.Store.`;
+    try {
+      await navigator.clipboard.writeText(text);
+      uploadStatusEl.textContent = 'Inquiry text copied to clipboard.';
+    } catch (error) {
+      uploadStatusEl.textContent = text;
+    }
+    return;
+  }
+
+  if (button.dataset.action === 'details') {
+    uploadStatusEl.textContent = 'Tap a listing to compare, contact, or save it. More detailed pages can come next.';
+  }
+}
+
 loginForm.addEventListener('submit', handleLogin);
 otpForm.addEventListener('submit', handleOtpVerify);
 registerForm.addEventListener('submit', handleRegister);
 uploadForm.addEventListener('submit', handleUpload);
 myUploadsEl.addEventListener('click', handleMyUploadAction);
-globalSearch.addEventListener('input', (event) => filterProducts(event.target.value));
+dataEl.addEventListener('click', handleFeedAction);
+globalSearch.addEventListener('input', () => applyFilters());
 exploreTab.addEventListener('click', () => setActiveTab('explore'));
 myUploadsTab.addEventListener('click', () => setActiveTab('uploads'));
+subbarButtons.forEach((button) => button.addEventListener('click', () => setActiveFilter(button.dataset.filter)));
 
 hydrateBusinessFromToken();
 updateIdentityCard();

@@ -22,16 +22,19 @@
   </header>
 
   <nav class="subbar">
-    <span>All</span>
-    <span>Trending Parts</span>
-    <span>Top Suppliers</span>
-    <span>Daily Deals</span>
-    <span>Explore Network</span>
+    <button class="subbarBtn subbarActive" type="button" data-filter="all">All</button>
+    <button class="subbarBtn" type="button" data-filter="trending">Trending Parts</button>
+    <button class="subbarBtn" type="button" data-filter="suppliers">Top Suppliers</button>
+    <button class="subbarBtn" type="button" data-filter="deals">Daily Deals</button>
+    <button class="subbarBtn" type="button" data-filter="network">Explore Network</button>
   </nav>
 
   <main class="layout">
     <aside class="panel accountPanel">
-      <h2>Account</h2>
+      <div class="panelHead panelHeadCompact">
+        <h2>Account</h2>
+        <span class="pill pillSoft">Live profile</span>
+      </div>
       <p id="authStatus" class="muted">Not logged in</p>
 
       <article class="identityCard" id="identityCard">
@@ -74,13 +77,28 @@
     </aside>
 
     <section class="panel feedPanel">
-      <div class="panelHead">
-        <h2>Explore Marketplace Feed</h2>
-        <span class="pill">Inspired by LinkedIn feed</span>
+      <div class="feedHero">
+        <div>
+          <h2>Explore Marketplace Feed</h2>
+          <p class="muted feedIntro">Fast discovery like Amazon, with supplier context like LinkedIn.</p>
+        </div>
+        <div class="heroStats">
+          <div class="statCard">
+            <strong id="feedCount">0</strong>
+            <span>Listings shown</span>
+          </div>
+          <div class="statCard">
+            <strong>1 tap</strong>
+            <span>Filter or search</span>
+          </div>
+        </div>
       </div>
-      <div class="tabBar">
-        <button id="exploreTab" class="tabBtn tabActive" type="button">Explore</button>
-        <button id="myUploadsTab" class="tabBtn" type="button">My Uploads</button>
+      <div class="feedToolbar">
+        <div class="tabBar">
+          <button id="exploreTab" class="tabBtn tabActive" type="button">Explore</button>
+          <button id="myUploadsTab" class="tabBtn" type="button">My Uploads</button>
+        </div>
+        <div class="activeFilter" id="activeFilterLabel">All items</div>
       </div>
       <div id="data" class="feed"></div>
       <div id="myUploads" class="feed hidden"></div>

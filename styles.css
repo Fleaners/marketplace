@@ -78,12 +78,33 @@ body {
 	overflow-x: auto;
 }
 
+.subbarBtn {
+	border: 0;
+	background: transparent;
+	color: inherit;
+	padding: 0;
+	font: inherit;
+	white-space: nowrap;
+	cursor: pointer;
+	opacity: 0.82;
+}
+
+.subbarBtn:hover {
+	opacity: 1;
+}
+
+.subbarActive {
+	color: #ffffff;
+	font-weight: 800;
+	opacity: 1;
+}
+
 .layout {
 	display: grid;
-	grid-template-columns: 300px 1fr 320px;
+	grid-template-columns: 320px minmax(0, 1fr) 320px;
 	gap: 16px;
 	padding: 16px;
-	max-width: 1500px;
+	max-width: 1560px;
 	margin: 0 auto;
 }
 
@@ -104,6 +125,15 @@ body {
 .panel h3 {
 	margin: 0;
 	font-size: 0.95rem;
+}
+
+.panelHeadCompact {
+	margin-bottom: 4px;
+}
+
+.pillSoft {
+	background: #f3f4f6;
+	color: #475467;
 }
 
 .muted {
@@ -217,6 +247,61 @@ button:hover {
 	margin-bottom: 10px;
 }
 
+.feedHero {
+	display: flex;
+	justify-content: space-between;
+	align-items: end;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.feedIntro {
+	margin: 4px 0 0;
+}
+
+.heroStats {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+	min-width: 240px;
+}
+
+.statCard {
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: linear-gradient(180deg, #fff, #f8fafc);
+	display: grid;
+	gap: 2px;
+}
+
+.statCard strong {
+	font-size: 1rem;
+	color: var(--ink);
+}
+
+.statCard span,
+.activeFilter {
+	font-size: 0.78rem;
+	color: var(--muted);
+}
+
+.feedToolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 10px;
+}
+
+.activeFilter {
+	padding: 7px 10px;
+	border-radius: 999px;
+	background: #f8fafc;
+	border: 1px solid var(--line);
+	white-space: nowrap;
+}
+
 .tabBtn {
 	background: #edf2f7;
 	color: #0f172a;
@@ -230,17 +315,19 @@ button:hover {
 }
 
 .feedCard {
+	position: relative;
 	border: 1px solid var(--line);
-	border-radius: 12px;
-	padding: 12px;
+	border-radius: 16px;
+	padding: 14px;
 	background: linear-gradient(180deg, #ffffff, #f8fafc);
+	box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
 }
 
 .feedImage {
 	width: 100%;
-	max-height: 220px;
+	max-height: 240px;
 	object-fit: cover;
-	border-radius: 10px;
+	border-radius: 12px;
 	margin: 8px 0;
 	border: 1px solid #e2e8f0;
 }
@@ -254,13 +341,34 @@ button:hover {
 }
 
 .feedTitle {
-	font-size: 1rem;
+	font-size: 1.04rem;
 	font-weight: 700;
 	margin-bottom: 6px;
 }
 
+.productMetaRow {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-bottom: 8px;
+}
+
+.metaBadge {
+	font-size: 0.74rem;
+	padding: 5px 9px;
+	border-radius: 999px;
+	background: #e0f2fe;
+	color: #075985;
+	font-weight: 700;
+}
+
+.metaBadgeSoft {
+	background: #ecfeff;
+	color: #155e75;
+}
+
 .feedMeta {
-	font-size: 0.8rem;
+	font-size: 0.84rem;
 	color: #667085;
 }
 
@@ -268,6 +376,12 @@ button:hover {
 	display: flex;
 	gap: 8px;
 	margin-top: 10px;
+	flex-wrap: wrap;
+}
+
+.actionPrimary {
+	background: linear-gradient(180deg, #2563eb, #1d4ed8);
+	color: #fff;
 }
 
 .actionSecondary {
@@ -280,14 +394,49 @@ button:hover {
 	color: #fff;
 }
 
+.feedPanel {
+	min-width: 0;
+}
+
 @media (max-width: 1180px) {
 	.layout {
 		grid-template-columns: 1fr;
+	}
+
+	.feedHero,
+	.feedToolbar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.heroStats {
+		min-width: 0;
 	}
 }
 
 @media (max-width: 700px) {
 	.topbar {
+		grid-template-columns: 1fr;
+	}
+
+	.searchWrap {
+		order: 2;
+	}
+
+	.brandWrap {
+		max-width: 210px;
+	}
+
+	.layout {
+		padding: 12px;
+		gap: 12px;
+	}
+
+	.panel {
+		padding: 12px;
+	}
+
+	.heroStats {
 		grid-template-columns: 1fr;
 	}
 	.badge {
