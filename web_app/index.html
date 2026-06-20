@@ -100,22 +100,42 @@
         </div>
         <div class="activeFilter" id="activeFilterLabel">All items</div>
       </div>
-      <div id="data" class="feed"></div>
-      <div id="myUploads" class="feed hidden"></div>
+      <div id="data" class="feed feedGrid"></div>
+      <div id="myUploads" class="feed feedGrid hidden"></div>
     </section>
 
     <aside class="panel uploadPanel">
-      <h2>Upload Product Data</h2>
-      <p class="muted">Login required to publish product listings.</p>
-      <form id="uploadForm" class="stack">
-        <label>Product Name<input id="uploadName" type="text" required /></label>
-        <label>Selling Price<input id="uploadPrice" type="number" min="0.01" step="0.01" required /></label>
-        <label>Cost Price<input id="uploadCostPrice" type="number" min="0.01" step="0.01" required /></label>
-        <label>Stock<input id="uploadStock" type="number" min="0" step="1" required /></label>
-        <label>Image (optional)<input id="uploadImage" type="file" accept="image/*" /></label>
-        <button type="submit">Upload Data</button>
-      </form>
-      <p id="uploadStatus" class="muted">No upload yet.</p>
+      <div class="railStack">
+        <article class="railCard">
+          <div class="panelHead panelHeadCompact">
+            <h2>Top Suppliers</h2>
+            <span class="pill pillSoft">LinkedIn-style</span>
+          </div>
+          <div id="topSuppliersList" class="railList"></div>
+        </article>
+
+        <article class="railCard">
+          <div class="panelHead panelHeadCompact">
+            <h2>Trending Now</h2>
+            <span class="pill pillSoft">Hot listings</span>
+          </div>
+          <div id="trendingNowList" class="railList"></div>
+        </article>
+      </div>
+
+      <div class="uploadBlock">
+        <h2>Upload Product Data</h2>
+        <p class="muted">Login required to publish product listings.</p>
+        <form id="uploadForm" class="stack">
+          <label>Product Name<input id="uploadName" type="text" required /></label>
+          <label>Selling Price<input id="uploadPrice" type="number" min="0.01" step="0.01" required /></label>
+          <label>Cost Price<input id="uploadCostPrice" type="number" min="0.01" step="0.01" required /></label>
+          <label>Stock<input id="uploadStock" type="number" min="0" step="1" required /></label>
+          <label>Image (optional)<input id="uploadImage" type="file" accept="image/*" /></label>
+          <button type="submit">Upload Data</button>
+        </form>
+        <p id="uploadStatus" class="muted">No upload yet.</p>
+      </div>
     </section>
   </main>
 </body>
