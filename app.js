@@ -7,6 +7,7 @@ const otpForm = document.getElementById('otpForm');
 const otpCountdownEl = document.getElementById('otpCountdown');
 const resendOtpBtn = document.getElementById('resendOtpBtn');
 const registerForm = document.getElementById('registerForm');
+const registerStatusEl = document.getElementById('registerStatus');
 const uploadForm = document.getElementById('uploadForm');
 const globalSearch = document.getElementById('globalSearch');
 const profileAvatarEl = document.getElementById('profileAvatar');
@@ -476,6 +477,7 @@ async function handleOtpVerify(event) {
 
 async function handleRegister(event) {
   event.preventDefault();
+  const registerButton = registerForm.querySelector('button[type="submit"]');
   const gstNumber = document.getElementById('registerGst').value.trim();
   const payload = {
     shop_name: document.getElementById('registerShopName').value.trim(),
@@ -485,16 +487,34 @@ async function handleRegister(event) {
     password: document.getElementById('registerPassword').value,
   };
 
+  if (registerStatusEl) registerStatusEl.textContent = 'Creating account...';
+  if (registerButton) {
+    registerButton.disabled = true;
+    registerButton.textContent = 'Registering...';
+  }
+
   try {
     const result = await requestAuth('/api/auth/register', payload);
     authToken = result.token;
     currentBusiness = result.business;
     localStorage.setItem('AUTH_TOKEN', authToken);
     setAuthStatus(`Registered and logged in as ${result.business.shop_name}`);
+    if (registerStatusEl) registerStatusEl.textContent = 'Account created successfully. You are now logged in.';
+    registerForm.reset();
     updateIdentityCard();
     await fetchMyUploads();
   } catch (error) {
     setAuthStatus(`Registration failed: ${error.message}`);
+    if (registerStatusEl) {
+      registerStatusEl.textContent = error.message.includes('already registered')
+        ? 'This phone number is already registered. Try logging in or use another number.'
+        : `Registration failed: ${error.message}`;
+    }
+  } finally {
+    if (registerButton) {
+      registerButton.disabled = false;
+      registerButton.textContent = 'Register';
+    }
   }
 }
 
