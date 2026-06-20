@@ -411,13 +411,14 @@ async function handleOtpVerify(event) {
 
 async function handleRegister(event) {
   event.preventDefault();
+  const gstNumber = document.getElementById('registerGst').value.trim();
   const payload = {
     shop_name: document.getElementById('registerShopName').value.trim(),
     phone: document.getElementById('registerPhone').value.trim(),
-    gst_number: document.getElementById('registerGst').value.trim(),
     city: document.getElementById('registerCity').value.trim(),
     password: document.getElementById('registerPassword').value,
   };
+  if (gstNumber) payload.gst_number = gstNumber;
 
   try {
     const result = await requestAuth('/api/auth/register', payload);
