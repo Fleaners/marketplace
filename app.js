@@ -16,6 +16,8 @@ const myUploadsTab = document.getElementById('myUploadsTab');
 const feedCountEl = document.getElementById('feedCount');
 const activeFilterLabelEl = document.getElementById('activeFilterLabel');
 const subbarButtons = Array.from(document.querySelectorAll('.subbarBtn'));
+const topSuppliersListEl = document.getElementById('topSuppliersList');
+const trendingNowListEl = document.getElementById('trendingNowList');
 
 const params = new URLSearchParams(window.location.search);
 const storedApi = localStorage.getItem('API_URL');
@@ -101,27 +103,34 @@ function renderProducts(items) {
   const list = (items || []).map((product, index) => {
     const name = product.name || product.title || 'Untitled Listing';
     const description = product.description || 'Professional listing from your dealer network.';
-    const image = product.image_url ? `<img class="feedImage" src="${product.image_url}" alt="${name}" />` : '';
+    const image = product.image_url
+      ? `<img class="feedImage" src="${product.image_url}" alt="${name}" />`
+      : `<div class="feedImage feedImagePlaceholder"><span>No image preview</span></div>`;
     const price = product.price ? `₹${Number(product.price).toLocaleString('en-IN')}` : 'Price on request';
     const supplier = product.shop_name || product.business_name || 'Verified supplier';
     const city = product.city || 'Live marketplace';
     return `
       <article class="feedCard">
-        <div class="feedHead">
-          <span>${supplier}</span>
-          <span>#${index + 1}</span>
-        </div>
-        <div class="feedTitle">${name}</div>
         ${image}
-        <div class="productMetaRow">
-          <span class="metaBadge">${city}</span>
-          <span class="metaBadge metaBadgeSoft">${supplier}</span>
-        </div>
-        <p class="feedMeta">${description}</p>
-        <p class="feedMeta">${price}</p>
-        <div class="cardActions">
-          <button class="actionPrimary" type="button" data-action="inquire" data-product-name="${name}">Contact seller</button>
-          <button class="actionSecondary" type="button" data-action="details">View details</button>
+        <div class="feedCardBody">
+          <div class="feedHead">
+            <span>${supplier}</span>
+            <span>#${index + 1}</span>
+          </div>
+          <div class="feedTitle">${name}</div>
+          <div class="productMetaRow">
+            <span class="metaBadge">${city}</span>
+            <span class="metaBadge metaBadgeSoft">${supplier}</span>
+          </div>
+          <p class="feedMeta">${description}</p>
+          <div class="priceRow">
+            <strong>${price}</strong>
+            <span class="muted">Instant response</span>
+          </div>
+          <div class="cardActions">
+            <button class="actionPrimary" type="button" data-action="inquire" data-product-name="${encodeURIComponent(name)}">Contact seller</button>
+            <button class="actionSecondary" type="button" data-action="details">View details</button>
+          </div>
         </div>
       </article>
     `;
@@ -139,20 +148,24 @@ function renderMyUploads(items) {
   const list = items.map((product) => {
     const name = product.name || 'Untitled Listing';
     const description = product.description || 'No description provided.';
-    const image = product.image_url ? `<img class="feedImage" src="${product.image_url}" alt="${name}" />` : '';
+    const image = product.image_url
+      ? `<img class="feedImage" src="${product.image_url}" alt="${name}" />`
+      : `<div class="feedImage feedImagePlaceholder"><span>No image preview</span></div>`;
     return `
       <article class="feedCard" data-product-id="${product.id}">
-        <div class="feedHead">
-          <span>My Listing</span>
-          <span>ID ${product.id}</span>
-        </div>
-        <div class="feedTitle">${name}</div>
         ${image}
-        <p class="feedMeta">${description}</p>
-        <p class="feedMeta">Price: ₹${product.price || 0} • Cost: ₹${product.cost_price || 0} • Stock: ${product.stock || 0}</p>
-        <div class="cardActions">
-          <button class="actionSecondary" data-action="edit" type="button">Edit</button>
-          <button class="actionDanger" data-action="delete" type="button">Delete</button>
+        <div class="feedCardBody">
+          <div class="feedHead">
+            <span>My Listing</span>
+            <span>ID ${product.id}</span>
+          </div>
+          <div class="feedTitle">${name}</div>
+          <p class="feedMeta">${description}</p>
+          <p class="feedMeta">Price: ₹${product.price || 0} • Cost: ₹${product.cost_price || 0} • Stock: ${product.stock || 0}</p>
+          <div class="cardActions">
+            <button class="actionSecondary" data-action="edit" type="button">Edit</button>
+            <button class="actionDanger" data-action="delete" type="button">Delete</button>
+          </div>
         </div>
       </article>
     `;
@@ -205,6 +218,7 @@ function applyFilters() {
   }
 
   renderProducts(filtered);
+  renderRail(filtered.length ? filtered : source);
 }
 
 function setActiveFilter(filter) {
@@ -213,6 +227,45 @@ function setActiveFilter(filter) {
     button.classList.toggle('subbarActive', button.dataset.filter === filter);
   });
   applyFilters();
+}
+
+function inferTrendingScore(item) {
+  const text = `${item.name || ''} ${item.description || ''}`.toLowerCase();
+  const keywords = ['premium', 'top', 'fast', 'deal', 'sale', 'featured', 'hot', 'best'];
+  return keywords.reduce((score, keyword, index) => score + (text.includes(keyword) ? (keywords.length - index) : 0), item.image_url ? 2 : 0);
+}
+
+function renderRail(items) {
+  const source = (items || []).filter(Boolean);
+  const supplierMap = new Map();
+
+  source.forEach((item) => {
+    const name = item.shop_name || item.business_name || 'Verified supplier';
+    const entry = supplierMap.get(name) || { name, count: 0, city: item.city || 'Marketplace', sample: item.name || 'Inventory' };
+    entry.count += 1;
+    supplierMap.set(name, entry);
+  });
+
+  const topSuppliers = Array.from(supplierMap.values()).sort((a, b) => b.count - a.count).slice(0, 5);
+  const trendingItems = source.slice().sort((a, b) => inferTrendingScore(b) - inferTrendingScore(a)).slice(0, 5);
+
+  topSuppliersListEl.innerHTML = topSuppliers.length
+    ? topSuppliers.map((supplier) => `
+        <button class="railItem" type="button" data-rail-query="${encodeURIComponent(supplier.name)}">
+          <span class="railItemTitle">${supplier.name}</span>
+          <span class="railItemMeta">${supplier.count} listings • ${supplier.city}</span>
+        </button>
+      `).join('')
+    : '<p class="muted railEmpty">Supplier insights will appear here once listings are live.</p>';
+
+  trendingNowListEl.innerHTML = trendingItems.length
+    ? trendingItems.map((item) => `
+        <button class="railItem railItemCompact" type="button" data-rail-query="${encodeURIComponent(item.name || item.title || '')}">
+          <span class="railItemTitle">${item.name || item.title || 'Untitled Listing'}</span>
+          <span class="railItemMeta">${item.shop_name || item.business_name || 'Marketplace seller'} • ${item.price ? `₹${Number(item.price).toLocaleString('en-IN')}` : 'Price on request'}</span>
+        </button>
+      `).join('')
+    : '<p class="muted railEmpty">Trending items will appear here as catalog data grows.</p>';
 }
 
 async function requestAuth(endpoint, payload) {
@@ -471,12 +524,22 @@ async function handleFeedAction(event) {
   }
 }
 
+function handleRailAction(event) {
+  const button = event.target.closest('button[data-rail-query]');
+  if (!button) return;
+  const query = decodeURIComponent(button.dataset.railQuery || '');
+  globalSearch.value = query;
+  applyFilters();
+  setActiveTab('explore');
+}
+
 loginForm.addEventListener('submit', handleLogin);
 otpForm.addEventListener('submit', handleOtpVerify);
 registerForm.addEventListener('submit', handleRegister);
 uploadForm.addEventListener('submit', handleUpload);
 myUploadsEl.addEventListener('click', handleMyUploadAction);
 dataEl.addEventListener('click', handleFeedAction);
+document.querySelector('.uploadPanel').addEventListener('click', handleRailAction);
 globalSearch.addEventListener('input', () => applyFilters());
 exploreTab.addEventListener('click', () => setActiveTab('explore'));
 myUploadsTab.addEventListener('click', () => setActiveTab('uploads'));

@@ -237,6 +237,12 @@ button:hover {
 	gap: 10px;
 }
 
+.feedGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 14px;
+}
+
 .hidden {
 	display: none;
 }
@@ -318,23 +324,38 @@ button:hover {
 	position: relative;
 	border: 1px solid var(--line);
 	border-radius: 16px;
-	padding: 14px;
+	overflow: hidden;
 	background: linear-gradient(180deg, #ffffff, #f8fafc);
 	box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
 }
 
+.feedCardBody {
+	padding: 14px;
+}
+
 .feedImage {
 	width: 100%;
-	max-height: 240px;
+	height: 230px;
 	object-fit: cover;
-	border-radius: 12px;
-	margin: 8px 0;
-	border: 1px solid #e2e8f0;
+	display: block;
+	background: #f3f4f6;
+	border-bottom: 1px solid #e2e8f0;
+}
+
+.feedImagePlaceholder {
+	display: grid;
+	place-items: center;
+	color: #64748b;
+	font-size: 0.85rem;
+	font-weight: 700;
+	background: linear-gradient(135deg, #eef2ff, #f8fafc 55%, #e0f2fe);
 }
 
 .feedHead {
 	display: flex;
 	justify-content: space-between;
+	gap: 12px;
+	align-items: center;
 	margin-bottom: 8px;
 	color: #475467;
 	font-size: 0.8rem;
@@ -372,6 +393,20 @@ button:hover {
 	color: #667085;
 }
 
+.priceRow {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	margin-top: 4px;
+	margin-bottom: 10px;
+}
+
+.priceRow strong {
+	font-size: 1.05rem;
+	color: var(--ink);
+}
+
 .cardActions {
 	display: flex;
 	gap: 8px;
@@ -398,6 +433,69 @@ button:hover {
 	min-width: 0;
 }
 
+.railStack {
+	display: grid;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+
+.railCard {
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	padding: 12px;
+	background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.railList {
+	display: grid;
+	gap: 8px;
+}
+
+.railItem {
+	text-align: left;
+	display: grid;
+	gap: 4px;
+	padding: 10px 12px;
+	border-radius: 12px;
+	border: 1px solid #dbe2ea;
+	background: #fff;
+	box-shadow: 0 6px 18px rgba(16, 24, 40, 0.04);
+	cursor: pointer;
+}
+
+.railItem:hover {
+	border-color: #bfd4f6;
+	background: #f8fbff;
+}
+
+.railItemCompact {
+	background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.railItemTitle {
+	font-size: 0.9rem;
+	font-weight: 800;
+	color: var(--ink);
+}
+
+.railItemMeta {
+	font-size: 0.77rem;
+	color: var(--muted);
+}
+
+.railEmpty {
+	margin: 4px 0 0;
+}
+
+.uploadBlock {
+	border-top: 1px solid var(--line);
+	padding-top: 10px;
+}
+
+.uploadBlock .stack {
+	margin-top: 8px;
+}
+
 @media (max-width: 1180px) {
 	.layout {
 		grid-template-columns: 1fr;
@@ -411,6 +509,10 @@ button:hover {
 
 	.heroStats {
 		min-width: 0;
+	}
+
+	.feedGrid {
+		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 	}
 }
 
@@ -437,6 +539,10 @@ button:hover {
 	}
 
 	.heroStats {
+		grid-template-columns: 1fr;
+	}
+
+	.feedGrid {
 		grid-template-columns: 1fr;
 	}
 	.badge {
