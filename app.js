@@ -30,11 +30,17 @@ const params = new URLSearchParams(window.location.search);
 const storedApi = localStorage.getItem('API_URL');
 const queryApi = params.get('api');
 const GOOGLE_CLIENT_ID = params.get('google_client_id') || localStorage.getItem('GOOGLE_CLIENT_ID') || '';
-const FIREBASE_API_KEY = params.get('firebase_api_key') || localStorage.getItem('FIREBASE_API_KEY') || '';
-const FIREBASE_AUTH_DOMAIN = params.get('firebase_auth_domain') || localStorage.getItem('FIREBASE_AUTH_DOMAIN') || '';
-const FIREBASE_PROJECT_ID = params.get('firebase_project_id') || localStorage.getItem('FIREBASE_PROJECT_ID') || '';
-const FIREBASE_APP_ID = params.get('firebase_app_id') || localStorage.getItem('FIREBASE_APP_ID') || '';
-const FIREBASE_MESSAGING_SENDER_ID = params.get('firebase_messaging_sender_id') || localStorage.getItem('FIREBASE_MESSAGING_SENDER_ID') || '';
+const DEFAULT_FIREBASE_API_KEY = 'AIzaSyChPAYRigFB8AIZMzFysYi_ZOgp3alRkiM';
+const DEFAULT_FIREBASE_AUTH_DOMAIN = 'marketplace-store-fef91.firebaseapp.com';
+const DEFAULT_FIREBASE_PROJECT_ID = 'marketplace-store-fef91';
+const DEFAULT_FIREBASE_APP_ID = '1:360203367218:web:550bc2999d22266eef5d2b';
+const DEFAULT_FIREBASE_MESSAGING_SENDER_ID = '360203367218';
+
+const FIREBASE_API_KEY = params.get('firebase_api_key') || localStorage.getItem('FIREBASE_API_KEY') || DEFAULT_FIREBASE_API_KEY;
+const FIREBASE_AUTH_DOMAIN = params.get('firebase_auth_domain') || localStorage.getItem('FIREBASE_AUTH_DOMAIN') || DEFAULT_FIREBASE_AUTH_DOMAIN;
+const FIREBASE_PROJECT_ID = params.get('firebase_project_id') || localStorage.getItem('FIREBASE_PROJECT_ID') || DEFAULT_FIREBASE_PROJECT_ID;
+const FIREBASE_APP_ID = params.get('firebase_app_id') || localStorage.getItem('FIREBASE_APP_ID') || DEFAULT_FIREBASE_APP_ID;
+const FIREBASE_MESSAGING_SENDER_ID = params.get('firebase_messaging_sender_id') || localStorage.getItem('FIREBASE_MESSAGING_SENDER_ID') || DEFAULT_FIREBASE_MESSAGING_SENDER_ID;
 const PERMANENT_API_URL = 'https://marketplacestore-production.up.railway.app';
 const API_URL = queryApi || storedApi || PERMANENT_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '') || '';
 
