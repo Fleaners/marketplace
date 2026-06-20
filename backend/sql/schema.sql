@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS businesses (
   id SERIAL PRIMARY KEY,
   shop_name TEXT NOT NULL,
   phone TEXT UNIQUE NOT NULL,
+  email TEXT,
   password_hash TEXT NOT NULL,
   gst_number TEXT,
   city TEXT,
@@ -17,6 +18,8 @@ ALTER TABLE businesses ADD COLUMN IF NOT EXISTS latitude NUMERIC(10,7);
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS longitude NUMERIC(10,7);
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS profile_image_url TEXT;
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS email TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_businesses_email_unique ON businesses (LOWER(email)) WHERE email IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS products (
   id SERIAL PRIMARY KEY,

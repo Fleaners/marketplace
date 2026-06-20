@@ -1,7 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const upload = require('../utils/multer');
-const { register, login, requestLoginOtp, verifyLoginOtp } = require('../controllers/authController');
+const { register, login, requestLoginOtp, verifyLoginOtp, googleLogin } = require('../controllers/authController');
 const { runValidation } = require('../middleware/validators');
 
 const router = express.Router();
@@ -12,9 +12,10 @@ router.post(
   [
     body('shop_name').notEmpty().withMessage('Shop name is required'),
     body('phone').notEmpty().withMessage('Phone is required'),
+    body('email').optional({ values: 'falsy' }).isEmail().withMessage('Email must be valid'),
     body('gst_number').optional({ values: 'falsy' }),
     body('city').notEmpty().withMessage('City is required'),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('password').optional({ values: 'falsy' }).isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   ],
   runValidation,
   register
@@ -23,10 +24,7 @@ router.post(
 router.post(
   '/login/request-otp',
   [
-    body('phone').notEmpty().withMessage('Phone is required'),
-    body('password').notEmpty().withMessage('Password is required'),
-    body('channel').optional().isIn(['sms', 'email']).withMessage('Channel must be sms or email'),
-    body('email').optional().isEmail().withMessage('Email must be valid'),
+    body('identifier').notEmpty().withMessage('Phone or email is required'),
   ],
   runValidation,
   requestLoginOtp
@@ -35,11 +33,20 @@ router.post(
 router.post(
   '/login/verify-otp',
   [
-    body('phone').notEmpty().withMessage('Phone is required'),
+    body('identifier').notEmpty().withMessage('Phone or email is required'),
     body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
   ],
   runValidation,
   verifyLoginOtp
+);
+
+router.post(
+  '/login/google',
+  [
+    body('credential').notEmpty().withMessage('Google credential is required'),
+  ],
+  runValidation,
+  googleLogin
 );
 
 router.post(

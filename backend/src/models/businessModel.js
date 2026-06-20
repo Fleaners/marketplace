@@ -1,11 +1,11 @@
 const pool = require('../../config/db');
 
-async function createBusiness({ shop_name, phone, gst_number, city, latitude, longitude, profile_image_url, password_hash, description }) {
+async function createBusiness({ shop_name, phone, email, gst_number, city, latitude, longitude, profile_image_url, password_hash, description }) {
   const result = await pool.query(
-    `INSERT INTO businesses (shop_name, phone, gst_number, city, latitude, longitude, profile_image_url, password_hash, description)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     RETURNING id, shop_name, phone, gst_number, city, latitude, longitude, profile_image_url, description, created_at`,
-    [shop_name, phone, gst_number, city, latitude, longitude, profile_image_url, password_hash, description]
+    `INSERT INTO businesses (shop_name, phone, email, gst_number, city, latitude, longitude, profile_image_url, password_hash, description)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     RETURNING id, shop_name, phone, email, gst_number, city, latitude, longitude, profile_image_url, description, created_at`,
+    [shop_name, phone, email, gst_number, city, latitude, longitude, profile_image_url, password_hash, description]
   );
   return result.rows[0];
 }
@@ -15,8 +15,21 @@ async function getBusinessByPhone(phone) {
   return result.rows[0];
 }
 
+async function getBusinessByEmail(email) {
+  const result = await pool.query('SELECT * FROM businesses WHERE LOWER(email) = LOWER($1)', [email]);
+  return result.rows[0];
+}
+
+async function getBusinessByPhoneOrEmail(identifier) {
+  const result = await pool.query(
+    'SELECT * FROM businesses WHERE phone = $1 OR LOWER(email) = LOWER($1)',
+    [identifier]
+  );
+  return result.rows[0];
+}
+
 async function getBusinessById(id) {
-  const result = await pool.query('SELECT id, shop_name, phone, gst_number, city, latitude, longitude, profile_image_url, description, created_at FROM businesses WHERE id = $1', [id]);
+  const result = await pool.query('SELECT id, shop_name, phone, email, gst_number, city, latitude, longitude, profile_image_url, description, created_at FROM businesses WHERE id = $1', [id]);
   return result.rows[0];
 }
 
@@ -36,11 +49,11 @@ async function updateBusiness(id, fields) {
   values.push(id);
 
   const result = await pool.query(
-    `UPDATE businesses SET ${setClauses.join(', ')} WHERE id = $${index} RETURNING id, shop_name, phone, gst_number, city, latitude, longitude, profile_image_url, description, created_at`,
+    `UPDATE businesses SET ${setClauses.join(', ')} WHERE id = $${index} RETURNING id, shop_name, phone, email, gst_number, city, latitude, longitude, profile_image_url, description, created_at`,
     values
   );
 
   return result.rows[0];
 }
 
-module.exports = { createBusiness, getBusinessByPhone, getBusinessById, updateBusiness };
+module.exports = { createBusiness, getBusinessByPhone, getBusinessByEmail, getBusinessByPhoneOrEmail, getBusinessById, updateBusiness };
