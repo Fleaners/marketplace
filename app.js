@@ -41,8 +41,8 @@ const FIREBASE_AUTH_DOMAIN = params.get('firebase_auth_domain') || localStorage.
 const FIREBASE_PROJECT_ID = params.get('firebase_project_id') || localStorage.getItem('FIREBASE_PROJECT_ID') || DEFAULT_FIREBASE_PROJECT_ID;
 const FIREBASE_APP_ID = params.get('firebase_app_id') || localStorage.getItem('FIREBASE_APP_ID') || DEFAULT_FIREBASE_APP_ID;
 const FIREBASE_MESSAGING_SENDER_ID = params.get('firebase_messaging_sender_id') || localStorage.getItem('FIREBASE_MESSAGING_SENDER_ID') || DEFAULT_FIREBASE_MESSAGING_SENDER_ID;
-const PERMANENT_API_URL = 'https://us-central1-marketplace-store-fef91.cloudfunctions.net';
-const API_URL = queryApi || storedApi || PERMANENT_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001' : '') || '';
+const PERMANENT_API_URL = 'https://marketplacestore-production.up.railway.app';
+const API_URL = queryApi || storedApi || PERMANENT_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '') || '';
 
 if (queryApi) localStorage.setItem('API_URL', queryApi);
 if (!queryApi && !storedApi && PERMANENT_API_URL) localStorage.setItem('API_URL', PERMANENT_API_URL);
