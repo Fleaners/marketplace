@@ -6,8 +6,17 @@ CREATE TABLE IF NOT EXISTS businesses (
   password_hash TEXT NOT NULL,
   gst_number TEXT,
   city TEXT,
+  latitude NUMERIC(10,7),
+  longitude NUMERIC(10,7),
+  profile_image_url TEXT,
+  description TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
+
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS latitude NUMERIC(10,7);
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS longitude NUMERIC(10,7);
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS profile_image_url TEXT;
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS description TEXT;
 
 CREATE TABLE IF NOT EXISTS products (
   id SERIAL PRIMARY KEY,

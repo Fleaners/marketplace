@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const routes = require('./routes');
 const { errorHandler } = require('./middleware/errorHandler');
+const pool = require('../config/db');
 
 dotenv.config();
 
@@ -36,13 +37,31 @@ if (fs.existsSync(webAppPath)) {
 }
 
 app.use(errorHandler);
+
+async function initializeDatabaseSchema() {
+  const schemaPath = path.join(__dirname, '..', 'sql', 'schema.sql');
+  if (!process.env.DATABASE_URL || !fs.existsSync(schemaPath)) {
+    return;
+  }
+
+  const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+  await pool.query(schemaSql);
+}
+
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`DealerConnect backend listening on port ${PORT}`);
-    if (fs.existsSync(webAppPath)) {
-      console.log(`Static web_app available at http://127.0.0.1:${PORT}/`);
-    }
-  });
+  initializeDatabaseSchema()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`DealerConnect backend listening on port ${PORT}`);
+        if (fs.existsSync(webAppPath)) {
+          console.log(`Static web_app available at http://127.0.0.1:${PORT}/`);
+        }
+      });
+    })
+    .catch((error) => {
+      console.error('Failed to initialize database schema:', error.message);
+      process.exit(1);
+    });
 }
 
 module.exports = app;
