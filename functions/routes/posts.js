@@ -1,11 +1,11 @@
 import express from 'express';
-import * as admin from 'firebase-admin';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
 function getDb() {
-  return admin.firestore();
+  return getFirestore();
 }
 
 router.use(verifyToken);
@@ -13,6 +13,7 @@ router.use(verifyToken);
 // Get all posts for business
 router.get('/', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -35,6 +36,7 @@ router.get('/', async (req, res, next) => {
 // Create post
 router.post('/', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -53,7 +55,7 @@ router.post('/', async (req, res, next) => {
       .add({
         content,
         image_url: imageUrl,
-        created_at: admin.firestore.FieldValue.serverTimestamp(),
+        created_at: FieldValue.serverTimestamp(),
       });
     
     res.status(201).json({ id: docRef.id, message: 'Post created' });
@@ -65,6 +67,7 @@ router.post('/', async (req, res, next) => {
 // Delete post
 router.delete('/:id', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });

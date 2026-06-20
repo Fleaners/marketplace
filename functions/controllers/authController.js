@@ -1,4 +1,5 @@
-import * as admin from 'firebase-admin';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import * as jwt from 'jsonwebtoken';
 import * as bcryptjs from 'bcryptjs';
 
@@ -6,14 +7,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-productio
 
 // Lazy initialize database
 function getDb() {
-  return admin.firestore();
+  return getFirestore();
 }
 
 /**
  * Get Firebase Auth client
  */
 export async function getFirebaseAuthClient() {
-  return admin.auth();
+  return getAuth();
 }
 
 /**
@@ -230,7 +231,7 @@ export async function signup(req, res, next) {
       phone,
       email: email?.toLowerCase() || null,
       password_hash,
-      created_at: admin.firestore.FieldValue.serverTimestamp(),
+      created_at: FieldValue.serverTimestamp(),
     });
     
     const business = { id: businessRef.id, shop_name: shopName, phone, email };

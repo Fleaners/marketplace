@@ -1,12 +1,12 @@
 import express from 'express';
-import * as admin from 'firebase-admin';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import PDFDocument from 'pdfkit';
 import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
 function getDb() {
-  return admin.firestore();
+  return getFirestore();
 }
 
 router.use(verifyToken);
@@ -14,6 +14,7 @@ router.use(verifyToken);
 // Get all invoices for business
 router.get('/', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -36,6 +37,7 @@ router.get('/', async (req, res, next) => {
 // Create invoice
 router.post('/', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -54,7 +56,7 @@ router.post('/', async (req, res, next) => {
         subtotal: parseFloat(subtotal) || 0,
         gst_amount: parseFloat(gstAmount) || 0,
         total: parseFloat(total) || 0,
-        created_at: admin.firestore.FieldValue.serverTimestamp(),
+        created_at: FieldValue.serverTimestamp(),
       });
     
     // Add items
@@ -78,6 +80,7 @@ router.post('/', async (req, res, next) => {
 // Get invoice by ID
 router.get('/:id', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -106,6 +109,7 @@ router.get('/:id', async (req, res, next) => {
 // Generate PDF for invoice
 router.get('/:id/pdf', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });

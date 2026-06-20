@@ -1,11 +1,11 @@
 import express from 'express';
-import * as admin from 'firebase-admin';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
 function getDb() {
-  return admin.firestore();
+  return getFirestore();
 }
 
 router.use(verifyToken);
@@ -13,6 +13,7 @@ router.use(verifyToken);
 // Get business profile
 router.get('/profile', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -32,6 +33,7 @@ router.get('/profile', async (req, res, next) => {
 // Update business profile
 router.put('/profile', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -48,7 +50,7 @@ router.put('/profile', async (req, res, next) => {
       ...(latitude && { latitude }),
       ...(longitude && { longitude }),
       ...(profileImageUrl && { profile_image_url: profileImageUrl }),
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      updated_at: FieldValue.serverTimestamp(),
     };
     
     await db.collection('businesses').doc(businessId).update(updateData);

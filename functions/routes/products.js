@@ -1,11 +1,11 @@
 import express from 'express';
-import * as admin from 'firebase-admin';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
 function getDb() {
-  return admin.firestore();
+  return getFirestore();
 }
 
 router.use(verifyToken);
@@ -13,6 +13,7 @@ router.use(verifyToken);
 // Get all products for business
 router.get('/', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -34,6 +35,7 @@ router.get('/', async (req, res, next) => {
 // Create product
 router.post('/', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -52,7 +54,7 @@ router.post('/', async (req, res, next) => {
         cost_price: parseFloat(costPrice) || 0,
         stock: parseInt(stock) || 0,
         image_url: imageUrl,
-        created_at: admin.firestore.FieldValue.serverTimestamp(),
+        created_at: FieldValue.serverTimestamp(),
       });
     
     res.status(201).json({ id: docRef.id, message: 'Product created' });
@@ -64,6 +66,7 @@ router.post('/', async (req, res, next) => {
 // Get product by ID
 router.get('/:id', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -89,6 +92,7 @@ router.get('/:id', async (req, res, next) => {
 // Update product
 router.put('/:id', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -103,7 +107,7 @@ router.put('/:id', async (req, res, next) => {
       ...(costPrice !== undefined && { cost_price: parseFloat(costPrice) }),
       ...(stock !== undefined && { stock: parseInt(stock) }),
       ...(imageUrl && { image_url: imageUrl }),
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      updated_at: FieldValue.serverTimestamp(),
     };
     
     await db
@@ -122,6 +126,7 @@ router.put('/:id', async (req, res, next) => {
 // Delete product
 router.delete('/:id', async (req, res, next) => {
   try {
+    const db = getDb();
     const businessId = req.user?.businessId;
     if (!businessId) {
       return res.status(401).json({ error: 'Unauthorized' });
