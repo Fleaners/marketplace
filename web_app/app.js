@@ -174,6 +174,45 @@ function renderMyUploads(items) {
   myUploadsEl.innerHTML = list.join('');
 }
 
+function inferTrendingScore(item) {
+  const text = `${item.name || ''} ${item.description || ''}`.toLowerCase();
+  const keywords = ['premium', 'top', 'fast', 'deal', 'sale', 'featured', 'hot', 'best'];
+  return keywords.reduce((score, keyword, index) => score + (text.includes(keyword) ? (keywords.length - index) : 0), item.image_url ? 2 : 0);
+}
+
+function renderRail(items) {
+  const source = (items || []).filter(Boolean);
+  const supplierMap = new Map();
+
+  source.forEach((item) => {
+    const name = item.shop_name || item.business_name || 'Verified supplier';
+    const entry = supplierMap.get(name) || { name, count: 0, city: item.city || 'Marketplace' };
+    entry.count += 1;
+    supplierMap.set(name, entry);
+  });
+
+  const topSuppliers = Array.from(supplierMap.values()).sort((a, b) => b.count - a.count).slice(0, 5);
+  const trendingItems = source.slice().sort((a, b) => inferTrendingScore(b) - inferTrendingScore(a)).slice(0, 5);
+
+  topSuppliersListEl.innerHTML = topSuppliers.length
+    ? topSuppliers.map((supplier) => `
+        <button class="railItem" type="button" data-rail-query="${encodeURIComponent(supplier.name)}">
+          <span class="railItemTitle">${supplier.name}</span>
+          <span class="railItemMeta">${supplier.count} listings • ${supplier.city}</span>
+        </button>
+      `).join('')
+    : '<p class="muted railEmpty">Supplier insights will appear here once listings are live.</p>';
+
+  trendingNowListEl.innerHTML = trendingItems.length
+    ? trendingItems.map((item) => `
+        <button class="railItem railItemCompact" type="button" data-rail-query="${encodeURIComponent(item.name || item.title || '')}">
+          <span class="railItemTitle">${item.name || item.title || 'Untitled Listing'}</span>
+          <span class="railItemMeta">${item.shop_name || item.business_name || 'Marketplace seller'} • ${item.price ? `₹${Number(item.price).toLocaleString('en-IN')}` : 'Price on request'}</span>
+        </button>
+      `).join('')
+    : '<p class="muted railEmpty">Trending items will appear here as catalog data grows.</p>';
+}
+
 function setActiveTab(tab) {
   activeView = tab;
   const showUploads = tab === 'uploads';
@@ -214,6 +253,7 @@ function applyFilters() {
     renderMyUploads(filtered);
     feedCountEl.textContent = String(filtered.length);
     activeFilterLabelEl.textContent = `${filtered.length} of your listings`;
+    renderRail(filtered.length ? filtered : source);
     return;
   }
 
