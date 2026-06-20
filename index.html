@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css?v=20260620-register-feedback" />
-  <script defer src="app.js?v=20260620-register-feedback"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script defer src="app.js?v=20260620-otp-only-google"></script>
 </head>
 <body>
   <header class="topbar">
@@ -49,16 +50,10 @@
 
       <form id="loginForm" class="stack">
         <h3>Login</h3>
-        <label>Phone<input id="loginPhone" type="text" required /></label>
-        <label>Password<input id="loginPassword" type="password" required /></label>
-        <label>OTP Channel
-          <select id="loginChannel">
-            <option value="sms">SMS (phone)</option>
-            <option value="email">Email</option>
-          </select>
-        </label>
-        <label>Email (required for email OTP)<input id="loginEmail" type="email" /></label>
+        <label>Phone or Email<input id="loginIdentifier" type="text" required /></label>
         <button type="submit">Request OTP</button>
+        <button id="googleLoginBtn" class="actionSecondary" type="button">Continue with Google</button>
+        <p id="googleLoginStatus" class="muted">Google login uses your registered account email.</p>
       </form>
 
       <form id="otpForm" class="stack hidden">
@@ -75,9 +70,10 @@
         <h3>Create Account</h3>
         <label>Shop Name<input id="registerShopName" type="text" required /></label>
         <label>Phone<input id="registerPhone" type="text" required /></label>
+        <label>Email (optional)<input id="registerEmail" type="email" /></label>
         <label>GST Number (optional)<input id="registerGst" type="text" /></label>
         <label>City<input id="registerCity" type="text" required /></label>
-        <label>Password<input id="registerPassword" type="password" minlength="6" required /></label>
+        <label>Password (optional)<input id="registerPassword" type="password" minlength="6" /></label>
         <button type="submit">Register</button>
       </form>
       <p id="registerStatus" class="muted">Enter details and tap Register.</p>

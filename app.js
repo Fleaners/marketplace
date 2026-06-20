@@ -6,6 +6,8 @@ const loginForm = document.getElementById('loginForm');
 const otpForm = document.getElementById('otpForm');
 const otpCountdownEl = document.getElementById('otpCountdown');
 const resendOtpBtn = document.getElementById('resendOtpBtn');
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+const googleLoginStatusEl = document.getElementById('googleLoginStatus');
 const registerForm = document.getElementById('registerForm');
 const registerStatusEl = document.getElementById('registerStatus');
 const uploadForm = document.getElementById('uploadForm');
@@ -25,17 +27,19 @@ const trendingNowListEl = document.getElementById('trendingNowList');
 const params = new URLSearchParams(window.location.search);
 const storedApi = localStorage.getItem('API_URL');
 const queryApi = params.get('api');
+const GOOGLE_CLIENT_ID = params.get('google_client_id') || localStorage.getItem('GOOGLE_CLIENT_ID') || '';
 const PERMANENT_API_URL = 'https://marketplacestore-production.up.railway.app';
 const API_URL = queryApi || storedApi || PERMANENT_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '') || '';
 
 if (queryApi) localStorage.setItem('API_URL', queryApi);
 if (!queryApi && !storedApi && PERMANENT_API_URL) localStorage.setItem('API_URL', PERMANENT_API_URL);
+if (params.get('google_client_id')) localStorage.setItem('GOOGLE_CLIENT_ID', params.get('google_client_id'));
 
 let authToken = localStorage.getItem('AUTH_TOKEN') || '';
 let productsCache = [];
 let myUploadsCache = [];
 let currentBusiness = null;
-let pendingOtpPhone = '';
+let pendingOtpIdentifier = '';
 let activeFilter = 'all';
 let activeView = 'explore';
 let otpExpiresAt = 0;
@@ -86,6 +90,7 @@ function hydrateBusinessFromToken() {
     id: payload.id,
     shop_name: payload.shop_name,
     phone: payload.phone,
+    email: payload.email,
     gst_number: payload.gst_number,
     city: payload.city,
   };
@@ -400,29 +405,21 @@ function startOtpCountdown() {
 }
 
 function getOtpRequestPayload() {
-  const phone = document.getElementById('loginPhone').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const channel = document.getElementById('loginChannel').value;
-  const email = document.getElementById('loginEmail').value.trim();
+  const identifier = document.getElementById('loginIdentifier').value.trim();
 
-  if (!phone || !password) {
-    throw new Error('Phone and password are required to request OTP.');
+  if (!identifier) {
+    throw new Error('Phone or email is required to request OTP.');
   }
 
-  if (channel === 'email' && !email) {
-    throw new Error('Email is required when OTP channel is email.');
-  }
-
-  const payload = { phone, password, channel };
-  if (email) payload.email = email;
-  return { payload, phone };
+  const payload = { identifier };
+  return { payload, identifier };
 }
 
 async function requestOtpLogin(isResend = false) {
   try {
-    const { payload, phone } = getOtpRequestPayload();
+    const { payload, identifier } = getOtpRequestPayload();
     const result = await requestAuth('/api/auth/login/request-otp', payload);
-    pendingOtpPhone = phone;
+    pendingOtpIdentifier = identifier;
     otpExpiresAt = Date.now() + OTP_TTL_MS;
     otpForm.classList.remove('hidden');
     startOtpCountdown();
@@ -451,20 +448,20 @@ async function handleOtpVerify(event) {
   event.preventDefault();
   const otp = document.getElementById('loginOtp').value.trim();
 
-  if (!pendingOtpPhone) {
+  if (!pendingOtpIdentifier) {
     setAuthStatus('Request OTP first.');
     return;
   }
 
   try {
-    const result = await requestAuth('/api/auth/login/verify-otp', { phone: pendingOtpPhone, otp });
+    const result = await requestAuth('/api/auth/login/verify-otp', { identifier: pendingOtpIdentifier, otp });
     authToken = result.token;
     currentBusiness = result.business;
     localStorage.setItem('AUTH_TOKEN', authToken);
     setAuthStatus(`Logged in as ${result.business.shop_name}`);
     otpForm.classList.add('hidden');
     otpForm.reset();
-    pendingOtpPhone = '';
+    pendingOtpIdentifier = '';
     otpExpiresAt = 0;
     otpCountdownEl.textContent = '';
     stopOtpCountdown();
@@ -475,17 +472,77 @@ async function handleOtpVerify(event) {
   }
 }
 
+async function handleGoogleCredentialResponse(response) {
+  if (!response || !response.credential) {
+    if (googleLoginStatusEl) googleLoginStatusEl.textContent = 'Google login did not return a valid credential.';
+    return;
+  }
+
+  if (googleLoginStatusEl) googleLoginStatusEl.textContent = 'Signing in with Google...';
+
+  try {
+    const result = await requestAuth('/api/auth/login/google', { credential: response.credential });
+    authToken = result.token;
+    currentBusiness = result.business;
+    localStorage.setItem('AUTH_TOKEN', authToken);
+    setAuthStatus(`Logged in as ${result.business.shop_name}`);
+    if (googleLoginStatusEl) googleLoginStatusEl.textContent = 'Google login successful.';
+    updateIdentityCard();
+    await fetchMyUploads();
+  } catch (error) {
+    if (googleLoginStatusEl) googleLoginStatusEl.textContent = `Google login failed: ${error.message}`;
+    setAuthStatus(`Google login failed: ${error.message}`);
+  }
+}
+
+function initializeGoogleLogin() {
+  if (!googleLoginBtn) return;
+
+  if (!GOOGLE_CLIENT_ID) {
+    googleLoginBtn.disabled = true;
+    if (googleLoginStatusEl) googleLoginStatusEl.textContent = 'Google login not configured. Add google_client_id in URL once to enable.';
+    return;
+  }
+
+  if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+    googleLoginBtn.disabled = true;
+    if (googleLoginStatusEl) googleLoginStatusEl.textContent = 'Google script not loaded. Refresh and try again.';
+    return;
+  }
+
+  window.google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredentialResponse,
+    auto_select: false,
+  });
+
+  if (googleLoginStatusEl) googleLoginStatusEl.textContent = 'Use your Google account linked to a registered email.';
+  googleLoginBtn.disabled = false;
+}
+
+function handleGoogleLoginClick() {
+  if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+    if (googleLoginStatusEl) googleLoginStatusEl.textContent = 'Google login is not available. Refresh and try again.';
+    return;
+  }
+
+  window.google.accounts.id.prompt();
+}
+
 async function handleRegister(event) {
   event.preventDefault();
   const registerButton = registerForm.querySelector('button[type="submit"]');
+  const email = document.getElementById('registerEmail').value.trim();
+  const password = document.getElementById('registerPassword').value;
   const gstNumber = document.getElementById('registerGst').value.trim();
   const payload = {
     shop_name: document.getElementById('registerShopName').value.trim(),
     phone: document.getElementById('registerPhone').value.trim(),
     gst_number: gstNumber || 'NA',
     city: document.getElementById('registerCity').value.trim(),
-    password: document.getElementById('registerPassword').value,
   };
+  if (email) payload.email = email;
+  if (password) payload.password = password;
 
   if (registerStatusEl) registerStatusEl.textContent = 'Creating account...';
   if (registerButton) {
@@ -506,8 +563,8 @@ async function handleRegister(event) {
   } catch (error) {
     setAuthStatus(`Registration failed: ${error.message}`);
     if (registerStatusEl) {
-      registerStatusEl.textContent = error.message.includes('already registered')
-        ? 'This phone number is already registered. Try logging in or use another number.'
+      registerStatusEl.textContent = error.message.includes('already registered') || error.message.includes('Email already registered')
+        ? 'Phone/email already registered. Try OTP login or use another account.'
         : `Registration failed: ${error.message}`;
     }
   } finally {
@@ -657,6 +714,7 @@ function handleRailAction(event) {
 loginForm.addEventListener('submit', handleLogin);
 otpForm.addEventListener('submit', handleOtpVerify);
 if (resendOtpBtn) resendOtpBtn.addEventListener('click', handleResendOtp);
+if (googleLoginBtn) googleLoginBtn.addEventListener('click', handleGoogleLoginClick);
 registerForm.addEventListener('submit', handleRegister);
 uploadForm.addEventListener('submit', handleUpload);
 myUploadsEl.addEventListener('click', handleMyUploadAction);
@@ -669,6 +727,7 @@ subbarButtons.forEach((button) => button.addEventListener('click', () => setActi
 
 hydrateBusinessFromToken();
 updateIdentityCard();
+initializeGoogleLogin();
 
 if (authToken) setAuthStatus('Session restored. Ready to upload and explore.');
 
