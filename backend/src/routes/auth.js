@@ -12,7 +12,7 @@ router.post(
   [
     body('shop_name').notEmpty().withMessage('Shop name is required'),
     body('phone').notEmpty().withMessage('Phone is required'),
-    body('gst_number').notEmpty().withMessage('GST number is required'),
+    body('gst_number').optional({ values: 'falsy' }),
     body('city').notEmpty().withMessage('City is required'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   ],

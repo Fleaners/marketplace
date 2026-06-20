@@ -85,6 +85,7 @@ async function register(req, res, next) {
   try {
     const { shop_name, phone, gst_number, city, latitude, longitude, password, description } = req.body;
     const rawImage = req.file;
+    const normalizedGst = typeof gst_number === 'string' && gst_number.trim() ? gst_number.trim() : null;
 
     if (!password || password.length < 6) {
       return res.status(400).json({ error: 'Password must contain at least 6 characters.' });
@@ -101,7 +102,7 @@ async function register(req, res, next) {
     const business = await createBusiness({
       shop_name,
       phone,
-      gst_number,
+      gst_number: normalizedGst,
       city,
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
@@ -119,10 +120,11 @@ async function register(req, res, next) {
 
     try {
       const { shop_name, phone, gst_number, city, latitude, longitude, password, description } = req.body;
+      const normalizedGst = typeof gst_number === 'string' && gst_number.trim() ? gst_number.trim() : null;
       const demoBusiness = await registerDemoBusiness({
         shop_name,
         phone,
-        gst_number,
+        gst_number: normalizedGst,
         city,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
