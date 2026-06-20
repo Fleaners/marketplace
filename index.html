@@ -11,7 +11,56 @@
   <main>
     <h1>Marketplace Web</h1>
     <p id="status">Checking backend...</p>
-    <div id="data"></div>
+
+    <section class="panel">
+      <h2>Account</h2>
+      <p id="authStatus">Not logged in</p>
+      <div class="forms">
+        <form id="loginForm" class="card">
+          <h3>Login</h3>
+          <label>
+            Phone
+            <input id="loginPhone" type="text" required />
+          </label>
+          <label>
+            Password
+            <input id="loginPassword" type="password" required />
+          </label>
+          <button type="submit">Login</button>
+        </form>
+
+        <form id="registerForm" class="card">
+          <h3>Register</h3>
+          <label>
+            Shop Name
+            <input id="registerShopName" type="text" required />
+          </label>
+          <label>
+            Phone
+            <input id="registerPhone" type="text" required />
+          </label>
+          <label>
+            GST Number
+            <input id="registerGst" type="text" required />
+          </label>
+          <label>
+            City
+            <input id="registerCity" type="text" required />
+          </label>
+          <label>
+            Password
+            <input id="registerPassword" type="password" minlength="6" required />
+          </label>
+          <button type="submit">Create Account</button>
+        </form>
+      </div>
+      <p class="hint">Demo login: phone 9999999999, password demo123</p>
+    </section>
+
+    <section class="panel">
+      <h2>Explore Products</h2>
+      <div id="data"></div>
+    </section>
   </main>
 </body>
 </html>
