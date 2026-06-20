@@ -9,7 +9,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css?v=20260620-register-feedback" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script defer src="app.js?v=20260620-otp-only-google"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script defer src="app.js?v=20260620-firebase-otp"></script>
 </head>
 <body>
   <header class="topbar">
@@ -52,9 +54,13 @@
         <h3>Login</h3>
         <label>Phone or Email<input id="loginIdentifier" type="text" required /></label>
         <button type="submit">Request OTP</button>
+        <button id="firebaseOtpBtn" class="actionSecondary" type="button">Continue with Firebase OTP</button>
+        <p id="firebaseOtpStatus" class="muted">Firebase phone OTP can be enabled with URL config once and reused.</p>
         <button id="googleLoginBtn" class="actionSecondary" type="button">Continue with Google</button>
         <p id="googleLoginStatus" class="muted">Google login uses your registered account email.</p>
       </form>
+
+      <div id="firebaseRecaptchaContainer"></div>
 
       <form id="otpForm" class="stack hidden">
         <h3>Verify OTP</h3>
