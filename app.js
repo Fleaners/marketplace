@@ -40,14 +40,14 @@ function setAuthStatus(message) {
 }
 
 function getInitials(name) {
-  const parts = (name || 'DealerConnect').trim().split(/\s+/).slice(0, 2);
+  const parts = (name || 'MarketPlace.Store').trim().split(/\s+/).slice(0, 2);
   return parts.map((part) => part.charAt(0).toUpperCase()).join('') || 'DC';
 }
 
 function updateIdentityCard() {
   if (!currentBusiness) {
     profileAvatarEl.textContent = 'DC';
-    profileNameEl.textContent = 'DealerConnect Guest';
+    profileNameEl.textContent = 'MarketPlace.Store Guest';
     profileMetaEl.textContent = 'Sign in to show company profile';
     return;
   }
