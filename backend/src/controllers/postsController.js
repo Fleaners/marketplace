@@ -15,7 +15,7 @@ async function addPost(req, res, next) {
   try {
     const { content } = req.body;
     const business_id = req.business.id;
-    const image_url = req.file ? await uploadImage(req.file, 'dealerconnect/posts') : null;
+    const image_url = req.file ? await uploadImage(req.file, 'marketplace-store/posts') : null;
 
     const post = await createPost({ business_id, content, image_url });
     res.status(201).json(post);

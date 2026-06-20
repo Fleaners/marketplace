@@ -96,7 +96,7 @@ async function register(req, res, next) {
     }
 
     const password_hash = await bcrypt.hash(password, 12);
-    const profile_image_url = rawImage ? await uploadImage(rawImage, 'dealerconnect/profiles') : null;
+    const profile_image_url = rawImage ? await uploadImage(rawImage, 'marketplace-store/profiles') : null;
 
     const business = await createBusiness({
       shop_name,

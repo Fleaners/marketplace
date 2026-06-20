@@ -29,7 +29,7 @@ async function modifyBusiness(req, res, next) {
     });
 
     if (req.file) {
-      const imageUrl = await uploadImage(req.file, 'dealerconnect/profiles');
+      const imageUrl = await uploadImage(req.file, 'marketplace-store/profiles');
       fields.profile_image_url = imageUrl;
     }
 

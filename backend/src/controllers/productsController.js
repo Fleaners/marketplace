@@ -42,7 +42,7 @@ async function addProduct(req, res, next) {
   try {
     const { name, price, cost_price, stock } = req.body;
     const productImage = req.file;
-    const image_url = productImage ? await uploadImage(productImage, 'dealerconnect/products') : null;
+    const image_url = productImage ? await uploadImage(productImage, 'marketplace-store/products') : null;
     const product = await createProduct({
       business_id: req.business.id,
       name,
@@ -69,7 +69,7 @@ async function modifyProduct(req, res, next) {
     });
 
     if (req.file) {
-      fields.image_url = await uploadImage(req.file, 'dealerconnect/products');
+      fields.image_url = await uploadImage(req.file, 'marketplace-store/products');
     }
 
     const updated = await updateProduct(productId, req.business.id, fields);

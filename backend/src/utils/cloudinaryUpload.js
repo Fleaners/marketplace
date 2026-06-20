@@ -1,6 +1,6 @@
 const cloudinary = require('../../config/cloudinary');
 
-async function uploadImage(file, folder = 'dealerconnect') {
+async function uploadImage(file, folder = 'marketplace-store') {
   if (!file) {
     return null;
   }
