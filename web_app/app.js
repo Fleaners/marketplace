@@ -6,6 +6,8 @@ const loginForm = document.getElementById('loginForm');
 const otpForm = document.getElementById('otpForm');
 const otpCountdownEl = document.getElementById('otpCountdown');
 const resendOtpBtn = document.getElementById('resendOtpBtn');
+const firebaseOtpBtn = document.getElementById('firebaseOtpBtn');
+const firebaseOtpStatusEl = document.getElementById('firebaseOtpStatus');
 const googleLoginBtn = document.getElementById('googleLoginBtn');
 const googleLoginStatusEl = document.getElementById('googleLoginStatus');
 const registerForm = document.getElementById('registerForm');
@@ -28,12 +30,22 @@ const params = new URLSearchParams(window.location.search);
 const storedApi = localStorage.getItem('API_URL');
 const queryApi = params.get('api');
 const GOOGLE_CLIENT_ID = params.get('google_client_id') || localStorage.getItem('GOOGLE_CLIENT_ID') || '';
+const FIREBASE_API_KEY = params.get('firebase_api_key') || localStorage.getItem('FIREBASE_API_KEY') || '';
+const FIREBASE_AUTH_DOMAIN = params.get('firebase_auth_domain') || localStorage.getItem('FIREBASE_AUTH_DOMAIN') || '';
+const FIREBASE_PROJECT_ID = params.get('firebase_project_id') || localStorage.getItem('FIREBASE_PROJECT_ID') || '';
+const FIREBASE_APP_ID = params.get('firebase_app_id') || localStorage.getItem('FIREBASE_APP_ID') || '';
+const FIREBASE_MESSAGING_SENDER_ID = params.get('firebase_messaging_sender_id') || localStorage.getItem('FIREBASE_MESSAGING_SENDER_ID') || '';
 const PERMANENT_API_URL = 'https://marketplacestore-production.up.railway.app';
 const API_URL = queryApi || storedApi || PERMANENT_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '') || '';
 
 if (queryApi) localStorage.setItem('API_URL', queryApi);
 if (!queryApi && !storedApi && PERMANENT_API_URL) localStorage.setItem('API_URL', PERMANENT_API_URL);
 if (params.get('google_client_id')) localStorage.setItem('GOOGLE_CLIENT_ID', params.get('google_client_id'));
+if (params.get('firebase_api_key')) localStorage.setItem('FIREBASE_API_KEY', params.get('firebase_api_key'));
+if (params.get('firebase_auth_domain')) localStorage.setItem('FIREBASE_AUTH_DOMAIN', params.get('firebase_auth_domain'));
+if (params.get('firebase_project_id')) localStorage.setItem('FIREBASE_PROJECT_ID', params.get('firebase_project_id'));
+if (params.get('firebase_app_id')) localStorage.setItem('FIREBASE_APP_ID', params.get('firebase_app_id'));
+if (params.get('firebase_messaging_sender_id')) localStorage.setItem('FIREBASE_MESSAGING_SENDER_ID', params.get('firebase_messaging_sender_id'));
 
 let authToken = localStorage.getItem('AUTH_TOKEN') || '';
 let productsCache = [];
@@ -44,6 +56,9 @@ let activeFilter = 'all';
 let activeView = 'explore';
 let otpExpiresAt = 0;
 let otpCountdownTimer = null;
+let firebaseAuthClient = null;
+let firebaseRecaptchaVerifier = null;
+let firebaseConfirmationResult = null;
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 
@@ -448,6 +463,33 @@ async function handleOtpVerify(event) {
   event.preventDefault();
   const otp = document.getElementById('loginOtp').value.trim();
 
+  if (firebaseConfirmationResult) {
+    try {
+      const firebaseResult = await firebaseConfirmationResult.confirm(otp);
+      const idToken = await firebaseResult.user.getIdToken(true);
+      const result = await requestAuth('/api/auth/login/firebase', { idToken });
+      authToken = result.token;
+      currentBusiness = result.business;
+      localStorage.setItem('AUTH_TOKEN', authToken);
+      setAuthStatus(`Logged in as ${result.business.shop_name}`);
+      if (firebaseOtpStatusEl) firebaseOtpStatusEl.textContent = 'Firebase login successful.';
+      otpForm.classList.add('hidden');
+      otpForm.reset();
+      pendingOtpIdentifier = '';
+      otpExpiresAt = 0;
+      otpCountdownEl.textContent = '';
+      stopOtpCountdown();
+      firebaseConfirmationResult = null;
+      updateIdentityCard();
+      await fetchMyUploads();
+      return;
+    } catch (error) {
+      setAuthStatus(`Firebase OTP verification failed: ${error.message}`);
+      if (firebaseOtpStatusEl) firebaseOtpStatusEl.textContent = `Firebase verification failed: ${error.message}`;
+      return;
+    }
+  }
+
   if (!pendingOtpIdentifier) {
     setAuthStatus('Request OTP first.');
     return;
@@ -518,6 +560,94 @@ function initializeGoogleLogin() {
 
   if (googleLoginStatusEl) googleLoginStatusEl.textContent = 'Use your Google account linked to a registered email.';
   googleLoginBtn.disabled = false;
+}
+
+function buildFirebaseConfig() {
+  if (!FIREBASE_API_KEY || !FIREBASE_AUTH_DOMAIN || !FIREBASE_PROJECT_ID || !FIREBASE_APP_ID) {
+    return null;
+  }
+
+  const config = {
+    apiKey: FIREBASE_API_KEY,
+    authDomain: FIREBASE_AUTH_DOMAIN,
+    projectId: FIREBASE_PROJECT_ID,
+    appId: FIREBASE_APP_ID,
+  };
+
+  if (FIREBASE_MESSAGING_SENDER_ID) {
+    config.messagingSenderId = FIREBASE_MESSAGING_SENDER_ID;
+  }
+
+  return config;
+}
+
+function initializeFirebaseOtp() {
+  if (!firebaseOtpBtn || !firebaseOtpStatusEl) return;
+
+  if (!window.firebase || !window.firebase.initializeApp || !window.firebase.auth) {
+    firebaseOtpBtn.disabled = true;
+    firebaseOtpStatusEl.textContent = 'Firebase script not loaded. Refresh and try again.';
+    return;
+  }
+
+  const firebaseConfig = buildFirebaseConfig();
+  if (!firebaseConfig) {
+    firebaseOtpBtn.disabled = true;
+    firebaseOtpStatusEl.textContent = 'Firebase OTP not configured. Add firebase_* URL params once to enable.';
+    return;
+  }
+
+  try {
+    if (!window.firebase.apps.length) {
+      window.firebase.initializeApp(firebaseConfig);
+    }
+
+    firebaseAuthClient = window.firebase.auth();
+    firebaseRecaptchaVerifier = new window.firebase.auth.RecaptchaVerifier('firebaseRecaptchaContainer', {
+      size: 'invisible',
+    }, firebaseAuthClient);
+
+    firebaseRecaptchaVerifier.render();
+    firebaseOtpBtn.disabled = false;
+    firebaseOtpStatusEl.textContent = 'Use phone number with country code, e.g. +919876543210.';
+  } catch (error) {
+    firebaseOtpBtn.disabled = true;
+    firebaseOtpStatusEl.textContent = `Firebase setup failed: ${error.message}`;
+  }
+}
+
+async function handleFirebaseOtpClick() {
+  const identifier = document.getElementById('loginIdentifier').value.trim();
+  if (!identifier) {
+    setAuthStatus('Enter your phone number with country code to use Firebase OTP.');
+    return;
+  }
+
+  if (!identifier.startsWith('+')) {
+    setAuthStatus('Firebase OTP requires phone in E.164 format, e.g. +919876543210.');
+    if (firebaseOtpStatusEl) firebaseOtpStatusEl.textContent = 'Use phone with +countrycode for Firebase OTP.';
+    return;
+  }
+
+  if (!firebaseAuthClient || !firebaseRecaptchaVerifier) {
+    setAuthStatus('Firebase OTP is not configured yet.');
+    return;
+  }
+
+  try {
+    if (firebaseOtpStatusEl) firebaseOtpStatusEl.textContent = 'Sending OTP via Firebase...';
+    firebaseConfirmationResult = await firebaseAuthClient.signInWithPhoneNumber(identifier, firebaseRecaptchaVerifier);
+    pendingOtpIdentifier = identifier;
+    otpExpiresAt = Date.now() + OTP_TTL_MS;
+    otpForm.classList.remove('hidden');
+    startOtpCountdown();
+    setAuthStatus('Firebase OTP sent. Enter the OTP to continue login.');
+    if (firebaseOtpStatusEl) firebaseOtpStatusEl.textContent = 'Firebase OTP sent successfully.';
+  } catch (error) {
+    firebaseConfirmationResult = null;
+    setAuthStatus(`Firebase OTP failed: ${error.message}`);
+    if (firebaseOtpStatusEl) firebaseOtpStatusEl.textContent = `Firebase OTP failed: ${error.message}`;
+  }
 }
 
 function handleGoogleLoginClick() {
@@ -714,6 +844,7 @@ function handleRailAction(event) {
 loginForm.addEventListener('submit', handleLogin);
 otpForm.addEventListener('submit', handleOtpVerify);
 if (resendOtpBtn) resendOtpBtn.addEventListener('click', handleResendOtp);
+if (firebaseOtpBtn) firebaseOtpBtn.addEventListener('click', handleFirebaseOtpClick);
 if (googleLoginBtn) googleLoginBtn.addEventListener('click', handleGoogleLoginClick);
 registerForm.addEventListener('submit', handleRegister);
 uploadForm.addEventListener('submit', handleUpload);
@@ -728,6 +859,7 @@ subbarButtons.forEach((button) => button.addEventListener('click', () => setActi
 hydrateBusinessFromToken();
 updateIdentityCard();
 initializeGoogleLogin();
+initializeFirebaseOtp();
 
 if (authToken) setAuthStatus('Session restored. Ready to upload and explore.');
 

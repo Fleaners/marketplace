@@ -1,7 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const upload = require('../utils/multer');
-const { register, login, requestLoginOtp, verifyLoginOtp, googleLogin } = require('../controllers/authController');
+const { register, login, requestLoginOtp, verifyLoginOtp, googleLogin, firebaseLogin } = require('../controllers/authController');
 const { runValidation } = require('../middleware/validators');
 
 const router = express.Router();
@@ -47,6 +47,15 @@ router.post(
   ],
   runValidation,
   googleLogin
+);
+
+router.post(
+  '/login/firebase',
+  [
+    body('idToken').notEmpty().withMessage('Firebase ID token is required'),
+  ],
+  runValidation,
+  firebaseLogin
 );
 
 router.post(

@@ -14,6 +14,8 @@ const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 const OTP_DEBUG_MODE = process.env.OTP_DEBUG_MODE === 'true';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || '';
+const FIREBASE_SERVICE_ACCOUNT_JSON = process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '';
 
 const otpChallenges = new Map();
 
@@ -168,6 +170,53 @@ function buildOtpChallengeKey(identifier) {
 
 function inferOtpChannel(identifier) {
   return normalizeIdentifier(identifier).includes('@') ? 'email' : 'sms';
+}
+
+function buildPhoneCandidates(phoneNumber) {
+  const raw = String(phoneNumber || '').trim();
+  if (!raw) return [];
+
+  const digitsOnly = raw.replace(/\D/g, '');
+  const candidates = [
+    raw,
+    raw.replace(/\s+/g, ''),
+    raw.startsWith('+') ? raw.slice(1) : raw,
+    digitsOnly,
+    digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly,
+  ];
+
+  return Array.from(new Set(candidates.filter(Boolean)));
+}
+
+async function getFirebaseAuthClient() {
+  let admin;
+  try {
+    admin = require('firebase-admin');
+  } catch (error) {
+    throw new Error('Firebase Admin SDK is not installed on the server.');
+  }
+
+  if (!admin.apps.length) {
+    if (FIREBASE_SERVICE_ACCOUNT_JSON) {
+      let serviceAccount;
+      try {
+        serviceAccount = JSON.parse(FIREBASE_SERVICE_ACCOUNT_JSON);
+      } catch (error) {
+        throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.');
+      }
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: FIREBASE_PROJECT_ID || serviceAccount.project_id,
+      });
+    } else if (FIREBASE_PROJECT_ID) {
+      admin.initializeApp({ projectId: FIREBASE_PROJECT_ID });
+    } else {
+      throw new Error('Firebase is not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_PROJECT_ID.');
+    }
+  }
+
+  return admin.auth();
 }
 
 async function resolveBusinessForIdentifier(identifier) {
@@ -362,4 +411,53 @@ async function googleLogin(req, res, next) {
   }
 }
 
-module.exports = { register, login, requestLoginOtp, verifyLoginOtp, googleLogin };
+async function firebaseLogin(req, res, next) {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ error: 'Firebase ID token is required.' });
+    }
+
+    const firebaseAuth = await getFirebaseAuthClient();
+    const decodedToken = await firebaseAuth.verifyIdToken(idToken, true);
+    const phoneNumber = decodedToken.phone_number;
+
+    if (!phoneNumber) {
+      return res.status(401).json({ error: 'Firebase token does not include a verified phone number.' });
+    }
+
+    const candidates = buildPhoneCandidates(phoneNumber);
+    let business = null;
+
+    for (const candidate of candidates) {
+      // Try different phone formats because stored phone values may not include country code.
+      // eslint-disable-next-line no-await-in-loop
+      business = await getBusinessByPhone(candidate);
+      if (business) break;
+    }
+
+    if (!business && ALLOW_DEMO_AUTH) {
+      for (const candidate of candidates) {
+        const demo = demoBusinesses.get(candidate);
+        if (demo) {
+          business = demo;
+          break;
+        }
+      }
+    }
+
+    if (!business) {
+      return res.status(404).json({ error: 'No Marketplace account linked to this Firebase phone number. Register first.' });
+    }
+
+    const token = buildToken(business);
+    return res.json({ business: buildPublicBusiness(business), token });
+  } catch (error) {
+    if (error && error.code && String(error.code).startsWith('auth/')) {
+      return res.status(401).json({ error: 'Invalid or expired Firebase token.' });
+    }
+    next(error);
+  }
+}
+
+module.exports = { register, login, requestLoginOtp, verifyLoginOtp, googleLogin, firebaseLogin };
