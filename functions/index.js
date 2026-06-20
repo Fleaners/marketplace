@@ -1,10 +1,10 @@
 import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
+import { initializeApp } from 'firebase-admin/app';
 import express from 'express';
 import cors from 'cors';
 
 // Initialize Firebase Admin SDK
-admin.initializeApp();
+initializeApp();
 
 // Create Express app
 const app = express();
@@ -49,5 +49,8 @@ app.use((err, req, res, next) => {
 
 // Export as Cloud Function
 export const api = functions
+  .runWith({
+    serviceAccount: 'marketplace-store-fef91@appspot.gserviceaccount.com',
+  })
   .region('us-central1')
   .https.onRequest(app);

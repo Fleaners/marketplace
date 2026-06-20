@@ -1,7 +1,4 @@
 {
-  "projects": {
-    "default": "marketplace-store-fef91"
-  },
   "functions": [
     {
       "source": "functions",

@@ -1,11 +1,11 @@
 import express from 'express';
-import * as admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
 function getDb() {
-  return admin.firestore();
+  return getFirestore();
 }
 
 router.use(verifyToken);
