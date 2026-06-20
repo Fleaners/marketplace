@@ -46,20 +46,15 @@ function setAuthStatus(message) {
   authStatusEl.textContent = message;
 }
 
-function getInitials(name) {
-  const parts = (name || 'MarketPlace.Store').trim().split(/\s+/).slice(0, 2);
-  return parts.map((part) => part.charAt(0).toUpperCase()).join('') || 'DC';
-}
-
 function updateIdentityCard() {
+  profileAvatarEl.innerHTML = '<img src="assets/marketplace-store-logo.svg" alt="MarketPlace.Store profile logo" />';
+
   if (!currentBusiness) {
-    profileAvatarEl.textContent = 'DC';
     profileNameEl.textContent = 'MarketPlace.Store Guest';
     profileMetaEl.textContent = 'Sign in to show company profile';
     return;
   }
 
-  profileAvatarEl.textContent = getInitials(currentBusiness.shop_name);
   profileNameEl.textContent = currentBusiness.shop_name || 'Dealer Profile';
   const details = [currentBusiness.city || 'Unknown city', currentBusiness.gst_number || 'GST not provided'];
   profileMetaEl.textContent = details.join(' • ');
