@@ -44,7 +44,20 @@
         <h3>Login</h3>
         <label>Phone<input id="loginPhone" type="text" required /></label>
         <label>Password<input id="loginPassword" type="password" required /></label>
-        <button type="submit">Login</button>
+        <label>OTP Channel
+          <select id="loginChannel">
+            <option value="sms">SMS (phone)</option>
+            <option value="email">Email</option>
+          </select>
+        </label>
+        <label>Email (required for email OTP)<input id="loginEmail" type="email" /></label>
+        <button type="submit">Request OTP</button>
+      </form>
+
+      <form id="otpForm" class="stack hidden">
+        <h3>Verify OTP</h3>
+        <label>6-digit OTP<input id="loginOtp" type="text" minlength="6" maxlength="6" required /></label>
+        <button type="submit">Verify & Login</button>
       </form>
 
       <form id="registerForm" class="stack">

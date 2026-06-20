@@ -1,13 +1,20 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { createBusiness, getBusinessByPhone } = require('../models/businessModel');
 const { uploadImage } = require('../utils/cloudinaryUpload');
+const { deliverOtp } = require('../utils/otpDelivery');
 
 const JWT_EXPIRES_IN = '30d';
 const JWT_SECRET = process.env.JWT_SECRET || 'demo-jwt-secret';
 const ALLOW_DEMO_AUTH = process.env.ALLOW_DEMO_AUTH === 'true';
 const DEMO_PHONE = process.env.DEMO_AUTH_PHONE || '9999999999';
 const DEMO_PASSWORD = process.env.DEMO_AUTH_PASSWORD || 'demo123';
+const OTP_TTL_MS = 5 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_DEBUG_MODE = process.env.OTP_DEBUG_MODE === 'true';
+
+const otpChallenges = new Map();
 
 let demoIdCounter = 1000;
 const demoBusinesses = new Map();
@@ -136,6 +143,11 @@ async function register(req, res, next) {
 }
 
 async function login(req, res, next) {
+  const requireOtpLogin = process.env.REQUIRE_LOGIN_OTP !== 'false';
+  if (requireOtpLogin) {
+    return res.status(400).json({ error: 'Use /api/auth/login/request-otp and /api/auth/login/verify-otp for login.' });
+  }
+
   try {
     const { phone, password } = req.body;
     const business = await getBusinessByPhone(phone);
@@ -171,4 +183,103 @@ async function login(req, res, next) {
   }
 }
 
-module.exports = { register, login };
+async function authenticateCredentials(phone, password) {
+  const business = await getBusinessByPhone(phone);
+  if (business && business.password_hash) {
+    const validPassword = await bcrypt.compare(password, business.password_hash);
+    if (!validPassword) return null;
+    return buildPublicBusiness(business);
+  }
+
+  if (!ALLOW_DEMO_AUTH) {
+    return null;
+  }
+
+  const demoBusiness = demoBusinesses.get(phone);
+  if (!demoBusiness || !demoBusiness.password_hash) {
+    return null;
+  }
+
+  const validPassword = await bcrypt.compare(password, demoBusiness.password_hash);
+  if (!validPassword) return null;
+  return buildPublicBusiness(demoBusiness);
+}
+
+function hashOtp(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function generateOtp() {
+  return String(crypto.randomInt(100000, 999999));
+}
+
+async function requestLoginOtp(req, res, next) {
+  try {
+    const { phone, password, channel, email } = req.body;
+    const normalizedChannel = channel === 'email' ? 'email' : 'sms';
+    const business = await authenticateCredentials(phone, password);
+    if (!business) {
+      return res.status(401).json({ error: 'Invalid phone or password' });
+    }
+
+    const otp = generateOtp();
+    const otpHash = hashOtp(otp);
+    otpChallenges.set(phone, {
+      otpHash,
+      business,
+      channel: normalizedChannel,
+      email: email || null,
+      expiresAt: Date.now() + OTP_TTL_MS,
+      failedAttempts: 0,
+    });
+
+    try {
+      await deliverOtp({ channel: normalizedChannel, phone, email, otp });
+    } catch (deliveryError) {
+      if (!OTP_DEBUG_MODE) {
+        otpChallenges.delete(phone);
+        throw deliveryError;
+      }
+    }
+
+    return res.json({
+      message: `OTP sent via ${normalizedChannel}`,
+      otp: OTP_DEBUG_MODE ? otp : undefined,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function verifyLoginOtp(req, res, next) {
+  try {
+    const { phone, otp } = req.body;
+    const challenge = otpChallenges.get(phone);
+    if (!challenge) {
+      return res.status(400).json({ error: 'No OTP challenge found. Request OTP first.' });
+    }
+
+    if (Date.now() > challenge.expiresAt) {
+      otpChallenges.delete(phone);
+      return res.status(400).json({ error: 'OTP expired. Request a new OTP.' });
+    }
+
+    if (challenge.failedAttempts >= OTP_MAX_ATTEMPTS) {
+      otpChallenges.delete(phone);
+      return res.status(429).json({ error: 'Too many invalid OTP attempts. Request a new OTP.' });
+    }
+
+    if (hashOtp(String(otp)) !== challenge.otpHash) {
+      challenge.failedAttempts += 1;
+      return res.status(401).json({ error: 'Invalid OTP' });
+    }
+
+    otpChallenges.delete(phone);
+    const token = buildToken(challenge.business);
+    return res.json({ business: challenge.business, token });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { register, login, requestLoginOtp, verifyLoginOtp };
