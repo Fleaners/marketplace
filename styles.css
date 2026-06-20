@@ -150,6 +150,21 @@ body {
 	border-top: 1px dashed var(--line);
 }
 
+.otpCountdown {
+	margin: 0;
+	font-weight: 700;
+	color: #475467;
+}
+
+.otpAssistRow {
+	display: flex;
+	justify-content: flex-start;
+}
+
+.otpAssistRow .actionSecondary {
+	padding: 8px 12px;
+}
+
 .identityCard {
 	display: grid;
 	grid-template-columns: 56px 1fr;
