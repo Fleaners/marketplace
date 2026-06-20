@@ -3,63 +3,73 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Marketplace Web</title>
+  <title>DealerConnect Marketplace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script defer src="app.js"></script>
 </head>
 <body>
-  <main>
-    <h1>Marketplace Web</h1>
-    <p id="status">Checking backend...</p>
+  <header class="topbar">
+    <div class="brand">DealerConnect</div>
+    <div class="searchWrap">
+      <input id="globalSearch" type="search" placeholder="Search products, categories, suppliers" />
+    </div>
+    <div class="badge" id="status">Checking backend...</div>
+  </header>
 
-    <section class="panel">
+  <nav class="subbar">
+    <span>All</span>
+    <span>Trending Parts</span>
+    <span>Top Suppliers</span>
+    <span>Daily Deals</span>
+    <span>Explore Network</span>
+  </nav>
+
+  <main class="layout">
+    <aside class="panel accountPanel">
       <h2>Account</h2>
-      <p id="authStatus">Not logged in</p>
-      <div class="forms">
-        <form id="loginForm" class="card">
-          <h3>Login</h3>
-          <label>
-            Phone
-            <input id="loginPhone" type="text" required />
-          </label>
-          <label>
-            Password
-            <input id="loginPassword" type="password" required />
-          </label>
-          <button type="submit">Login</button>
-        </form>
+      <p id="authStatus" class="muted">Not logged in</p>
 
-        <form id="registerForm" class="card">
-          <h3>Register</h3>
-          <label>
-            Shop Name
-            <input id="registerShopName" type="text" required />
-          </label>
-          <label>
-            Phone
-            <input id="registerPhone" type="text" required />
-          </label>
-          <label>
-            GST Number
-            <input id="registerGst" type="text" required />
-          </label>
-          <label>
-            City
-            <input id="registerCity" type="text" required />
-          </label>
-          <label>
-            Password
-            <input id="registerPassword" type="password" minlength="6" required />
-          </label>
-          <button type="submit">Create Account</button>
-        </form>
+      <form id="loginForm" class="stack">
+        <h3>Login</h3>
+        <label>Phone<input id="loginPhone" type="text" required /></label>
+        <label>Password<input id="loginPassword" type="password" required /></label>
+        <button type="submit">Login</button>
+      </form>
+
+      <form id="registerForm" class="stack">
+        <h3>Create Account</h3>
+        <label>Shop Name<input id="registerShopName" type="text" required /></label>
+        <label>Phone<input id="registerPhone" type="text" required /></label>
+        <label>GST Number<input id="registerGst" type="text" required /></label>
+        <label>City<input id="registerCity" type="text" required /></label>
+        <label>Password<input id="registerPassword" type="password" minlength="6" required /></label>
+        <button type="submit">Register</button>
+      </form>
+    </aside>
+
+    <section class="panel feedPanel">
+      <div class="panelHead">
+        <h2>Explore Marketplace Feed</h2>
+        <span class="pill">Inspired by LinkedIn feed</span>
       </div>
-      <p class="hint">Create an account to start exploring marketplace features.</p>
+      <div id="data" class="feed"></div>
     </section>
 
-    <section class="panel">
-      <h2>Explore Products</h2>
-      <div id="data"></div>
+    <aside class="panel uploadPanel">
+      <h2>Upload Product Data</h2>
+      <p class="muted">Login required to publish product listings.</p>
+      <form id="uploadForm" class="stack">
+        <label>Product Name<input id="uploadName" type="text" required /></label>
+        <label>Selling Price<input id="uploadPrice" type="number" min="0.01" step="0.01" required /></label>
+        <label>Cost Price<input id="uploadCostPrice" type="number" min="0.01" step="0.01" required /></label>
+        <label>Stock<input id="uploadStock" type="number" min="0" step="1" required /></label>
+        <label>Image (optional)<input id="uploadImage" type="file" accept="image/*" /></label>
+        <button type="submit">Upload Data</button>
+      </form>
+      <p id="uploadStatus" class="muted">No upload yet.</p>
     </section>
   </main>
 </body>

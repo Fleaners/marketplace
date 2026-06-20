@@ -1,80 +1,205 @@
-body {
-	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-	margin: 0;
-	padding: 24px;
-	background: linear-gradient(180deg, #eef4fb 0%, #f7fafc 100%);
-	color: #1f2937;
+:root {
+	--amazon-navy: #111827;
+	--amazon-blue: #1f3f66;
+	--amazon-accent: #ffb703;
+	--ink: #101828;
+	--muted: #667085;
+	--paper: #ffffff;
+	--line: #e4e7ec;
+	--bg: #eef2f7;
 }
 
-main {
-	max-width: 980px;
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	font-family: Manrope, "Segoe UI", sans-serif;
+	background: radial-gradient(circle at 0% 0%, #f8fbff 0%, var(--bg) 55%);
+	color: var(--ink);
+}
+
+.topbar {
+	position: sticky;
+	top: 0;
+	z-index: 20;
+	display: grid;
+	grid-template-columns: 220px 1fr auto;
+	gap: 14px;
+	align-items: center;
+	padding: 12px 18px;
+	background: linear-gradient(90deg, var(--amazon-navy), var(--amazon-blue));
+	color: #f8fafc;
+	box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35);
+}
+
+.brand {
+	font-family: "Space Grotesk", sans-serif;
+	font-size: 1.35rem;
+	font-weight: 700;
+	letter-spacing: 0.4px;
+}
+
+.searchWrap input {
+	width: 100%;
+	border: 0;
+	border-radius: 10px;
+	padding: 12px 14px;
+	font-size: 0.95rem;
+	outline: none;
+}
+
+.badge {
+	padding: 8px 10px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.12);
+	font-size: 0.82rem;
+	max-width: 320px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.subbar {
+	display: flex;
+	gap: 18px;
+	padding: 10px 18px;
+	background: #1f2937;
+	color: #d0d5dd;
+	font-size: 0.86rem;
+	overflow-x: auto;
+}
+
+.layout {
+	display: grid;
+	grid-template-columns: 300px 1fr 320px;
+	gap: 16px;
+	padding: 16px;
+	max-width: 1500px;
 	margin: 0 auto;
 }
 
-h1 {
-	margin-top: 0;
-	margin-bottom: 8px;
-}
-
 .panel {
-	background: #ffffff;
-	border-radius: 12px;
-	padding: 18px;
-	box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-	margin-bottom: 18px;
+	background: var(--paper);
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	padding: 14px;
+	box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08);
 }
 
-.forms {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-	gap: 14px;
+.panel h2 {
+	margin: 0 0 8px;
+	font-family: "Space Grotesk", sans-serif;
+	font-size: 1.1rem;
 }
 
-.card {
+.panel h3 {
+	margin: 0;
+	font-size: 0.95rem;
+}
+
+.muted {
+	color: var(--muted);
+	font-size: 0.86rem;
+}
+
+.stack {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	border: 1px solid #dbe4ef;
-	border-radius: 10px;
-	padding: 12px;
-	background: #f9fbfe;
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px dashed var(--line);
 }
 
 label {
 	display: flex;
 	flex-direction: column;
-	font-size: 13px;
 	gap: 4px;
+	font-size: 0.82rem;
+	color: #344054;
 }
 
 input {
-	border: 1px solid #c6d2e1;
+	border: 1px solid #cbd5e1;
 	border-radius: 8px;
-	padding: 8px 10px;
-	font-size: 14px;
+	padding: 10px;
+	font-size: 0.9rem;
 }
 
 button {
 	border: 0;
 	border-radius: 8px;
-	padding: 9px 12px;
-	color: #ffffff;
-	background: #0f766e;
+	padding: 10px 12px;
+	font-weight: 700;
+	color: #0f172a;
+	background: linear-gradient(180deg, #ffd166, var(--amazon-accent));
 	cursor: pointer;
-	font-weight: 600;
 }
 
 button:hover {
-	background: #0b5f59;
+	filter: brightness(0.97);
 }
 
-.hint {
-	margin-top: 12px;
-	color: #475569;
-	font-size: 13px;
+.panelHead {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 10px;
 }
 
-.product {
-	padding: 10px;
-	border-bottom: 1px solid #e2e8f0;
+.pill {
+	font-size: 0.75rem;
+	color: #054f7d;
+	background: #e0f2fe;
+	padding: 6px 10px;
+	border-radius: 999px;
+}
+
+.feed {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.feedCard {
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	padding: 12px;
+	background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.feedHead {
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 8px;
+	color: #475467;
+	font-size: 0.8rem;
+}
+
+.feedTitle {
+	font-size: 1rem;
+	font-weight: 700;
+	margin-bottom: 6px;
+}
+
+.feedMeta {
+	font-size: 0.8rem;
+	color: #667085;
+}
+
+@media (max-width: 1180px) {
+	.layout {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 700px) {
+	.topbar {
+		grid-template-columns: 1fr;
+	}
+	.badge {
+		max-width: unset;
+	}
 }
