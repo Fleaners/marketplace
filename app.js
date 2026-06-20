@@ -3,6 +3,7 @@ const dataEl = document.getElementById('data');
 const authStatusEl = document.getElementById('authStatus');
 const uploadStatusEl = document.getElementById('uploadStatus');
 const loginForm = document.getElementById('loginForm');
+const otpForm = document.getElementById('otpForm');
 const registerForm = document.getElementById('registerForm');
 const uploadForm = document.getElementById('uploadForm');
 const globalSearch = document.getElementById('globalSearch');
@@ -26,6 +27,7 @@ let authToken = localStorage.getItem('AUTH_TOKEN') || '';
 let productsCache = [];
 let myUploadsCache = [];
 let currentBusiness = null;
+let pendingOtpPhone = '';
 
 const fallbackData = [
   { name: 'Brake Pad Premium Set', description: 'High-demand listing, backend fallback mode.' },
@@ -212,17 +214,48 @@ async function handleLogin(event) {
   event.preventDefault();
   const phone = document.getElementById('loginPhone').value.trim();
   const password = document.getElementById('loginPassword').value;
+  const channel = document.getElementById('loginChannel').value;
+  const email = document.getElementById('loginEmail').value.trim();
+
+  if (channel === 'email' && !email) {
+    setAuthStatus('Email is required when OTP channel is email.');
+    return;
+  }
 
   try {
-    const result = await requestAuth('/api/auth/login', { phone, password });
+    const payload = { phone, password, channel };
+    if (email) payload.email = email;
+    const result = await requestAuth('/api/auth/login/request-otp', payload);
+    pendingOtpPhone = phone;
+    otpForm.classList.remove('hidden');
+    setAuthStatus(result.otp ? `OTP sent. Debug OTP: ${result.otp}` : 'OTP sent. Enter it to continue login.');
+  } catch (error) {
+    setAuthStatus(`Login failed: ${error.message}`);
+  }
+}
+
+async function handleOtpVerify(event) {
+  event.preventDefault();
+  const otp = document.getElementById('loginOtp').value.trim();
+
+  if (!pendingOtpPhone) {
+    setAuthStatus('Request OTP first.');
+    return;
+  }
+
+  try {
+    const result = await requestAuth('/api/auth/login/verify-otp', { phone: pendingOtpPhone, otp });
     authToken = result.token;
     currentBusiness = result.business;
     localStorage.setItem('AUTH_TOKEN', authToken);
     setAuthStatus(`Logged in as ${result.business.shop_name}`);
+    otpForm.classList.add('hidden');
+    otpForm.reset();
+    pendingOtpPhone = '';
     updateIdentityCard();
     await fetchMyUploads();
   } catch (error) {
-    setAuthStatus(`Login failed: ${error.message}`);
+    setAuthStatus(`OTP verification failed: ${error.message}`);
   }
 }
 
@@ -356,6 +389,7 @@ async function handleMyUploadAction(event) {
 }
 
 loginForm.addEventListener('submit', handleLogin);
+otpForm.addEventListener('submit', handleOtpVerify);
 registerForm.addEventListener('submit', handleRegister);
 uploadForm.addEventListener('submit', handleUpload);
 myUploadsEl.addEventListener('click', handleMyUploadAction);

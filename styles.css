@@ -157,6 +157,14 @@ input {
 	font-size: 0.9rem;
 }
 
+select {
+	border: 1px solid #cbd5e1;
+	border-radius: 8px;
+	padding: 10px;
+	font-size: 0.9rem;
+	background: #fff;
+}
+
 button {
 	border: 0;
 	border-radius: 8px;
