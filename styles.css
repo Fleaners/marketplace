@@ -113,6 +113,35 @@ body {
 	border-top: 1px dashed var(--line);
 }
 
+.identityCard {
+	display: grid;
+	grid-template-columns: 56px 1fr;
+	gap: 10px;
+	align-items: center;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	padding: 10px;
+	background: linear-gradient(180deg, #f8fbff, #eef5ff);
+	margin-top: 10px;
+}
+
+.avatar {
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
+	font-weight: 800;
+	background: linear-gradient(135deg, #2563eb, #1d4ed8);
+	color: #ffffff;
+	letter-spacing: 0.5px;
+}
+
+.identityCard h3 {
+	font-size: 0.95rem;
+	margin: 0 0 3px;
+}
+
 label {
 	display: flex;
 	flex-direction: column;
@@ -163,11 +192,42 @@ button:hover {
 	gap: 10px;
 }
 
+.hidden {
+	display: none;
+}
+
+.tabBar {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+.tabBtn {
+	background: #edf2f7;
+	color: #0f172a;
+	font-weight: 700;
+	border: 1px solid #d0d5dd;
+}
+
+.tabActive {
+	background: linear-gradient(180deg, #ffd166, var(--amazon-accent));
+	border-color: #f59e0b;
+}
+
 .feedCard {
 	border: 1px solid var(--line);
 	border-radius: 12px;
 	padding: 12px;
 	background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.feedImage {
+	width: 100%;
+	max-height: 220px;
+	object-fit: cover;
+	border-radius: 10px;
+	margin: 8px 0;
+	border: 1px solid #e2e8f0;
 }
 
 .feedHead {
@@ -187,6 +247,22 @@ button:hover {
 .feedMeta {
 	font-size: 0.8rem;
 	color: #667085;
+}
+
+.cardActions {
+	display: flex;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+.actionSecondary {
+	background: #e5e7eb;
+	color: #111827;
+}
+
+.actionDanger {
+	background: #f87171;
+	color: #fff;
 }
 
 @media (max-width: 1180px) {

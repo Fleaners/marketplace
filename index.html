@@ -32,6 +32,14 @@
       <h2>Account</h2>
       <p id="authStatus" class="muted">Not logged in</p>
 
+      <article class="identityCard" id="identityCard">
+        <div class="avatar" id="profileAvatar">DC</div>
+        <div>
+          <h3 id="profileName">DealerConnect Guest</h3>
+          <p class="muted" id="profileMeta">Sign in to show company profile</p>
+        </div>
+      </article>
+
       <form id="loginForm" class="stack">
         <h3>Login</h3>
         <label>Phone<input id="loginPhone" type="text" required /></label>
@@ -55,7 +63,12 @@
         <h2>Explore Marketplace Feed</h2>
         <span class="pill">Inspired by LinkedIn feed</span>
       </div>
+      <div class="tabBar">
+        <button id="exploreTab" class="tabBtn tabActive" type="button">Explore</button>
+        <button id="myUploadsTab" class="tabBtn" type="button">My Uploads</button>
+      </div>
       <div id="data" class="feed"></div>
+      <div id="myUploads" class="feed hidden"></div>
     </section>
 
     <aside class="panel uploadPanel">
