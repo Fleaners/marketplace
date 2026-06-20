@@ -12,7 +12,7 @@ async function sendSmsOtp({ phone, otp }) {
   const body = new URLSearchParams({
     To: phone,
     From: fromPhone,
-    Body: `Your DealerConnect OTP is ${otp}. It expires in 5 minutes.`,
+    Body: `Your MarketPlace.Store OTP is ${otp}. It expires in 5 minutes.`,
   });
 
   const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
@@ -51,8 +51,8 @@ async function sendEmailOtp({ email, otp }) {
   await transporter.sendMail({
     from,
     to: email,
-    subject: 'DealerConnect Login OTP',
-    text: `Your DealerConnect OTP is ${otp}. It expires in 5 minutes.`,
+    subject: 'MarketPlace.Store Login OTP',
+    text: `Your MarketPlace.Store OTP is ${otp}. It expires in 5 minutes.`,
   });
 }
 

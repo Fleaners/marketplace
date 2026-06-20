@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', routes);
 
 app.get('/api/status', (req, res) => {
-  res.json({ message: 'DealerConnect backend is running' });
+  res.json({ message: 'MarketPlace.Store backend is running' });
 });
 
 if (fs.existsSync(webAppPath)) {
@@ -32,7 +32,7 @@ if (fs.existsSync(webAppPath)) {
   });
 } else {
   app.get('/', (req, res) => {
-    res.json({ message: 'DealerConnect backend is running' });
+    res.json({ message: 'MarketPlace.Store backend is running' });
   });
 }
 
@@ -52,7 +52,7 @@ if (require.main === module) {
   initializeDatabaseSchema()
     .then(() => {
       app.listen(PORT, () => {
-        console.log(`DealerConnect backend listening on port ${PORT}`);
+        console.log(`MarketPlace.Store backend listening on port ${PORT}`);
         if (fs.existsSync(webAppPath)) {
           console.log(`Static web_app available at http://127.0.0.1:${PORT}/`);
         }

@@ -1,4 +1,4 @@
--- DealerConnect schema
+-- MarketPlace.Store schema
 CREATE TABLE IF NOT EXISTS businesses (
   id SERIAL PRIMARY KEY,
   shop_name TEXT NOT NULL,

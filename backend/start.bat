@@ -1,5 +1,5 @@
 @echo off
-REM Start script for DealerConnect backend
+REM Start script for Marketplace.Store backend
 
 echo Installing dependencies...
 npm install

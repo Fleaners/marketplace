@@ -1,5 +1,5 @@
 #!/bin/bash
-# Start script for DealerConnect backend
+# Start script for Marketplace.Store backend
 
 echo "Installing dependencies..."
 npm install

@@ -1,0 +1,28 @@
+<svg width="1200" height="520" viewBox="0 0 1200 520" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Marketplace.Store logo">
+  <defs>
+    <linearGradient id="gold" x1="360" y1="80" x2="620" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F5D37A"/>
+      <stop offset="0.38" stop-color="#C78A18"/>
+      <stop offset="0.7" stop-color="#FFE7A8"/>
+      <stop offset="1" stop-color="#8B5E12"/>
+    </linearGradient>
+    <linearGradient id="goldSoft" x1="300" y1="140" x2="660" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF2BF"/>
+      <stop offset="0.5" stop-color="#D4A646"/>
+      <stop offset="1" stop-color="#A96D11"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="1200" height="520" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="520" rx="28" fill="white"/>
+  <g filter="url(#shadow)">
+    <path d="M514 86C527 86 539 93 546 105L645 267L744 105C751 93 763 86 776 86H824L677 329L658 361C650 374 629 374 621 361L602 329L455 86H514Z" fill="url(#gold)"/>
+    <path d="M406 86H444V404H406C394 404 385 395 385 383V107C385 95 394 86 406 86Z" fill="url(#goldSoft)"/>
+    <path d="M806 86H844C856 86 865 95 865 107V383C865 395 856 404 844 404H806V86Z" fill="url(#goldSoft)"/>
+    <path d="M449 404H551" stroke="url(#goldSoft)" stroke-width="6" stroke-linecap="round"/>
+    <path d="M739 404H841" stroke="url(#goldSoft)" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <text x="600" y="430" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="86" letter-spacing="16" fill="#111111">MARKETPLACE</text>
+  <text x="960" y="430" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="86" letter-spacing="5" fill="url(#gold)">.STORE</text>
+</svg>

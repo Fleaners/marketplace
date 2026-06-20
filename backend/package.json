@@ -1,7 +1,7 @@
 {
-  "name": "dealerconnect-backend",
+  "name": "marketplace-store-backend",
   "version": "0.1.0",
-  "description": "DealerConnect backend for Marketplace.store",
+  "description": "MarketPlace.Store backend",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
