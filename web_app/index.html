@@ -64,6 +64,10 @@
       <form id="otpForm" class="stack hidden">
         <h3>Verify OTP</h3>
         <label>6-digit OTP<input id="loginOtp" type="text" minlength="6" maxlength="6" required /></label>
+        <p id="otpCountdown" class="muted otpCountdown"></p>
+        <div class="otpAssistRow">
+          <button id="resendOtpBtn" class="actionSecondary" type="button">Resend OTP</button>
+        </div>
         <button type="submit">Verify & Login</button>
       </form>
 

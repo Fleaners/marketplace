@@ -4,6 +4,8 @@ const authStatusEl = document.getElementById('authStatus');
 const uploadStatusEl = document.getElementById('uploadStatus');
 const loginForm = document.getElementById('loginForm');
 const otpForm = document.getElementById('otpForm');
+const otpCountdownEl = document.getElementById('otpCountdown');
+const resendOtpBtn = document.getElementById('resendOtpBtn');
 const registerForm = document.getElementById('registerForm');
 const uploadForm = document.getElementById('uploadForm');
 const globalSearch = document.getElementById('globalSearch');
@@ -35,6 +37,10 @@ let currentBusiness = null;
 let pendingOtpPhone = '';
 let activeFilter = 'all';
 let activeView = 'explore';
+let otpExpiresAt = 0;
+let otpCountdownTimer = null;
+
+const OTP_TTL_MS = 5 * 60 * 1000;
 
 const fallbackData = [
   { name: 'Brake Pad Premium Set', description: 'High-demand listing, backend fallback mode.' },
@@ -360,28 +366,84 @@ async function fetchMyUploads() {
   if (activeView === 'uploads') applyFilters();
 }
 
-async function handleLogin(event) {
-  event.preventDefault();
+function stopOtpCountdown() {
+  if (otpCountdownTimer) {
+    clearInterval(otpCountdownTimer);
+    otpCountdownTimer = null;
+  }
+}
+
+function formatOtpRemaining(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+  const seconds = String(totalSeconds % 60).padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
+
+function startOtpCountdown() {
+  stopOtpCountdown();
+
+  const tick = () => {
+    const remaining = otpExpiresAt - Date.now();
+    if (remaining <= 0) {
+      otpCountdownEl.textContent = 'OTP expired. Click Resend OTP.';
+      stopOtpCountdown();
+      return;
+    }
+
+    otpCountdownEl.textContent = `OTP expires in ${formatOtpRemaining(remaining)}`;
+  };
+
+  tick();
+  otpCountdownTimer = setInterval(tick, 1000);
+}
+
+function getOtpRequestPayload() {
   const phone = document.getElementById('loginPhone').value.trim();
   const password = document.getElementById('loginPassword').value;
   const channel = document.getElementById('loginChannel').value;
   const email = document.getElementById('loginEmail').value.trim();
 
-  if (channel === 'email' && !email) {
-    setAuthStatus('Email is required when OTP channel is email.');
-    return;
+  if (!phone || !password) {
+    throw new Error('Phone and password are required to request OTP.');
   }
 
+  if (channel === 'email' && !email) {
+    throw new Error('Email is required when OTP channel is email.');
+  }
+
+  const payload = { phone, password, channel };
+  if (email) payload.email = email;
+  return { payload, phone };
+}
+
+async function requestOtpLogin(isResend = false) {
   try {
-    const payload = { phone, password, channel };
-    if (email) payload.email = email;
+    const { payload, phone } = getOtpRequestPayload();
     const result = await requestAuth('/api/auth/login/request-otp', payload);
     pendingOtpPhone = phone;
+    otpExpiresAt = Date.now() + OTP_TTL_MS;
     otpForm.classList.remove('hidden');
-    setAuthStatus(result.otp ? `OTP sent. Debug OTP: ${result.otp}` : 'OTP sent. Enter it to continue login.');
+    startOtpCountdown();
+
+    if (result.otp) {
+      setAuthStatus(`${isResend ? 'OTP re-sent.' : 'OTP sent.'} Debug OTP: ${result.otp}`);
+      return;
+    }
+
+    setAuthStatus(isResend ? 'OTP re-sent. Enter it to continue login.' : 'OTP sent. Enter it to continue login.');
   } catch (error) {
-    setAuthStatus(`Login failed: ${error.message}`);
+    setAuthStatus(`${isResend ? 'Resend failed' : 'Login failed'}: ${error.message}`);
   }
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  await requestOtpLogin(false);
+}
+
+async function handleResendOtp() {
+  await requestOtpLogin(true);
 }
 
 async function handleOtpVerify(event) {
@@ -402,6 +464,9 @@ async function handleOtpVerify(event) {
     otpForm.classList.add('hidden');
     otpForm.reset();
     pendingOtpPhone = '';
+    otpExpiresAt = 0;
+    otpCountdownEl.textContent = '';
+    stopOtpCountdown();
     updateIdentityCard();
     await fetchMyUploads();
   } catch (error) {
@@ -571,6 +636,7 @@ function handleRailAction(event) {
 
 loginForm.addEventListener('submit', handleLogin);
 otpForm.addEventListener('submit', handleOtpVerify);
+if (resendOtpBtn) resendOtpBtn.addEventListener('click', handleResendOtp);
 registerForm.addEventListener('submit', handleRegister);
 uploadForm.addEventListener('submit', handleUpload);
 myUploadsEl.addEventListener('click', handleMyUploadAction);
