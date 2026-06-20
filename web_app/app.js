@@ -5,9 +5,11 @@ const dataEl = document.getElementById('data');
 const params = new URLSearchParams(window.location.search);
 const storedApi = localStorage.getItem('API_URL');
 const queryApi = params.get('api');
-const API_URL = queryApi || storedApi || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '') || '';
+const PERMANENT_API_URL = 'https://marketplacestore-production.up.railway.app';
+const API_URL = queryApi || storedApi || PERMANENT_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '') || '';
 
 if (queryApi) localStorage.setItem('API_URL', queryApi);
+if (!queryApi && !storedApi && PERMANENT_API_URL) localStorage.setItem('API_URL', PERMANENT_API_URL);
 
 const fallbackData = {
   status: { message: 'Marketplace online demo (backend offline)' },

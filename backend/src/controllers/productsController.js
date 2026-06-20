@@ -1,6 +1,24 @@
 const { listProducts, getProductById, createProduct, updateProduct, deleteProduct, updateStock } = require('../models/productModel');
 const { uploadImage } = require('../utils/cloudinaryUpload');
 
+const demoProducts = [
+  {
+    id: 1,
+    name: 'Demo Product 1',
+    description: 'Served by backend fallback while database is unavailable.',
+  },
+  {
+    id: 2,
+    name: 'Demo Product 2',
+    description: 'Connect PostgreSQL to switch from demo fallback to live inventory.',
+  },
+  {
+    id: 3,
+    name: 'Demo Product 3',
+    description: 'Backend is online and ready for production database setup.',
+  },
+];
+
 async function fetchProducts(req, res, next) {
   try {
     const { business_id, search, city, limit, offset } = req.query;
@@ -13,6 +31,9 @@ async function fetchProducts(req, res, next) {
     });
     res.json(products);
   } catch (error) {
+    if (process.env.ALLOW_DEMO_FALLBACK === 'true') {
+      return res.json(demoProducts);
+    }
     next(error);
   }
 }
