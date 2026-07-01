@@ -3,6 +3,7 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
+const MAX_PROFILE_IMAGE_URL_LENGTH = 900000;
 
 function getDb() {
   return getFirestore();
@@ -40,6 +41,11 @@ router.put('/profile', async (req, res, next) => {
     }
     
     const { shopName, email, city, description, gstNumber, latitude, longitude, profileImageUrl } = req.body;
+    const normalizedProfileImageUrl = typeof profileImageUrl === 'string' ? profileImageUrl.trim() : '';
+
+    if (normalizedProfileImageUrl.length > MAX_PROFILE_IMAGE_URL_LENGTH) {
+      return res.status(400).json({ error: 'Profile image is too large. Please upload a smaller image.' });
+    }
     
     const updateData = {
       ...(shopName && { shop_name: shopName }),
@@ -49,7 +55,7 @@ router.put('/profile', async (req, res, next) => {
       ...(gstNumber && { gst_number: gstNumber }),
       ...(latitude && { latitude }),
       ...(longitude && { longitude }),
-      ...(profileImageUrl && { profile_image_url: profileImageUrl }),
+      ...(normalizedProfileImageUrl && { profile_image_url: normalizedProfileImageUrl }),
       updated_at: FieldValue.serverTimestamp(),
     };
     
