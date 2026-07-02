@@ -1,4 +1,4 @@
--- MarketPlace.Store schema
+-- Marketplace Premium schema
 CREATE TABLE IF NOT EXISTS businesses (
   id SERIAL PRIMARY KEY,
   shop_name TEXT NOT NULL,
@@ -70,6 +70,55 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS listing_visits (
+  id BIGSERIAL PRIMARY KEY,
+  product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+  seller_business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
+  visitor_business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
+  visitor_name TEXT,
+  visitor_phone TEXT,
+  visitor_email TEXT,
+  visitor_city TEXT,
+  user_agent TEXT,
+  visited_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS message_threads (
+  id BIGSERIAL PRIMARY KEY,
+  seller_business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
+  buyer_name TEXT,
+  buyer_phone TEXT,
+  buyer_email TEXT,
+  latest_message TEXT,
+  latest_message_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  unread_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id BIGSERIAL PRIMARY KEY,
+  thread_id BIGINT REFERENCES message_threads(id) ON DELETE CASCADE,
+  sender_role TEXT NOT NULL,
+  message_text TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS analytics_events (
+  id BIGSERIAL PRIMARY KEY,
+  business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
+  event_name TEXT NOT NULL,
+  product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+  city_location TEXT,
+  device_type TEXT,
+  traffic_source TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_products_business ON products(business_id);
 CREATE INDEX IF NOT EXISTS idx_posts_business ON posts(business_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_business ON invoices(business_id);
+CREATE INDEX IF NOT EXISTS idx_listing_visits_seller_time ON listing_visits(seller_business_id, visited_at DESC);
+CREATE INDEX IF NOT EXISTS idx_message_threads_seller_time ON message_threads(seller_business_id, latest_message_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_thread_time ON messages(thread_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_business_time ON analytics_events(business_id, created_at DESC);

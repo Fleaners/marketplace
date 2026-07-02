@@ -1,4 +1,4 @@
-Running the Marketplace.store project (backend + Postgres) with Docker
+Running the Marketplace Premium project (backend + Postgres) with Docker
 
 Prerequisites
 - Install Docker Desktop and ensure it's running.
@@ -33,7 +33,7 @@ docker compose exec db psql -U postgres -d dealerconnect -c "\dt"
 5) Test the backend
 ```powershell
 curl http://localhost:5000/
-# should return JSON {"message": "DealerConnect backend is running"}
+# should return JSON {"message": "Marketplace Premium backend is running"}
 ```
 
 6) To stop and remove containers

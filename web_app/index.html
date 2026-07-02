@@ -3,70 +3,98 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>marketplace.store | Connecting Buyers with Trusted Businesses</title>
+  <title>marketplace-store-fef91.web.app | Connecting Buyers with Trusted Businesses</title>
+  <meta name="description" content="marketplace-store-fef91.web.app helps buyers discover trusted businesses, verified sellers, and wholesale products across India with direct contact, phone OTP login, and Google sign-in." />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://marketplace-store-fef91.web.app/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="marketplace-store-fef91.web.app | Connecting Buyers with Trusted Businesses" />
+  <meta property="og:description" content="Discover verified sellers, compare products, and connect directly with trusted businesses across India." />
+  <meta property="og:url" content="https://marketplace-store-fef91.web.app/" />
+  <meta property="og:site_name" content="marketplace-store-fef91.web.app" />
+  <meta property="og:image" content="https://marketplace-store-fef91.web.app/assets/marketplace-store-app-icon.svg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="marketplace-store-fef91.web.app | Connecting Buyers with Trusted Businesses" />
+  <meta name="twitter:description" content="Discover verified sellers, compare products, and connect directly with trusted businesses across India." />
+  <meta name="twitter:image" content="https://marketplace-store-fef91.web.app/assets/marketplace-store-app-icon.svg" />
+  <link rel="icon" type="image/svg+xml" href="assets/marketplace-store-app-icon.svg" />
+  <link rel="apple-touch-icon" href="assets/marketplace-store-app-icon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20260625-store" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=20260702-brand-refresh" />
+  <link rel="stylesheet" href="assets/toast.css" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://www.google.com/recaptcha/enterprise.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script defer src="app.js?v=20260625-store"></script>
+  <!-- Firebase public config removed from static HTML for security.
+       The app will fetch public Firebase config from the backend endpoint
+       `/api/public/config` at runtime via `loadFirebasePublicConfig()` in
+       `web_app/app.js`. If you need to provide an inline config for local
+       development, set `window.MP_FIREBASE_CONFIG` dynamically from your
+       server-rendered HTML or use a local environment-specific script that
+       is NOT checked in. -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "marketplace-store-fef91.web.app",
+      "url": "https://marketplace-store-fef91.web.app/",
+      "description": "B2B marketplace for discovering trusted businesses, verified sellers, and wholesale products across India.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://marketplace-store-fef91.web.app/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  </script>
+  <script defer src="app.js?v=20260702-brand-refresh"></script>
 </head>
 <body>
   <div class="page-shell">
     <div id="homeView">
     <header class="site-header">
       <div class="brand-group">
-        <a href="#" class="brand-logo">
-          <span class="brand-full">marketplace.store</span>
+        <a href="#" class="brand-logo" aria-label="marketplace-store-fef91.web.app home">
+          <img src="assets/marketplace-store-logo.svg" alt="marketplace-store-fef91.web.app" class="brand-logo-image" />
         </a>
         <p class="brand-subtitle">Premium B2B sourcing for verified trade buyers</p>
       </div>
       <div class="header-menu">
+        <span class="trust-pill">Verified local businesses, transparent response times</span>
+        <button class="button buttonGhost" id="textSizeToggleBtn" aria-label="Toggle larger text">Text size</button>
         <button class="button buttonGhost" id="navSellerBtn">Join as Seller</button>
-        <button class="button buttonGhost" id="navDashboardBtn">Dashboard</button>
+        <button class="button buttonGhost account-button" id="navDashboardBtn" aria-label="Open account">
+          <span class="account-button-icon" id="navDashboardIcon" aria-hidden="true">&#128100;</span>
+          <span class="account-button-label" id="navDashboardLabel">Account</span>
+        </button>
         <button class="button buttonPrimary" id="navLoginBtn">Login</button>
       </div>
     </header>
 
-    <section class="hero-section">
+    <section class="hero-section buyer-hero">
       <div class="hero-copy">
-        <span class="eyebrow">B2B Marketplace</span>
-        <h1>Accelerate sourcing with verified suppliers and premium B2B listings</h1>
-        <p>Find trade-ready products, compare trusted vendors, and start qualified business conversations instantly.</p>
+        <span class="eyebrow">Discover</span>
+        <h1 id="buyerGreeting">Good Evening, Gaurav 👋</h1>
+        <p>Find trusted businesses and products near you.</p>
         <div class="hero-actions">
           <button class="button buttonPrimary" id="heroSearchBtn">Search Products</button>
-          <button class="button buttonSecondary" id="becomeSellerBtn">List Your Business</button>
+          <button class="button buttonSecondary" id="exploreBusinessesBtn">Explore Businesses</button>
         </div>
-        <div class="hero-highlights">
-          <div class="hero-highlight-card">
-            <strong>Verified sellers</strong>
-            <span>GST-certified businesses with fast lead response.</span>
-          </div>
-          <div class="hero-highlight-card">
-            <strong>Bulk-ready offers</strong>
-            <span>Manufacturing, wholesale and commercial procurement listings.</span>
-          </div>
-          <div class="hero-highlight-card">
-            <strong>Direct B2B contacts</strong>
-            <span>Connect via WhatsApp, call or inquiry without checkout friction.</span>
-          </div>
-        </div>
-        <ul class="hero-metrics">
-          <li><strong>50K+</strong><span>Products listed</span></li>
-          <li><strong>12K+</strong><span>Verified businesses</span></li>
-          <li><strong>99%</strong><span>GST verified sellers</span></li>
-        </ul>
       </div>
 
       <div class="hero-panel">
         <form id="searchHeroForm" class="search-form">
           <label class="search-label">
-            <span>Search products, categories or suppliers</span>
+            <span>Search products, businesses, categories...</span>
             <input id="globalSearch" type="search" placeholder="e.g. industrial pump, spare parts, adhesives" autocomplete="off" />
           </label>
+          <div class="search-actions-inline">
+            <button type="button" class="button buttonGhost" id="voiceSearchBtn" aria-label="Start voice search">Voice Search</button>
+            <span class="muted">Image search coming soon</span>
+          </div>
           <div class="search-filters">
             <select id="categorySelect">
               <option value="">All Categories</option>
@@ -78,6 +106,9 @@
               <option value="Industrial">Industrial</option>
               <option value="Wholesale">Wholesale</option>
               <option value="Services">Services</option>
+            </select>
+            <select id="stateSelect" aria-label="Select state">
+              <option value="">Any State</option>
             </select>
             <select id="locationSelect">
               <option value="">Any Location</option>
@@ -93,290 +124,221 @@
           <button type="submit" class="button buttonPrimary buttonFull">Search Marketplace</button>
         </form>
         <div class="hero-trust-strip">
-          <div><strong>Verified Seller</strong><span>GST & business compliance</span></div>
-          <div><strong>Direct Connect</strong><span>WhatsApp, call, inquiry</span></div>
-          <div><strong>No Checkout</strong><span>Lead-based B2B selling</span></div>
+          <div><strong>No checkout</strong><span>Explore, compare, connect</span></div>
         </div>
       </div>
     </section>
 
-    <section class="section-top-cards">
-      <article class="status-card">
-        <span class="status-icon">📈</span>
-        <div>
-          <strong>Trusted Marketplace</strong>
-          <p>Enterprise-grade discovery for B2B buyers.</p>
-        </div>
-      </article>
-      <article class="status-card">
-        <span class="status-icon">🔎</span>
-        <div>
-          <strong>Smart Search</strong>
-          <p>Intelligent category and location filtering.</p>
-        </div>
-      </article>
-      <article class="status-card">
-        <span class="status-icon">💬</span>
-        <div>
-          <strong>Verified Leads</strong>
-          <p>Connect directly with businesses via WhatsApp.</p>
-        </div>
-      </article>
+    <section class="quick-chip-row" aria-label="Popular quick categories">
+      <button class="quick-chip" data-chip="Electrical" type="button">⚡ Electrical</button>
+      <button class="quick-chip" data-chip="Construction" type="button">🏗 Construction</button>
+      <button class="quick-chip" data-chip="Industrial" type="button">🔩 Industrial</button>
+      <button class="quick-chip" data-chip="Machinery" type="button">🚜 Machinery</button>
+      <button class="quick-chip" data-chip="Hardware" type="button">🧰 Hardware</button>
+      <button class="quick-chip" data-chip="Wholesale" type="button">📦 Wholesale</button>
     </section>
 
-    <!-- Top suppliers showcase -->
-    <section class="section-suppliers" id="topSuppliersSection" style="margin-top:18px;">
+    <section class="section-suppliers" id="recommendedSection" style="margin-top:18px;">
       <div class="section-header">
         <div>
-          <p class="section-label">Top Suppliers</p>
-          <h2>Verified suppliers trusted by businesses</h2>
+          <p class="section-label">Recommended For You</p>
+          <h2>Discover trusted products to explore next</h2>
         </div>
-        <button id="exploreSuppliersBtn" class="button buttonGhost" type="button">Browse verified suppliers</button>
+        <button id="viewAllProductsBtn" class="button buttonGhost" type="button">Explore all</button>
       </div>
-      <div id="topSuppliersList" class="dealer-grid"></div>
+      <div id="recommendedProductsList" class="market-grid"></div>
     </section>
 
-    <main class="main-grid">
-      <section class="panel overview-panel">
-        <div class="section-header">
-          <div>
-            <p class="section-label">Trending Products</p>
-            <h2>Products buyers are discovering now</h2>
-          </div>
-          <button class="button buttonGhost" type="button" id="viewAllProductsBtn">View all</button>
+    <section class="section-suppliers" id="verifiedBusinessesSection" style="margin-top:18px;">
+      <div class="section-header">
+        <div>
+          <p class="section-label">Verified Businesses Near You</p>
+          <h2>Trust-first suppliers with fast responses</h2>
         </div>
-        <div id="trendingProductsList" class="market-grid"></div>
+        <button id="exploreSuppliersBtn" class="button buttonGhost" type="button">Visit stores</button>
+      </div>
+      <div id="verifiedSellersList" class="dealer-grid"></div>
+    </section>
 
-        <div class="double-grid">
-          <div class="subsection panel feature-section">
-            <div class="section-header">
-              <div>
-                <p class="section-label">Featured Dealers</p>
-                <h3>Trusted businesses with strong ratings</h3>
-              </div>
-              <button class="button buttonGhost" type="button" id="exploreDealersBtn">Explore dealers</button>
-            </div>
-            <div id="featuredDealersList" class="dealer-grid"></div>
-          </div>
-
-          <div class="subsection panel feature-section">
-            <div class="section-header">
-              <div>
-                <p class="section-label">New Arrivals</p>
-                <h3>Fresh B2B listings from top sellers</h3>
-              </div>
-              <button class="button buttonGhost" type="button" id="seeNewListingsBtn">See new listings</button>
-            </div>
-            <div id="newArrivalsList" class="market-grid"></div>
-          </div>
+    <section class="buyer-rails" id="buyerRails">
+      <div class="section-header">
+        <div>
+          <p class="section-label">Recently Viewed</p>
+          <h2>Continue where you left off</h2>
         </div>
+      </div>
+      <div class="rail-block">
+        <div id="recentlyViewedRail" class="rail-list"></div>
+      </div>
+      <div class="rail-block">
+        <div class="rail-head"><h3>Trending This Week</h3></div>
+        <div id="trendingWeekChips" class="trending-chip-row"></div>
+      </div>
+      <div class="rail-block">
+        <div class="rail-head"><h3>Marketplace AI Assistant</h3></div>
+        <article id="aiAssistantCard" class="insight-card ai-assistant-card"></article>
+      </div>
+    </section>
 
-        <section class="section-split">
-          <div>
-            <p class="section-label">Top Categories</p>
-            <h3>Browse supplier categories</h3>
-          </div>
-          <div id="topCategoriesList" class="category-grid"></div>
-        </section>
-
-        <section class="section-split">
-          <div>
-            <p class="section-label">Recommended Products</p>
-            <h3>Tailored discovery for your business</h3>
-          </div>
-          <div id="recommendedProductsList" class="market-grid"></div>
-        </section>
-
-        <section class="section-split">
-          <div>
-            <p class="section-label">Business Success Stories</p>
-            <h3>How businesses grow with marketplace.store</h3>
-          </div>
-          <div id="successStoriesList" class="story-grid"></div>
-        </section>
-      </section>
-
-      <aside class="panel sidebar-panel">
-        <div class="profile-panel" id="profileSection">
-          <div class="profile-header">
-            <img src="assets/marketplace-store-logo.svg" alt="marketplace.store" />
-            <div>
-                <p class="section-label">Seller profile</p>
-                  <h3 id="profileName">marketplace.store Guest</h3>
-            </div>
-          </div>
-          <p id="profileMeta" class="muted">Sign in to see personalized supplier recommendations.</p>
-        </div>
-
-        <div class="dashboard-card">
-          <div class="dashboard-header">
-            <p class="section-label">Seller Metrics</p>
-            <span class="badge badgeVerified">GST Verified</span>
-          </div>
-          <div class="dashboard-grid">
-            <div><strong>1.2K</strong><span>Products</span></div>
-            <div><strong>98%</strong><span>Response rate</span></div>
-            <div><strong>4.8</strong><span>Rating</span></div>
-            <div><strong>340</strong><span>Inquiries</span></div>
-          </div>
-        </div>
-
-        <div class="panel card-section">
-          <div class="section-header">
-            <div>
-              <p class="section-label">Nearby Businesses</p>
-              <h3>Local suppliers ready to connect</h3>
-            </div>
-          </div>
-          <div id="nearbyBusinessesList" class="nearby-grid"></div>
-        </div>
-
-        <div class="panel card-section">
-          <div class="section-header">
-            <div>
-              <p class="section-label">Verified Sellers</p>
-              <h3>High-trust business partners</h3>
-            </div>
-          </div>
-          <div id="verifiedSellersList" class="seller-grid"></div>
-        </div>
-
-        <div class="panel card-section">
-          <div class="section-header">
-            <div>
-              <p class="section-label">Seller Actions</p>
-              <h3>Quick access</h3>
-            </div>
-          </div>
-          <button class="button buttonSecondary" type="button" id="navSellerBtnSecondary">List a Product</button>
-          <p class="muted" style="margin-top:14px;font-size:0.94rem;line-height:1.6;">Sign in to unlock dashboards, verified listings and faster buyer leads.</p>
-        </div>
-      </aside>
-    </main>
-    </div>
-
-    <section id="buyerDashboard" class="dashboard-view hidden">
+    <section id="exploreView" class="dashboard-view hidden">
       <div class="section-header dashboard-header-large">
         <div>
-          <p class="section-label">Buyer Dashboard</p>
-          <h2>Welcome back, <span id="buyerName">Buyer</span></h2>
-        </div>
-        <button class="button buttonPrimary" type="button" id="buyerBrowseBtn">Browse products</button>
-      </div>
-      <div class="dashboard-card-grid">
-        <article class="metric-card">
-          <strong id="buyerRecCount">0</strong>
-          <span>Recommended Products</span>
-        </article>
-        <article class="metric-card">
-          <strong id="buyerViewedCount">0</strong>
-          <span>Recently Viewed</span>
-        </article>
-        <article class="metric-card">
-          <strong id="buyerWishlistCount">0</strong>
-          <span>Wishlist Items</span>
-        </article>
-        <article class="metric-card">
-          <strong id="buyerSupplierCount">0</strong>
-          <span>Saved Suppliers</span>
-        </article>
-        <article class="metric-card">
-          <strong id="buyerRfqCount">0</strong>
-          <span>RFQ Requests</span>
-        </article>
-        <article class="metric-card">
-          <strong id="buyerOrderCount">0</strong>
-          <span>Orders</span>
-        </article>
-      </div>
-      <div class="dashboard-row">
-        <div class="panel dashboard-panel-small">
-          <div class="section-header">
-            <div>
-              <p class="section-label">Shopping Insights</p>
-              <h3>Buyer analytics</h3>
-            </div>
-          </div>
-          <div class="analytics-grid">
-            <div class="analytics-card"><strong id="buyerAnalyticsProductsViewed">0</strong><span>Products viewed</span></div>
-            <div class="analytics-card"><strong id="buyerAnalyticsCategoriesViewed">0</strong><span>Categories viewed</span></div>
-            <div class="analytics-card"><strong id="buyerAnalyticsSearches">0</strong><span>Recent searches</span></div>
-            <div class="analytics-card"><strong id="buyerAnalyticsInquiryHistory">0</strong><span>Inquiry history</span></div>
-          </div>
-        </div>
-        <div class="panel dashboard-panel-small">
-          <div class="section-header">
-            <div>
-              <p class="section-label">Messages & Orders</p>
-              <h3>Quick actions</h3>
-            </div>
-          </div>
-          <div class="dashboard-list" id="buyerMessagesList"></div>
+          <p class="section-label">Explore</p>
+          <h2>Search with confidence and compare trusted options</h2>
         </div>
       </div>
-      <div class="dashboard-row">
-        <div class="panel">
-          <div class="section-header">
-            <div>
-              <p class="section-label">Recommended products</p>
-              <h3>Based on your recent activity</h3>
-            </div>
-          </div>
-          <div id="dashboardRecommended" class="market-grid"></div>
+      <div class="panel">
+        <div id="exploreGrid" class="market-grid"></div>
+      </div>
+    </section>
+
+    <section id="favoritesView" class="dashboard-view hidden">
+      <div class="section-header dashboard-header-large">
+        <div>
+          <p class="section-label">Favorites</p>
+          <h2>Save products and build supplier collections</h2>
         </div>
       </div>
-      <div class="dashboard-row">
-        <div class="panel">
-          <div class="section-header">
-            <div>
-              <p class="section-label">Recently viewed</p>
-              <h3>Your last product views</h3>
-            </div>
-          </div>
-          <div id="dashboardRecentlyViewed" class="market-grid"></div>
-        </div>
-      </div>
+      <div class="collection-grid" id="favoritesCollections"></div>
       <div class="dashboard-row">
         <div class="panel dashboard-half-panel">
           <div class="section-header">
             <div>
-              <p class="section-label">Wishlist</p>
-              <h3>Saved products</h3>
+              <p class="section-label">Saved products</p>
+              <h3>Your shortlist</h3>
             </div>
           </div>
-          <div id="dashboardWishlist" class="market-grid"></div>
+          <div id="favoritesProducts" class="market-grid"></div>
         </div>
         <div class="panel dashboard-half-panel">
           <div class="section-header">
             <div>
-              <p class="section-label">Saved suppliers</p>
-              <h3>Supplier relationships</h3>
+              <p class="section-label">Saved businesses</p>
+              <h3>Relationship network</h3>
             </div>
           </div>
-          <div id="dashboardSavedSuppliers" class="dealer-grid"></div>
+          <div id="favoritesBusinesses" class="dealer-grid"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-header">
+          <div>
+            <p class="section-label">Compare</p>
+            <h3>Understand differences before contacting</h3>
+          </div>
+        </div>
+        <div id="favoritesCompare" class="dashboard-list"></div>
+      </div>
+    </section>
+
+    <!-- Messages removed for Buyer Dashboard simplification -->
+
+    <section id="profileView" class="dashboard-view hidden">
+      <div class="section-header dashboard-header-large">
+        <div>
+          <p class="section-label">Profile</p>
+          <h2>Your saved collections and settings</h2>
+        </div>
+      </div>
+      <div id="profileCompletionPanel" class="panel completion-panel"></div>
+      <div class="dashboard-row">
+        <div class="panel dashboard-half-panel">
+          <h3>Saved Products</h3>
+          <div id="profileSavedProducts" class="dashboard-list"></div>
+        </div>
+        <div class="panel dashboard-half-panel">
+          <h3>Saved Businesses</h3>
+          <div id="profileSavedBusinesses" class="dashboard-list"></div>
         </div>
       </div>
       <div class="dashboard-row">
         <div class="panel dashboard-half-panel">
-          <div class="section-header">
-            <div>
-              <p class="section-label">RFQ requests</p>
-              <h3>Quotes you've requested</h3>
-            </div>
-          </div>
-          <div id="dashboardRfqs" class="dashboard-list"></div>
+          <h3>Recent Searches</h3>
+          <div id="profileRecentSearches" class="dashboard-list"></div>
+          <h3 style="margin-top:16px;">My Messages</h3>
+          <div id="profileMessages" class="dashboard-list"></div>
         </div>
         <div class="panel dashboard-half-panel">
-          <div class="section-header">
-            <div>
-              <p class="section-label">Orders</p>
-              <h3>Recent order history</h3>
-            </div>
+          <h3>Privacy Settings</h3>
+          <div class="privacy-controls">
+            <label><input type="checkbox" id="privacyAnalyticsToggle" checked /> Improve recommendations using my activity</label>
+            <label><input type="checkbox" id="privacyPersonalizationToggle" checked /> Personalized discovery suggestions</label>
+            <label><input type="checkbox" id="privacyLocationToggle" checked /> Use location for nearby businesses</label>
+            <button class="button buttonGhost" id="exportDataBtn" type="button">Export my data</button>
+            <button class="button buttonSecondary" id="deleteAccountBtn" type="button">Delete account</button>
+            <button class="button buttonSecondary" id="profileAccountSettingsBtn" type="button">Account settings</button>
+            <button class="button buttonGhost" id="profileLogoutBtn" type="button">Logout</button>
           </div>
-          <div id="dashboardOrders" class="dashboard-list"></div>
+          <h3>Help Center</h3>
+          <div id="profileHelp" class="dashboard-list"></div>
         </div>
       </div>
     </section>
+
+    <section id="businessProfileView" class="dashboard-view hidden">
+      <div class="section-header dashboard-header-large">
+        <div>
+          <p class="section-label">Business Profile</p>
+          <h2 id="businessProfileTitle">Trusted Supplier</h2>
+        </div>
+        <button class="button buttonGhost" id="businessBackBtn" type="button">Back to discovery</button>
+      </div>
+
+      <div class="dashboard-row">
+        <div class="panel dashboard-half-panel">
+          <div class="business-identity">
+            <div class="supplier-logo" id="businessProfileLogo">MS</div>
+            <div>
+              <h3 id="businessProfileName">Business Name</h3>
+              <p id="businessProfileMeta" class="muted">Location and trust status</p>
+            </div>
+          </div>
+          <div id="businessTrustStats" class="business-trust-grid"></div>
+          <p id="businessStory" class="muted">Business story will appear here.</p>
+          <div class="cardActions">
+            <a id="businessWhatsappLink" class="button buttonPrimary" href="#" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            <a id="businessCallLink" class="button buttonSecondary" href="#">Call</a>
+          </div>
+        </div>
+
+        <div class="panel dashboard-half-panel">
+          <h3>Certifications and Trust</h3>
+          <div id="businessCertifications" class="dashboard-list"></div>
+          <h3 style="margin-top:16px;">Social Links</h3>
+          <div id="businessSocialLinks" class="dashboard-list"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-header">
+          <div>
+            <p class="section-label">Gallery</p>
+            <h3>Business and product showcase</h3>
+          </div>
+        </div>
+        <div id="businessGallery" class="gallery-grid"></div>
+      </div>
+
+      <div class="panel">
+        <div class="section-header">
+          <div>
+            <p class="section-label">Products</p>
+            <h3>Listings from this business</h3>
+          </div>
+        </div>
+        <div id="businessProductsGrid" class="market-grid"></div>
+      </div>
+    </section>
+
+    <section class="onboarding-banner" id="onboardingBanner">
+      <div>
+        <p class="section-label">Getting Started</p>
+        <h3>Discover trusted businesses in three simple steps</h3>
+        <p>Search by product or city, compare verified dealers, and contact directly via WhatsApp or inquiry.</p>
+      </div>
+      <button class="button buttonPrimary" id="onboardingCtaBtn" type="button">Start exploring</button>
+    </section>
+    </div>
 
     <section id="sellerDashboard" class="dashboard-view hidden">
       <div class="section-header dashboard-header-large">
@@ -386,6 +348,8 @@
         </div>
         <button class="button buttonPrimary" type="button" id="sellerAddProductBtn">Add product</button>
       </div>
+      <div id="sellerCompletionPanel" class="panel completion-panel"></div>
+      <div id="sellerInsightsCards" class="dashboard-card-grid"></div>
       <div class="dashboard-card-grid">
         <article class="metric-card">
           <strong id="sellerTotalProducts">0</strong>
@@ -512,41 +476,42 @@
     </section>
 
     <footer class="site-footer">
-      <p>marketplace.store — Trusted B2B discovery for verified buyers and sellers.</p>
+      <p>marketplace-store-fef91.web.app — Trusted B2B discovery for verified buyers and sellers.</p>
       <div class="footer-links">
-        <a href="#">About</a>
-        <a href="#">Trust & Safety</a>
-        <a href="#">GST Verification</a>
-        <a href="#">Contact</a>
+        <a href="/">About</a>
+        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/terms.html">Terms of Service</a>
+        <a href="/privacy.html">Trust & Safety</a>
       </div>
     </footer>
   </div>
 
   <button id="whatsAppFab" class="whatsapp-fab" type="button" title="Chat on WhatsApp">💬</button>
+  <!-- Sticky bottom navigation for buyer tasks -->
+  <nav id="bottomNav" class="bottom-nav" aria-label="Buyer navigation">
+    <button id="bottomHomeBtn" class="bottom-nav-btn">🏠<div>Home</div></button>
+    <button id="bottomSearchBtn" class="bottom-nav-btn">🔍<div>Search</div></button>
+    <button id="bottomWishlistBtn" class="bottom-nav-btn">❤️<div>Wishlist</div></button>
+    <button id="bottomProfileBtn" class="bottom-nav-btn">👤<div>Profile</div></button>
+    <button id="bottomLogoutBtn" class="bottom-nav-btn">🚪<div>Logout</div></button>
+  </nav>
   <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
     <button class="mobile-nav-item active" data-nav="home" type="button">
       <span>🏠</span>
       <span>Home</span>
     </button>
-    <button class="mobile-nav-item" data-nav="search" type="button">
-      <span>🔍</span>
-      <span>Search</span>
+    <button class="mobile-nav-item" data-nav="explore" type="button">
+      <span>🧭</span>
+      <span>Explore</span>
     </button>
-    <button class="mobile-nav-item" data-nav="sell" type="button">
-      <span>📦</span>
-      <span>Sell</span>
+    <button class="mobile-nav-item" data-nav="favorites" type="button">
+      <span>❤️</span>
+      <span>Favorites</span>
     </button>
-    <button class="mobile-nav-item" data-nav="messages" type="button">
-      <span>💬</span>
-      <span>Messages</span>
-    </button>
+    <!-- Messages removed from mobile navigation to simplify buyer experience -->
     <button class="mobile-nav-item" data-nav="profile" type="button">
       <span>👤</span>
-      <span>Profile</span>
-    </button>
-    <button class="mobile-nav-item" data-nav="login" type="button" id="mobileLoginBtn">
-      <span>🔐</span>
-      <span>Login</span>
+      <span id="mobileProfileLabel">Account</span>
     </button>
   </nav>
 
@@ -572,22 +537,68 @@
         <input id="authEmail" type="email" placeholder="name@company.com" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--line)" />
         <label id="authPasswordLabel" style="display:block;margin-top:10px">Password</label>
         <input id="authPassword" type="password" placeholder="Create a password" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--line)" />
+        <label id="authBusinessNameLabel" style="display:block;margin-top:10px">Business Name</label>
+        <input id="authBusinessName" type="text" placeholder="Your business name" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--line)" />
+        <label id="authCategoryLabel" style="display:block;margin-top:10px">Category</label>
+        <input id="authCategory" type="text" placeholder="e.g. Industrial Pumps" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--line)" />
+        <label id="authWhatsappLabel" style="display:block;margin-top:10px">WhatsApp Number</label>
+        <input id="authWhatsapp" type="tel" placeholder="Mandatory for sellers" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--line)" />
+        <label id="authWebsiteLabel" style="display:block;margin-top:10px">Website (Optional)</label>
+        <input id="authWebsite" type="url" placeholder="https://example.com" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--line)" />
+        <label id="authBusinessRegLabel" style="display:block;margin-top:10px">Business Registration Number (Optional)</label>
+        <input id="authBusinessReg" type="text" placeholder="Registration number" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--line)" />
+        <label id="authAddressLabel" style="display:block;margin-top:10px">Business Address (Optional)</label>
+        <textarea id="authAddress" placeholder="Business address" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);min-height:74px;"></textarea>
         <label style="display:block;margin-top:10px">Role</label>
         <select id="authRole" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--line)">
           <option value="buyer">Buyer</option>
           <option value="seller">Seller</option>
         </select>
-        <label id="authGstLabel" style="display:block;margin-top:10px;opacity:0.8;">GSTIN (seller only)</label>
+        <label id="authGstLabel" style="display:block;margin-top:10px;opacity:0.8;">GST Number (Optional)</label>
         <input id="authGst" type="text" placeholder="GSTIN Example: 27AAACM1234A1Z5" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--line)" />
+        <p id="authGstHint" class="muted" style="margin:8px 0 0;font-size:0.85rem;">Add later to receive a GST Verified badge.</p>
         <div id="recaptchaContainer"></div>
         <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-          <button type="button" id="authSubmit" class="button buttonPrimary">Continue</button>
+          <button type="button" id="authSendOtp" class="button buttonPrimary">Send OTP</button>
+          <button type="button" id="authLoginOtp" class="button buttonSecondary">Login</button>
+          <button type="button" id="authSubmit" class="button buttonPrimary">Register</button>
           <button type="button" id="authSwitch" class="button buttonGhost">Switch to Register</button>
+        </div>
+        <div style="margin-top:10px;">
+          <button type="button" id="authForgotPassword" class="button buttonGhost">Forgot Password?</button>
         </div>
         <div style="margin-top:12px">
           <button type="button" id="authGoogle" class="button buttonSecondary">Sign in with Google</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <div id="googleRoleModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card onboarding-modal-card">
+      <button id="googleRoleClose" class="modal-close">×</button>
+      <h2>Welcome to marketplace.store 👋</h2>
+      <p>How would you like to use the platform?</p>
+      <div class="role-choice-group">
+        <label><input type="radio" name="googleRoleChoice" value="buyer" checked /> Buyer</label>
+        <label><input type="radio" name="googleRoleChoice" value="seller" /> Seller</label>
+      </div>
+      <button id="googleRoleContinue" class="button buttonPrimary" type="button">Continue</button>
+    </div>
+  </div>
+
+  <div id="profileWizardModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card onboarding-modal-card">
+      <h2 id="profileWizardTitle">Complete your profile</h2>
+      <p id="profileWizardSubtitle">Step 1 of 3</p>
+      <div class="wizard-progress">
+        <div id="wizardProgressBar" class="wizard-progress-bar"></div>
+      </div>
+      <div id="profileWizardBody"></div>
+      <div class="wizard-actions">
+        <button id="profileWizardBack" class="button buttonGhost" type="button">Back</button>
+        <button id="profileWizardNext" class="button buttonPrimary" type="button">Next</button>
+      </div>
     </div>
   </div>
 </body>

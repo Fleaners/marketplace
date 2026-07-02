@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', routes);
 
 app.get('/api/status', (req, res) => {
-  res.json({ message: 'MarketPlace.Store backend is running' });
+  res.json({ message: 'Marketplace Premium backend is running' });
 });
 
 if (fs.existsSync(webAppPath)) {
@@ -52,7 +52,7 @@ if (require.main === module) {
   initializeDatabaseSchema()
     .then(() => {
       app.listen(PORT, () => {
-        console.log(`MarketPlace.Store backend listening on port ${PORT}`);
+        console.log(`Marketplace Premium backend listening on port ${PORT}`);
         if (fs.existsSync(webAppPath)) {
           console.log(`Static web_app available at http://127.0.0.1:${PORT}/`);
         }

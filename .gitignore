@@ -5,6 +5,18 @@ yarn-debug.log*
 yarn-error.log*
 package-lock.json
 pnpm-lock.yaml
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.p8
+*.cer
+*service-account*.json
+*firebase-admin*.json
+secrets/
+*.secrets
 
 # Flutter
 .dart_tool/
@@ -21,6 +33,19 @@ build/
 .idea/
 *.iml
 
+# Google Cloud service account key
+scripts/service-account-key.json
+functions/service-account-key.json
+backend/service-account-key.json
+
 # OS files
 .DS_Store
 Thumbs.db
+
+# Next.js build outputs
+next_app/.next/
+next_app/out/
+
+# Local build artifacts
+web_app/*.map
+web_app/*.bundle.js

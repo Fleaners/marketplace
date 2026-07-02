@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://marketplace-store-fef91.web.app/sitemap.xml

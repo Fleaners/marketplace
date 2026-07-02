@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: marketplace-store-fef91.web.app Merchant API
+  version: 1.0.0
+servers:
+  - url: https://marketplace-store-fef91.web.app
+paths:
+  /api/insights/summary:
+    get:
+      summary: Seller story summary
+      responses:
+        '200':
+          description: OK
+  /api/insights/visitors:
+    get:
+      summary: Visitors this month line-series
+      responses:
+        '200':
+          description: OK
+  /api/insights/top-products:
+    get:
+      summary: Top viewed products
+      responses:
+        '200':
+          description: OK
+  /api/insights/category-interest:
+    get:
+      summary: Category interest breakdown
+      responses:
+        '200':
+          description: OK
+  /api/products/import/csv:
+    post:
+      summary: Import products from CSV
+      responses:
+        '201':
+          description: Imported
+  /api/products/import/excel:
+    post:
+      summary: Import products from Excel
+      responses:
+        '201':
+          description: Imported
+  /api/analytics/events:
+    post:
+      summary: Ingest analytics event
+      responses:
+        '202':
+          description: Accepted
+  /api/ai/suggestions:
+    get:
+      summary: Marketplace Copilot suggestions
+      responses:
+        '200':
+          description: OK
+  /api/messages:
+    get:
+      summary: List seller messages
+      responses:
+        '200':
+          description: OK
+  /api/messages/{threadId}/reply:
+    post:
+      summary: Reply to buyer thread
+      parameters:
+        - in: path
+          name: threadId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Replied
