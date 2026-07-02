@@ -2,6 +2,7 @@ import express from 'express';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import PDFDocument from 'pdfkit';
 import { verifyToken } from '../middleware/auth.js';
+import { rejectUnknownBodyFields, requireString, optionalNumber, optionalArray } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -35,7 +36,16 @@ router.get('/', async (req, res, next) => {
 });
 
 // Create invoice
-router.post('/', async (req, res, next) => {
+router.post(
+  '/',
+  rejectUnknownBodyFields(['customerName', 'customerPhone', 'items', 'gstAmount', 'subtotal', 'total']),
+  requireString('customerName', { min: 1, max: 200 }),
+  requireString('customerPhone', { min: 6, max: 20 }),
+  optionalArray('items', { maxLength: 200 }),
+  optionalNumber('gstAmount', { min: 0, max: 1e9 }),
+  optionalNumber('subtotal', { min: 0, max: 1e9 }),
+  optionalNumber('total', { min: 0, max: 1e9 }),
+  async (req, res, next) => {
   try {
     const db = getDb();
     const businessId = req.user?.businessId;
@@ -134,7 +144,8 @@ router.get('/:id/pdf', async (req, res, next) => {
     // Create PDF
     const pdf = new PDFDocument();
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="invoice-${req.params.id}.pdf"`);
+    const safeInvoiceId = String(req.params.id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+    res.setHeader('Content-Disposition', `attachment; filename="invoice-${safeInvoiceId || 'document'}.pdf"`);
     
     pdf.pipe(res);
     

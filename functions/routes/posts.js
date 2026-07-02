@@ -1,6 +1,7 @@
 import express from 'express';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { verifyToken } from '../middleware/auth.js';
+import { rejectUnknownBodyFields, requireString, optionalString } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -34,7 +35,12 @@ router.get('/', async (req, res, next) => {
 });
 
 // Create post
-router.post('/', async (req, res, next) => {
+router.post(
+  '/',
+  rejectUnknownBodyFields(['content', 'imageUrl']),
+  requireString('content', { min: 1, max: 3000 }),
+  optionalString('imageUrl', { max: 900000 }),
+  async (req, res, next) => {
   try {
     const db = getDb();
     const businessId = req.user?.businessId;

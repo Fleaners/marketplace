@@ -7,7 +7,74 @@ on:
       - master
 
 jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run strict key-pattern scanner
+        shell: pwsh
+        run: ./scripts/full-secret-scan.ps1
+
+  smoke-test:
+    needs: secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: next_app/package-lock.json
+
+      - name: Install next_app dependencies
+        run: npm --prefix next_app ci
+
+      - name: Install Playwright Chromium
+        run: npx --prefix next_app playwright install --with-deps chromium
+
+      - name: Start local pre-release server
+        run: |
+          python3 -m http.server 4173 --directory web_app > /tmp/web_app-server.log 2>&1 &
+          echo $! > /tmp/web_app-server.pid
+
+      - name: Wait for server readiness
+        run: |
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "web_app server did not start in time"
+          cat /tmp/web_app-server.log || true
+          exit 1
+
+      - name: Run smoke suite (buttons, uploads, auth UI)
+        env:
+          SMOKE_BASE_URL: http://127.0.0.1:4173
+        run: npx --prefix next_app playwright test tests/smoke.spec.ts --reporter=line
+
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-artifacts
+          path: |
+            test-results
+            playwright-report
+            next_app/test-results
+            next_app/playwright-report
+
+      - name: Stop local pre-release server
+        if: always()
+        run: |
+          if [ -f /tmp/web_app-server.pid ]; then
+            kill "$(cat /tmp/web_app-server.pid)" || true
+          fi
+
   deploy:
+    needs: smoke-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

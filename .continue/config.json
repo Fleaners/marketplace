@@ -1,0 +1,64 @@
+{
+  "$schema": "https://raw.githubusercontent.com/continuedev/continue/main/extensions/vscode/config_schema.json",
+  "models": [
+    {
+      "title": "Local Qwen Coder 7B",
+      "provider": "ollama",
+      "model": "qwen2.5-coder:7b",
+      "roles": [
+        "chat",
+        "edit",
+        "apply",
+        "summarize"
+      ],
+      "chatOptions": {
+        "baseSystemMessage": "You are a helpful coding assistant for this workspace.",
+        "baseAgentSystemMessage": "You are a methodical coding agent working inside this repository. Plan briefly, act carefully, inspect the workspace before editing, and make the smallest safe change that solves the task.",
+        "basePlanSystemMessage": "You are a planning assistant for this repository. Break the task into concise actionable steps."
+      }
+    },
+    {
+      "title": "Local Qwen Coder 1.5B",
+      "provider": "ollama",
+      "model": "qwen2.5-coder:1.5b",
+      "roles": [
+        "chat",
+        "edit",
+        "apply",
+        "summarize"
+      ]
+    }
+  ],
+  "tabAutocompleteModel": {
+    "title": "Local Qwen Coder 7B",
+    "provider": "ollama",
+    "model": "qwen2.5-coder:7b",
+    "roles": [
+      "autocomplete"
+    ]
+  },
+  "contextProviders": [
+    {
+      "name": "code"
+    },
+    {
+      "name": "docs"
+    },
+    {
+      "name": "diff"
+    },
+    {
+      "name": "terminal"
+    }
+  ],
+  "slashCommands": [
+    {
+      "name": "share",
+      "description": "Export the current chat session to markdown"
+    },
+    {
+      "name": "commit",
+      "description": "Generate a git commit message"
+    }
+  ]
+}

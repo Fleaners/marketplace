@@ -1,0 +1,28 @@
+title = "marketplace-store gitleaks config"
+
+[allowlist]
+description = "Allow placeholder docs/examples"
+paths = [
+  '''^.*\.md$''',
+  '''^\.env\.example$'''
+]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API key"
+regex = '''(?i)(api[_-]?key|token|secret)\s*[=:]\s*['\"][A-Za-z0-9_\-]{16,}['\"]'''
+
+[[rules]]
+id = "jwt-secret"
+description = "JWT secret"
+regex = '''(?i)jwt[_-]?secret\s*[=:]\s*['\"].{12,}['\"]'''
+
+[[rules]]
+id = "firebase-private-key"
+description = "Firebase private key"
+regex = '''-----BEGIN PRIVATE KEY-----'''
+
+[[rules]]
+id = "aws-secret"
+description = "AWS secret access key"
+regex = '''(?i)aws(.{0,20})?(secret|access).{0,20}['\"][0-9a-zA-Z/+]{40}['\"]'''

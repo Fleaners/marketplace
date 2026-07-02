@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>marketplace-store-fef91.web.app Merchant Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="seller-next.css" />
+  <script defer src="seller-next.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="brand-eyebrow">marketplace-store-fef91.web.app</p>
+        <h1>Merchant Home</h1>
+      </div>
+      <button class="button ghost" id="themeToggle" aria-label="Toggle dark mode">Dark</button>
+    </header>
+
+    <main>
+      <section class="view active" data-view="home">
+        <h2>Today at a glance</h2>
+        <p class="subtitle">Simplicity on the surface. Intelligence underneath.</p>
+        <div class="card-grid six">
+          <article class="metric-card">
+            <p class="metric-label">Today's Visitors</p>
+            <p class="metric-number">235</p>
+            <p class="metric-meta positive">+18% this week</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-label">Most Popular Product</p>
+            <p class="metric-title">Copper Wire Bundle</p>
+            <p class="metric-meta">128 views</p>
+          </article>
+          <article class="metric-card actionable">
+            <p class="metric-label">New Customer Messages</p>
+            <p class="metric-number">14</p>
+            <button class="button primary">Respond now</button>
+          </article>
+          <article class="metric-card actionable">
+            <p class="metric-label">Products Running Low</p>
+            <p class="metric-number">3</p>
+            <button class="button secondary">View inventory</button>
+          </article>
+          <article class="metric-card">
+            <p class="metric-label">Business Growth</p>
+            <p class="metric-number">+12%</p>
+            <p class="metric-meta">This month</p>
+          </article>
+          <article class="metric-card recommendation">
+            <p class="metric-label">Recommended Action</p>
+            <p class="metric-title">Add more photos to your top products.</p>
+          </article>
+        </div>
+
+        <section class="copilot-card">
+          <h3>Marketplace Copilot</h3>
+          <ul>
+            <li>Good news! Your Copper Wires are trending this week.</li>
+            <li>Suggestion: Adding two more photos could increase buyer inquiries.</li>
+            <li>Growth Tip: Responding within one hour improves trust.</li>
+          </ul>
+        </section>
+      </section>
+
+      <section class="view" data-view="products">
+        <div class="section-head">
+          <h2>My Products</h2>
+          <div class="actions">
+            <button class="button secondary">Upload CSV</button>
+            <button class="button secondary">Import from Excel</button>
+            <button class="button primary">Add Product</button>
+          </div>
+        </div>
+
+        <div class="product-grid" id="productGrid"></div>
+      </section>
+
+      <section class="view" data-view="messages">
+        <h2>Customer Messages</h2>
+        <p class="subtitle">Respond quickly to increase trust and conversion.</p>
+        <div class="messages-layout">
+          <div class="message-list" id="messageList"></div>
+          <div class="message-composer-card">
+            <p class="message-name" id="activeThreadBuyer">Select a customer thread</p>
+            <p class="message-time" id="activeThreadMeta">Choose a message on the left to reply.</p>
+            <textarea id="replyInput" class="reply-input" placeholder="Type a helpful reply..." rows="5"></textarea>
+            <div class="reply-actions">
+              <button class="button secondary" id="replyTemplateBtn" type="button">Use quick reply</button>
+              <button class="button primary" id="replySendBtn" type="button">Send Reply</button>
+            </div>
+            <p class="message-time" id="replyStatus" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" data-view="insights">
+        <h2>Business Insights</h2>
+        <div class="story-cards">
+          <article class="story-card">
+            <h3>People are interested in:</h3>
+            <p>Industrial Pipes, Electrical Cables, Steel Products</p>
+          </article>
+          <article class="story-card">
+            <h3>Most visitors come from:</h3>
+            <p>Lucknow, Kanpur, Delhi</p>
+          </article>
+          <article class="story-card">
+            <h3>Best time to respond:</h3>
+            <p>7 PM - 9 PM</p>
+          </article>
+          <article class="story-card positive">
+            <h3>Products growing fastest:</h3>
+            <p>PVC Pipes +38%</p>
+          </article>
+        </div>
+
+        <div class="chart-grid">
+          <article class="chart-card">
+            <h3>Visitors this month</h3>
+            <canvas id="lineChart" aria-label="Visitors line chart"></canvas>
+          </article>
+          <article class="chart-card">
+            <h3>Most viewed products</h3>
+            <canvas id="barChart" aria-label="Most viewed bar chart"></canvas>
+          </article>
+          <article class="chart-card">
+            <h3>Category interest</h3>
+            <canvas id="pieChart" aria-label="Category interest pie chart"></canvas>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" data-view="profile">
+        <h2>Profile</h2>
+        <div class="profile-card">
+          <p class="profile-name">Mahi Metal Works</p>
+          <p class="profile-meta">Lucknow, Uttar Pradesh</p>
+          <p class="profile-meta">GST Verified Seller</p>
+          <button class="button secondary">Edit Business Profile</button>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item active" data-target="home">Home</button>
+      <button class="nav-item" data-target="products">Products</button>
+      <button class="nav-item" data-target="messages">Messages</button>
+      <button class="nav-item" data-target="insights">Insights</button>
+      <button class="nav-item" data-target="profile">Profile</button>
+    </nav>
+  </div>
+</body>
+</html>

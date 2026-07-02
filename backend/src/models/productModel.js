@@ -89,4 +89,98 @@ async function getLowStock(business_id, threshold = 10) {
   return result.rows;
 }
 
-module.exports = { listProducts, getProductById, createProduct, updateProduct, deleteProduct, updateStock, reduceStock, getLowStock };
+async function recordProductVisit({ product_id, seller_business_id, visitor_business_id, user_agent }) {
+  const productResult = await pool.query('SELECT id, business_id FROM products WHERE id = $1 AND business_id = $2', [product_id, seller_business_id]);
+  const product = productResult.rows[0];
+  if (!product) return null;
+  if (visitor_business_id && Number(visitor_business_id) === Number(seller_business_id)) {
+    return { recorded: false, reason: 'Own listing view ignored' };
+  }
+
+  let visitor = null;
+  if (visitor_business_id) {
+    const visitorResult = await pool.query('SELECT id, shop_name, phone, email, city FROM businesses WHERE id = $1', [visitor_business_id]);
+    visitor = visitorResult.rows[0] || null;
+  }
+
+  const result = await pool.query(
+    `INSERT INTO listing_visits (
+      product_id,
+      seller_business_id,
+      visitor_business_id,
+      visitor_name,
+      visitor_phone,
+      visitor_email,
+      visitor_city,
+      user_agent
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING id`,
+    [
+      product_id,
+      seller_business_id,
+      visitor?.id || null,
+      visitor?.shop_name || 'Guest visitor',
+      visitor?.phone || null,
+      visitor?.email || null,
+      visitor?.city || null,
+      user_agent || null,
+    ]
+  );
+
+  return { recorded: true, id: result.rows[0].id };
+}
+
+async function getSellerVisitInsights(seller_business_id) {
+  const visitsResult = await pool.query(
+    `SELECT
+      lv.id,
+      lv.product_id,
+      p.name AS product_name,
+      lv.visitor_business_id,
+      COALESCE(lv.visitor_name, 'Guest visitor') AS visitor_name,
+      lv.visitor_phone,
+      lv.visitor_email,
+      lv.visitor_city,
+      lv.user_agent,
+      lv.visited_at
+    FROM listing_visits lv
+    JOIN products p ON p.id = lv.product_id
+    WHERE lv.seller_business_id = $1
+    ORDER BY lv.visited_at DESC
+    LIMIT 100`,
+    [seller_business_id]
+  );
+
+  const summaryResult = await pool.query(
+    `SELECT
+      p.id AS product_id,
+      p.name AS product_name,
+      COUNT(lv.id)::int AS view_count,
+      MAX(lv.visited_at) AS last_viewed_at
+    FROM products p
+    LEFT JOIN listing_visits lv ON lv.product_id = p.id
+    WHERE p.business_id = $1
+    GROUP BY p.id, p.name
+    ORDER BY p.created_at DESC`,
+    [seller_business_id]
+  );
+
+  return {
+    visits: visitsResult.rows,
+    summary: summaryResult.rows,
+  };
+}
+
+module.exports = {
+  listProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  updateStock,
+  reduceStock,
+  getLowStock,
+  recordProductVisit,
+  getSellerVisitInsights,
+};

@@ -1,4 +1,4 @@
-# DealerConnect Marketplace.store
+# DealerConnect Marketplace Premium
 
 This workspace contains the DealerConnect full-stack starter for a mobile-first dealer networking, inventory, and marketplace application.
 

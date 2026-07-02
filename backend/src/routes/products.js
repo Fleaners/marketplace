@@ -1,13 +1,31 @@
 const express = require('express');
 const { body, param } = require('express-validator');
 const upload = require('../utils/multer');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { runValidation } = require('../middleware/validators');
-const { fetchProducts, addProduct, modifyProduct, removeProduct, modifyStock } = require('../controllers/productsController');
+const {
+  fetchProducts,
+  addProduct,
+  modifyProduct,
+  removeProduct,
+  modifyStock,
+  addProductVisit,
+  fetchVisitInsights,
+} = require('../controllers/productsController');
 
 const router = express.Router();
 
 router.get('/', fetchProducts);
+
+router.get('/visits', requireAuth, fetchVisitInsights);
+
+router.post(
+  '/:id/visits',
+  optionalAuth,
+  [param('id').isInt().withMessage('Product ID must be an integer')],
+  runValidation,
+  addProductVisit
+);
 
 router.post(
   '/',

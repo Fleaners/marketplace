@@ -1,0 +1,219 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function hasBusinessId(businessId) {
+      return isSignedIn() && request.auth.token.businessId == businessId;
+    }
+
+    function isProductOwnerById(productId) {
+      return isSignedIn() &&
+        productId != null &&
+        exists(/databases/$(database)/documents/products/$(productId)) &&
+        get(/databases/$(database)/documents/products/$(productId)).data.sellerId == request.auth.uid;
+    }
+
+    function isOwner(field) {
+      return isSignedIn() && request.resource.data[field] == request.auth.uid;
+    }
+
+    function docOwner(field) {
+      return isSignedIn() && resource.data[field] == request.auth.uid;
+    }
+
+    function isPremiumSeller(sellerId) {
+      return sellerId != null &&
+        exists(/databases/$(database)/documents/users/$(sellerId)) &&
+        get(/databases/$(database)/documents/users/$(sellerId)).data.subscriptionPlan == 'premium';
+    }
+
+    function isStandardSeller(sellerId) {
+      return sellerId != null &&
+        exists(/databases/$(database)/documents/users/$(sellerId)) &&
+        get(/databases/$(database)/documents/users/$(sellerId)).data.subscriptionPlan == 'standard';
+    }
+
+    function validSubscriptionPlan(plan) {
+      return plan in ['standard', 'premium'];
+    }
+
+    function hasAdvancedAnalytics(data) {
+      return ('analytics' in data) && (
+        ('conversionRate' in data.analytics) ||
+        ('revenue' in data.analytics) ||
+        ('customerInsights' in data.analytics) ||
+        ('trafficSources' in data.analytics)
+      );
+    }
+
+    function hasPremiumOnlyFields(data) {
+      return (
+        ('richDescription' in data && data.richDescription != '') ||
+        hasAdvancedAnalytics(data) ||
+        ('featured' in data && data.featured == true)
+      );
+    }
+
+    function validProductShape(data) {
+      return ('sellerId' in data) &&
+        ('title' in data) && data.title is string && data.title.size() > 0 &&
+        ('description' in data) && data.description is string &&
+        ('images' in data) && data.images is list &&
+        ('features' in data) && data.features is list &&
+        ('specifications' in data) && data.specifications is map &&
+        ('analytics' in data) && data.analytics is map;
+    }
+
+    function validImageCapForSeller(data) {
+      return (isPremiumSeller(data.sellerId) && data.images.size() <= 20) ||
+        (isStandardSeller(data.sellerId) && data.images.size() <= 5);
+    }
+
+    function premiumFieldPolicySatisfied(data) {
+      return isPremiumSeller(data.sellerId) || !hasPremiumOnlyFields(data);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() || isAdmin();
+      allow create, update: if (isSelf(userId) || isAdmin()) &&
+        (!('subscriptionPlan' in request.resource.data) || validSubscriptionPlan(request.resource.data.subscriptionPlan));
+      allow delete: if isSelf(userId) || isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isSignedIn() &&
+        isOwner('sellerId') &&
+        validProductShape(request.resource.data) &&
+        validImageCapForSeller(request.resource.data) &&
+        premiumFieldPolicySatisfied(request.resource.data);
+      allow update: if isSignedIn() && (docOwner('sellerId') || isAdmin()) &&
+        validProductShape(request.resource.data) &&
+        validImageCapForSeller(request.resource.data) &&
+        premiumFieldPolicySatisfied(request.resource.data);
+      allow delete: if isSignedIn() && (docOwner('sellerId') || isAdmin());
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid ||
+        resource.data.sellerId == request.auth.uid ||
+        isProductOwnerById(resource.data.productId) ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && isOwner('buyerId');
+      allow update, delete: if isSignedIn() && (
+        docOwner('buyerId') ||
+        docOwner('sellerId') ||
+        isAdmin()
+      );
+    }
+
+    match /inquiries/{inquiryId} {
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid ||
+        resource.data.sellerId == request.auth.uid ||
+        isProductOwnerById(resource.data.productId) ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && isOwner('buyerId');
+      allow update, delete: if isSignedIn() && (
+        docOwner('buyerId') ||
+        docOwner('sellerId') ||
+        isAdmin()
+      );
+    }
+
+    match /wishlist/{wishlistId} {
+      allow read, write: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid ||
+        request.resource.data.buyerId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    match /savedSuppliers/{savedSupplierId} {
+      allow read, write: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid ||
+        request.resource.data.buyerId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    match /productViews/{viewId} {
+      allow read: if isSignedIn() && (
+        resource.data.viewerId == request.auth.uid ||
+        resource.data.buyerId == request.auth.uid ||
+        resource.data.sellerId == request.auth.uid ||
+        isProductOwnerById(resource.data.productId) ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && (
+        isOwner('viewerId') ||
+        isOwner('buyerId')
+      );
+      allow update, delete: if false;
+    }
+
+    match /analytics/{analyticsId} {
+      allow read, write: if isSignedIn() && (
+        analyticsId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    match /rfqs/{rfqId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /sellers/{sellerId} {
+      allow read: if true;
+      allow write: if isSignedIn() && (sellerId == request.auth.uid || isAdmin());
+    }
+
+    match /businesses/{businessId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if hasBusinessId(businessId) || isAdmin();
+
+      match /products/{productId} {
+        allow read: if true;
+        allow create, update, delete: if hasBusinessId(businessId) || isAdmin();
+      }
+
+      match /invoices/{invoiceId} {
+        allow read, write: if hasBusinessId(businessId) || isAdmin();
+      }
+    }
+
+    match /messages/{messageId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /analytics_events/{eventId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
