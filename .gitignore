@@ -32,6 +32,7 @@ build/
 .vscode/
 .idea/
 *.iml
+.venv/
 
 # Google Cloud service account key
 scripts/service-account-key.json

@@ -1,0 +1,3 @@
+# Replace the leaked Firebase Web API key with a redaction token
+# Replace the placeholder on the left with your exact leaked key (do NOT commit)
+<OLD_FIREBASE_API_KEY>==>REDACTED-FIREBASE-API-KEY

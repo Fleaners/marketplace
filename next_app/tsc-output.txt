@@ -1,0 +1,15 @@
+﻿app/(dashboard)/dashboard/page.tsx(74,14): error TS2322: Type '{ children: Element; key: string; title: string; value: string; unit: string; trend: { direction: "neutral" | "up" | "down"; percentage: number; }; icon: string; className: string; }' is not assignable to type 'IntrinsicAttributes & KPICardProps & RefAttributes<HTMLDivElement>'.
+  Property 'children' does not exist on type 'IntrinsicAttributes & KPICardProps & RefAttributes<HTMLDivElement>'.
+components/ui/__tests__/Button.test.tsx(1,32): error TS2307: Cannot find module '@testing-library/react' or its corresponding type declarations.
+components/ui/__tests__/Button.test.tsx(4,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+components/ui/__tests__/Button.test.tsx(5,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+components/ui/__tests__/Button.test.tsx(7,5): error TS2304: Cannot find name 'expect'.
+components/ui/__tests__/Button.test.tsx(10,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+components/ui/__tests__/Button.test.tsx(11,25): error TS2304: Cannot find name 'jest'.
+components/ui/__tests__/Button.test.tsx(14,5): error TS2304: Cannot find name 'expect'.
+components/ui/__tests__/Button.test.tsx(17,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+components/ui/__tests__/Button.test.tsx(20,5): error TS2304: Cannot find name 'expect'.
+components/ui/__tests__/Button.test.tsx(23,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+components/ui/__tests__/Button.test.tsx(25,5): error TS2304: Cannot find name 'expect'.
+components/ui/__tests__/Button.test.tsx(28,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+components/ui/__tests__/Button.test.tsx(30,5): error TS2304: Cannot find name 'expect'.
