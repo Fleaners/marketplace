@@ -1,0 +1,34 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    wget \
+    npm \
+    nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install OpenHands
+RUN pip install --no-cache-dir openhands
+
+# Copy project files
+COPY . /app
+
+# Copy configuration
+COPY .openhands.config.json /app/.openhands.config.json
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV NODE_ENV=development
+
+# Create logs directory
+RUN mkdir -p /app/logs
+
+# Install Node dependencies
+RUN npm install --legacy-peer-deps
+
+# Default command
+CMD ["openhands", "--config", ".openhands.config.json"]

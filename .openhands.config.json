@@ -1,0 +1,44 @@
+{
+  "name": "Marketplace OpenHands Agent",
+  "description": "AI agent for autonomous development tasks in the marketplace project",
+  "llm": {
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "max_tokens": 8000
+  },
+  "workspace": {
+    "root_dir": ".",
+    "read_only_dirs": [
+      "node_modules",
+      ".git",
+      "build",
+      "dist",
+      ".next"
+    ],
+    "allowed_dirs": [
+      "next_app",
+      "backend",
+      "functions",
+      "web_app",
+      "flutter_app",
+      "scripts"
+    ]
+  },
+  "capabilities": {
+    "code_execution": true,
+    "terminal_access": true,
+    "file_modification": true,
+    "testing": true,
+    "debugging": true
+  },
+  "security": {
+    "max_iterations": 50,
+    "timeout_seconds": 300,
+    "restrict_rm_operations": true,
+    "restrict_bash_operations": false
+  },
+  "environment": {
+    "NODE_ENV": "development",
+    "LOG_LEVEL": "info"
+  }
+}
