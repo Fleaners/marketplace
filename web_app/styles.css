@@ -2049,3 +2049,140 @@ body.large-text .button {
 .category-card, .story-card, .nearby-card, .dealer-card, .feedCard, .product-card, .seller-card, .metric-card, .card, .panel {
   border: 1px solid rgba(34, 34, 34, 0.04) !important;
 }
+
+/* Legacy Seller Dashboard Premium Redesign */
+#sellerDashboard {
+  background-color: #fff6e6;
+  padding: 36px 30px;
+  border-radius: 32px;
+  border: 1px solid #f3d9a7;
+  margin-top: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
+}
+
+#sellerDashboard .section-header {
+  margin-bottom: 28px;
+}
+
+#sellerDashboard .section-header h2 {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #1f2937;
+  letter-spacing: -0.03em;
+  margin-top: 4px;
+}
+
+#sellerDashboard .section-header .section-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #ea580c;
+  letter-spacing: 0.18em;
+}
+
+#sellerDashboard .metric-card {
+  background: #ffffff;
+  border: 1px solid #f3d9a7 !important;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(243, 217, 167, 0.12);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+  transition: all 0.2s ease-in-out;
+}
+
+#sellerDashboard .metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(243, 217, 167, 0.22);
+}
+
+#sellerDashboard .metric-card strong {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: #1f2937;
+  line-height: 1;
+}
+
+#sellerDashboard .metric-card span {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 8px;
+}
+
+#sellerDashboard .panel {
+  background: #ffffff;
+  border: 1px solid #f3d9a7 !important;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
+}
+
+#sellerDashboard .insight-widget {
+  background: #ffffff;
+  border: 1px solid #f3d9a7;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01);
+}
+
+#sellerDashboard .insight-widget strong {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+#sellerDashboard .insight-widget p {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #475569;
+  margin: 8px 0;
+}
+
+#sellerDashboard .insight-widget .muted {
+  font-size: 0.78rem;
+  color: #ea580c;
+  font-weight: 800;
+}
+
+#sellerDashboard .completion-panel {
+  background: linear-gradient(135deg, #fffbeb, #ffffff);
+  border: 1px solid #f3d9a7;
+  border-radius: 24px;
+  padding: 24px;
+}
+
+#sellerDashboard .completion-meter {
+  background: #fff0db;
+  height: 12px;
+  border-radius: 99px;
+}
+
+#sellerDashboard .completion-meter-bar {
+  background: linear-gradient(90deg, #f59e0b, #16a34a);
+}
+
+#sellerDashboard .buttonPrimary {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #111827;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  padding: 10px 18px;
+  border: none;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+#sellerDashboard .buttonPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(245, 158, 11, 0.25);
+}
+

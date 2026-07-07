@@ -1417,6 +1417,10 @@ function signOutCurrentUser() {
   clearBackendSession();
   clearPendingGoogleRedirectState();
   currentUserProfile = null;
+  if (sellerProductsListener) {
+    sellerProductsListener();
+    sellerProductsListener = null;
+  }
   if (auth && auth.currentUser) {
     auth.signOut().catch((err) => console.warn('Firebase sign-out error', err));
   }
@@ -2620,105 +2624,120 @@ async function loadBuyerDashboard(profile) {
   });
 }
 
+let sellerProductsListener = null;
+
 async function loadSellerDashboard(profile) {
   if (!db || !profile) return;
-  const productsSnapshot = await db.collection(FIRESTORE_COLLECTIONS.products).where('sellerId', '==', profile.uid).get();
-  const products = productsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-  const productIds = products.map((product) => product.id);
-  const viewPromises = productIds.length ? db.collection(FIRESTORE_COLLECTIONS.productViews).where('productId', 'in', productIds).get() : Promise.resolve({ docs: [] });
-  const inquiryPromises = productIds.length ? db.collection(FIRESTORE_COLLECTIONS.inquiries).where('productId', 'in', productIds).get() : Promise.resolve({ docs: [] });
-  const orderPromises = productIds.length ? db.collection(FIRESTORE_COLLECTIONS.orders).where('productId', 'in', productIds).get() : Promise.resolve({ docs: [] });
+  if (sellerProductsListener) {
+    sellerProductsListener();
+    sellerProductsListener = null;
+  }
 
-  const [viewsSnapshot, inquiriesSnapshot, ordersSnapshot] = await Promise.all([viewPromises, inquiryPromises, orderPromises]);
+  sellerProductsListener = db.collection(FIRESTORE_COLLECTIONS.products)
+    .where('sellerId', '==', profile.uid)
+    .onSnapshot(async (productsSnapshot) => {
+      try {
+        const products = productsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-  const views = viewsSnapshot.docs.map((doc) => doc.data());
-  const inquiries = inquiriesSnapshot.docs.map((doc) => doc.data());
-  const orders = ordersSnapshot.docs.map((doc) => doc.data());
+        const productIds = products.map((product) => product.id);
+        const viewPromises = productIds.length ? db.collection(FIRESTORE_COLLECTIONS.productViews).where('productId', 'in', productIds).get() : Promise.resolve({ docs: [] });
+        const inquiryPromises = productIds.length ? db.collection(FIRESTORE_COLLECTIONS.inquiries).where('productId', 'in', productIds).get() : Promise.resolve({ docs: [] });
+        const orderPromises = productIds.length ? db.collection(FIRESTORE_COLLECTIONS.orders).where('productId', 'in', productIds).get() : Promise.resolve({ docs: [] });
 
-  const totalViews = views.length;
-  const totalInquiries = inquiries.length;
-  const totalOrders = orders.length;
-  const revenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
+        const [viewsSnapshot, inquiriesSnapshot, ordersSnapshot] = await Promise.all([viewPromises, inquiryPromises, orderPromises]);
 
-  const productPerformance = products.map((product) => {
-    const productViews = views.filter((view) => view.productId === product.id).length;
-    const productInquiries = inquiries.filter((inq) => inq.productId === product.id).length;
-    const productOrders = orders.filter((order) => order.productId === product.id).length;
-    const productWhatsapp = views.filter((view) => view.productId === product.id && view.source === 'whatsapp').length;
-    const conversion = productViews ? Math.round((productOrders / productViews) * 100) : 0;
-    return {
-      title: product.name,
-      message: `Views: ${productViews}, Inquiries: ${productInquiries}, Orders: ${productOrders}`,
-      status: `WhatsApp: ${productWhatsapp}, Conv: ${conversion}%`,
-    };
-  });
+        const views = viewsSnapshot.docs.map((doc) => doc.data());
+        const inquiries = inquiriesSnapshot.docs.map((doc) => doc.data());
+        const orders = ordersSnapshot.docs.map((doc) => doc.data());
 
-  const trafficAnalytics = [
-    { label: 'People who viewed your products today', value: Math.round(totalViews / 7) || 0 },
-    { label: 'People who viewed your products this week', value: totalViews || 0 },
-    { label: 'People who viewed your products this month', value: totalViews * 4 || 0 },
-  ];
+        const totalViews = views.length;
+        const totalInquiries = inquiries.length;
+        const totalOrders = orders.length;
+        const revenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
 
-  const salesAnalytics = [
-    { label: 'Businesses contacted you today', value: inquiries.filter((inq) => isSameDay(new Date(inq.createdAt?.toDate?.() || inq.createdAt), new Date())).length },
-    { label: 'New business inquiries this week', value: inquiries.filter((inq) => isSameWeek(new Date(inq.createdAt?.toDate?.() || inq.createdAt), new Date())).length },
-    { label: 'Orders confirmed this month', value: orders.filter((order) => isSameMonth(new Date(order.createdAt?.toDate?.() || order.createdAt), new Date())).length },
-  ];
+        const productPerformance = products.map((product) => {
+          const productViews = views.filter((view) => view.productId === product.id).length;
+          const productInquiries = inquiries.filter((inq) => inq.productId === product.id).length;
+          const productOrders = orders.filter((order) => order.productId === product.id).length;
+          const productWhatsapp = views.filter((view) => view.productId === product.id && view.source === 'whatsapp').length;
+          const conversion = productViews ? Math.round((productOrders / productViews) * 100) : 0;
+          return {
+            title: product.name,
+            message: `Views: ${productViews}, Inquiries: ${productInquiries}, Orders: ${productOrders}`,
+            status: `WhatsApp: ${productWhatsapp}, Conv: ${conversion}%`,
+          };
+        });
 
-  const topProduct = productPerformance[0]?.title || 'No popular product yet';
-  const categoryTrend = products[0]?.category || 'General';
-  const sellerInsights = [
-    {
-      title: 'People interested in your products',
-      value: totalViews ? `${totalViews} this week` : 'No views yet. Share your listings on WhatsApp to start activity.',
-      note: totalViews ? '+18% this week' : 'Activity appears after the first product views.',
-    },
-    {
-      title: 'Most Popular Product',
-      value: totalViews ? `${topProduct}` : 'Your first product will appear here.',
-      note: totalViews ? `${Math.max(1, Math.round(totalViews / Math.max(products.length, 1)))} views` : 'Add products to unlock this insight.',
-    },
-    {
-      title: 'Buyer Interest',
-      value: totalInquiries ? `${categoryTrend} category is leading` : 'No inquiries yet. Keep profile complete and verified.',
-      note: totalInquiries ? `+${Math.max(3, Math.round((totalInquiries / Math.max(totalViews, 1)) * 100))}% interest trend` : 'Insights improve as buyers contact you.',
-    },
-    {
-      title: 'New Business Inquiries',
-      value: totalInquiries ? `${totalInquiries} this week` : 'No inquiries yet this week.',
-      note: totalOrders ? `${totalOrders} converted to orders` : 'Enable fast response badge to increase conversions.',
-    },
-  ];
+        const trafficAnalytics = [
+          { label: 'People who viewed your products today', value: Math.round(totalViews / 7) || 0 },
+          { label: 'People who viewed your products this week', value: totalViews || 0 },
+          { label: 'People who viewed your products this month', value: totalViews * 4 || 0 },
+        ];
 
-  const leads = inquiries.map((inq) => ({
-    buyerName: inq.buyerName || 'Buyer',
-    productName: inq.productName || 'Product',
-    message: inq.message || '',
-    date: inq.createdAt?.toDate ? inq.createdAt.toDate().toLocaleDateString() : inq.createdAt || '',
-    status: inq.status || 'New',
-  }));
+        const salesAnalytics = [
+          { label: 'Businesses contacted you today', value: inquiries.filter((inq) => isSameDay(new Date(inq.createdAt?.toDate?.() || inq.createdAt), new Date())).length },
+          { label: 'New business inquiries this week', value: inquiries.filter((inq) => isSameWeek(new Date(inq.createdAt?.toDate?.() || inq.createdAt), new Date())).length },
+          { label: 'Orders confirmed this month', value: orders.filter((order) => isSameMonth(new Date(order.createdAt?.toDate?.() || order.createdAt), new Date())).length },
+        ];
 
-  renderSellerDashboard(profile, {
-    totalProducts: products.length,
-    totalViews,
-    totalInquiries,
-    totalOrders,
-    revenue,
-    followers: 0,
-    productPerformance,
-    trafficAnalytics,
-    salesAnalytics,
-    supplierProfile: {
-      name: profile.name,
-      location: profile.gstNumber ? 'GST verified' : 'Unverified',
-      rating: 4.7,
-      verified: !!profile.gstNumber,
-    },
-    products,
-    leads,
-    sellerInsights,
-  });
+        const topProduct = productPerformance[0]?.title || 'No popular product yet';
+        const categoryTrend = products[0]?.category || 'General';
+        const sellerInsights = [
+          {
+            title: 'People interested in your products',
+            value: totalViews ? `${totalViews} this week` : 'No views yet. Share your listings on WhatsApp to start activity.',
+            note: totalViews ? '+18% this week' : 'Activity appears after the first product views.',
+          },
+          {
+            title: 'Most Popular Product',
+            value: totalViews ? `${topProduct}` : 'Your first product will appear here.',
+            note: totalViews ? `${Math.max(1, Math.round(totalViews / Math.max(products.length, 1)))} views` : 'Add products to unlock this insight.',
+          },
+          {
+            title: 'Buyer Interest',
+            value: totalInquiries ? `${categoryTrend} category is leading` : 'No inquiries yet. Keep profile complete and verified.',
+            note: totalInquiries ? `+${Math.max(3, Math.round((totalInquiries / Math.max(totalViews, 1)) * 100))}% interest trend` : 'Insights improve as buyers contact you.',
+          },
+          {
+            title: 'New Business Inquiries',
+            value: totalInquiries ? `${totalInquiries} this week` : 'No inquiries yet this week.',
+            note: totalOrders ? `${totalOrders} converted to orders` : 'Enable fast response badge to increase conversions.',
+          },
+        ];
+
+        const leads = inquiries.map((inq) => ({
+          buyerName: inq.buyerName || 'Buyer',
+          productName: inq.productName || 'Product',
+          message: inq.message || '',
+          date: inq.createdAt?.toDate ? inq.createdAt.toDate().toLocaleDateString() : inq.createdAt || '',
+          status: inq.status || 'New',
+        }));
+
+        renderSellerDashboard(profile, {
+          totalProducts: products.length,
+          totalViews,
+          totalInquiries,
+          totalOrders,
+          revenue,
+          followers: 0,
+          productPerformance,
+          trafficAnalytics,
+          salesAnalytics,
+          supplierProfile: {
+            name: profile.name,
+            location: profile.gstNumber ? 'GST verified' : 'Unverified',
+            rating: 4.7,
+            verified: !!profile.gstNumber,
+          },
+          products,
+          leads,
+          sellerInsights,
+        });
+      } catch (err) {
+        console.error('Error handling seller dashboard snapshot update:', err);
+      }
+    });
 }
 
 async function loadAdminDashboard() {
@@ -3123,6 +3142,10 @@ function attachEvents() {
   if (elements.navSellerBtnSecondary) elements.navSellerBtnSecondary.addEventListener('click', () => handleTopButton('sell'));
   if (elements.navDashboardBtn) elements.navDashboardBtn.addEventListener('click', () => handleTopButton('profile'));
   if (elements.navLoginBtn) elements.navLoginBtn.addEventListener('click', handleLoginButton);
+  const sellerAddProductBtnSecondary = document.getElementById('sellerAddProductBtnSecondary');
+  if (sellerAddProductBtnSecondary) {
+    sellerAddProductBtnSecondary.addEventListener('click', () => handleTopButton('sell'));
+  }
   if (elements.exploreSuppliersBtn) elements.exploreSuppliersBtn.addEventListener('click', () => {
     showBuyerTab('explore');
     scrollToSection('#verifiedBusinessesSection');
@@ -3569,33 +3592,10 @@ async function initializeAppData() {
   }
 
   try {
-    const [productsSnapshot, categoriesSnapshot, sellersSnapshot] = await Promise.all([
-      db.collection(FIRESTORE_COLLECTIONS.products).limit(40).get(),
+    const [categoriesSnapshot, sellersSnapshot] = await Promise.all([
       db.collection(FIRESTORE_COLLECTIONS.categories).get(),
       db.collection(FIRESTORE_COLLECTIONS.users).where('role', '==', 'seller').limit(16).get(),
     ]);
-
-    state.products = productsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      image: doc.data().image || 'https://via.placeholder.com/520x320?text=Product',
-      category: doc.data().category || 'General',
-      location: doc.data().location || 'India',
-      status: doc.data().status || 'In stock',
-      rating: doc.data().rating || 4.2,
-      verified: !!doc.data().verified,
-    })).filter((product) => {
-      if (product.isSystemSeed === true || product.isSystemSeed === 'true') return false;
-      if (product.name && (
-        product.name.includes('[Seed]') ||
-        product.name.includes('Placeholder Product') ||
-        product.name.toLowerCase().includes('demo product') ||
-        product.name.toLowerCase().includes('seed product')
-      )) {
-        return false;
-      }
-      return true;
-    });
 
     state.categories = categoriesSnapshot.docs.map((doc) => ({
       name: doc.id,
@@ -3615,35 +3615,65 @@ async function initializeAppData() {
     }));
 
     state.businessBySlug = new Map(state.dealers.map((item) => [slugify(item.name), item]));
-
-    state.recommended = state.products.slice(0, 8);
-    await fetchHybridRecommendations();
-    state.heroStats.products = state.products.length;
     state.heroStats.suppliers = state.dealers.length;
     state.heroStats.verified = state.dealers.filter((dealer) => dealer.verified).length;
     state.successStories = state.dealers.slice(0, 4).map((dealer) => ({
-      excerpt: `${dealer.name} in ${dealer.location} is delivering verified business leads and fast supplier response.`,
+      excerpt: `${dealer.name} in ${dealer.location} is delivering verified B2B trade leads and fast response times.`,
       seller: dealer.name,
     }));
     state.nearby = state.dealers.slice(0, 4);
     state.verifiedSellers = state.dealers.slice(0, 4);
-    state.seasonal = state.products.slice(4, 10);
-    state.aiSuggestions = [
-      `${state.category || 'Electrical'} products are trending in your area.`,
-      'Verified sellers respond faster for first-time inquiries.',
-      'Businesses near you are receiving strong demand this week.',
-      'Most buyers compare at least 3 suppliers before contacting.',
-    ];
-    // messages removed from buyer experience; keep minimal guidance elsewhere
+
+    // Set up real-time listener for products
+    db.collection(FIRESTORE_COLLECTIONS.products).limit(40).onSnapshot((productsSnapshot) => {
+      state.products = productsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        image: doc.data().image || 'https://via.placeholder.com/520x320?text=Product',
+        category: doc.data().category || 'General',
+        location: doc.data().location || 'India',
+        status: doc.data().status || 'In stock',
+        rating: doc.data().rating || 4.2,
+        verified: !!doc.data().verified,
+      })).filter((product) => {
+        if (product.isSystemSeed === true || product.isSystemSeed === 'true') return false;
+        if (product.name && (
+          product.name.includes('[Seed]') ||
+          product.name.includes('Placeholder Product') ||
+          product.name.toLowerCase().includes('demo product') ||
+          product.name.toLowerCase().includes('seed product')
+        )) {
+          return false;
+        }
+        return true;
+      });
+
+      state.recommended = state.products.slice(0, 8);
+      state.heroStats.products = state.products.length;
+      state.seasonal = state.products.slice(4, 10);
+      state.aiSuggestions = [
+        `${state.category || 'Electrical'} products are trending in your area.`,
+        'Verified sellers respond faster for B2B trade inquiries.',
+        'Businesses near you are receiving strong demand this week.',
+        'Most buyers compare at least 3 suppliers before contacting.',
+      ];
+
+      fetchHybridRecommendations().then(() => {
+        renderTrendingProducts();
+        renderNewArrivals();
+        renderRecommendedProducts();
+        renderExploreView();
+        renderFavoritesView();
+        renderStats();
+      });
+    }, (error) => {
+      console.error("Firestore products onSnapshot error:", error);
+    });
 
     renderCategories();
-    renderTrendingProducts();
-    renderNewArrivals();
-    renderRecommendedProducts();
     renderFeaturedDealers();
     renderTopSuppliers();
     renderSuccessStories();
-    renderStats();
     renderExploreView();
     renderFavoritesView();
     renderMessagesView();
