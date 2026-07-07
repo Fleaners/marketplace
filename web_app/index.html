@@ -63,8 +63,13 @@
         <p class="brand-subtitle">Premium B2B sourcing for verified trade buyers</p>
       </div>
       <div class="header-menu">
-        <span class="trust-pill">Verified local businesses, transparent response times</span>
-        <button class="button buttonGhost" id="navSellerBtn">Join as Seller</button>
+        <span class="trust-pill" id="trustPill">Verified local businesses, transparent response times</span>
+        <!-- Shown to guests / buyers -->
+        <button class="button buttonGhost" id="navSellerBtn" aria-label="Join as seller">Join as Seller</button>
+        <!-- Shown only to logged-in sellers -->
+        <a href="/next/dashboard" class="button buttonSellerDash hidden" id="navSellerDashboardLink" aria-label="Open Seller Dashboard">
+          📊 Seller Dashboard
+        </a>
         <button class="button buttonGhost account-button" id="navDashboardBtn" aria-label="Open account">
           <span class="account-button-icon" id="navDashboardIcon" aria-hidden="true">&#128100;</span>
           <span class="account-button-label" id="navDashboardLabel">Account</span>
@@ -73,7 +78,22 @@
       </div>
     </header>
 
-    <section class="hero-section buyer-hero">
+    <!-- Seller Dashboard CTA Banner — hidden for guests, shown for sellers -->
+    <div id="sellerDashboardBanner" class="seller-dashboard-banner hidden" role="region" aria-label="Seller dashboard access">
+      <div class="seller-banner-inner">
+        <div class="seller-banner-copy">
+          <span class="seller-banner-eyebrow">🏪 Seller Hub</span>
+          <h2 class="seller-banner-title">Your Seller Dashboard is ready</h2>
+          <p class="seller-banner-desc">Manage listings, track WhatsApp inquiries, view analytics, and grow your business.</p>
+        </div>
+        <div class="seller-banner-actions">
+          <a href="/next/dashboard" class="button buttonPrimary" id="sellerBannerDashboardBtn">Open Dashboard</a>
+          <a href="/next/dashboard/products?new=true" class="button buttonSecondary" id="sellerBannerAddProductBtn">+ Add Product</a>
+        </div>
+      </div>
+    </div>
+
+    <section class="hero-section buyer-hero" id="main-content">
       <div class="hero-copy">
         <span class="eyebrow">Discover</span>
         <h1 id="buyerGreeting">Good Day, Guest 👋</h1>

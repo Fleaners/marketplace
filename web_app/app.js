@@ -900,6 +900,49 @@ function renderCompletionPanels(profile = {}) {
   } catch (error) {
     console.error('Error rendering completion panels:', error);
   }
+
+  // Show/hide seller dashboard banner and header button
+  try {
+    const isSeller = profile && profile.role === 'seller';
+    const banner = document.getElementById('sellerDashboardBanner');
+    const sellerDashLink = document.getElementById('navSellerDashboardLink');
+    const navSellerBtn = document.getElementById('navSellerBtn');
+    const trustPill = document.getElementById('trustPill');
+
+    if (banner) {
+      if (isSeller) {
+        banner.classList.remove('hidden');
+        // Personalise the banner with seller name
+        const titleEl = banner.querySelector('.seller-banner-title');
+        if (titleEl && profile.businessName) {
+          titleEl.textContent = `Welcome back, ${profile.businessName} 👋`;
+        }
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+    if (sellerDashLink) {
+      if (isSeller) {
+        sellerDashLink.classList.remove('hidden');
+      } else {
+        sellerDashLink.classList.add('hidden');
+      }
+    }
+    // Hide 'Join as Seller' nav button once they are already a seller
+    if (navSellerBtn) {
+      navSellerBtn.style.display = isSeller ? 'none' : '';
+    }
+    // Update trust pill for sellers
+    if (trustPill && isSeller) {
+      trustPill.textContent = profile.businessName
+        ? `⭐ ${profile.businessName} — Verified Seller`
+        : '⭐ Verified Seller Account';
+    } else if (trustPill) {
+      trustPill.textContent = 'Verified local businesses, transparent response times';
+    }
+  } catch (e) {
+    // best-effort UI update
+  }
 }
 
 function getWizardStepTemplate(role, step, data) {
@@ -3012,10 +3055,14 @@ function handleTopButton(action) {
       return;
     }
     if (user.role === 'seller') {
-      window.location.href = '/next/dashboard/products?new=true';
+      // Logged-in sellers go straight to the Next.js dashboard
+      window.location.href = '/next/dashboard';
       return;
     }
-    alert('Switch your role to seller from registration to list products.');
+    // Buyer trying to sell — prompt them to register as seller
+    openAuthDrawer('register');
+    const roleSelect = document.getElementById('authRole');
+    if (roleSelect) roleSelect.value = 'seller';
     return;
   }
   if (action === 'profile') {
@@ -3030,14 +3077,13 @@ function handleTopButton(action) {
       role: user.role || 'buyer',
     });
     if (user.role === 'seller') {
-      history.pushState({ type: 'seller' }, '', '/seller');
-      showView('sellerDashboard');
-      loadSellerDashboard(user);
-    } else {
-      history.pushState({ type: 'buyer' }, '', '/buyer');
-      showView('homeView');
-      showBuyerTab('profile');
+      // Always route sellers to the Next.js seller dashboard
+      window.location.href = '/next/dashboard';
+      return;
     }
+    history.pushState({ type: 'buyer' }, '', '/buyer');
+    showView('homeView');
+    showBuyerTab('profile');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
