@@ -308,8 +308,8 @@ function ProductsCatalog() {
         {/* Header Action bar */}
         <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Product Catalog</h1>
-            <p className="text-sm text-slate-400">
+            <h1 className="text-2xl font-bold tracking-tight text-[#1f2937]">Product Catalog</h1>
+            <p className="text-sm text-slate-500">
               Create, edit, duplicate or archive your wholesale listings.
             </p>
           </div>
@@ -326,7 +326,7 @@ function ProductsCatalog() {
         </section>
 
         {/* Filters and Search Container */}
-        <Card className="rounded-3xl border border-slate-800 bg-slate-950 p-6 space-y-4">
+        <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             {/* Search Input */}
             <div className="relative flex-1">
@@ -338,19 +338,19 @@ function ProductsCatalog() {
                 placeholder="Search products by name, SKU, tags..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-2xl bg-slate-900 border border-slate-800 pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors placeholder:text-slate-500"
+                className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] pl-10 pr-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors placeholder:text-slate-500"
               />
             </div>
 
             {/* Category Select Dropdown */}
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Category:
               </span>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="rounded-2xl bg-slate-900 border border-slate-800 px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors"
+                className="rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
               >
                 <option value="">All Categories</option>
                 {CATEGORIES.map((cat) => (
@@ -363,7 +363,7 @@ function ProductsCatalog() {
           </div>
 
           {/* Catalog Tab Selectors */}
-          <div className="flex gap-2 border-b border-slate-900 pb-2 overflow-x-auto scrollbar-none">
+          <div className="flex gap-2 border-b border-[#f3d9a7] pb-2 overflow-x-auto scrollbar-none">
             {(['all', 'live', 'low_stock', 'archived'] as const).map((tab) => {
               const count = products.filter((p) => {
                 if (tab === 'live') return !p.archived && p.stock > p.moq;
@@ -387,8 +387,8 @@ function ProductsCatalog() {
                   onClick={() => setActiveTab(tab)}
                   className={`px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
                     activeTab === tab
-                      ? 'bg-accent-500/10 text-accent-400 border border-accent-500/20 shadow-inner'
-                      : 'text-slate-400 hover:text-white border border-transparent'
+                      ? 'bg-[#FAB12F]/10 text-amber-600 border border-accent-500/20 shadow-inner'
+                      : 'text-slate-500 hover:text-[#1f2937] border border-transparent'
                   }`}
                 >
                   {label} ({count})
@@ -400,11 +400,11 @@ function ProductsCatalog() {
 
         {/* Product Grid Layout */}
         {filteredProducts.length === 0 ? (
-          <div className="rounded-[32px] border border-dashed border-slate-800 py-16 px-4 flex flex-col items-center justify-center text-center space-y-4">
+          <div className="rounded-[32px] border border-dashed border-[#f3d9a7] py-16 px-4 flex flex-col items-center justify-center text-center space-y-4">
             <span className="text-4xl">📦</span>
             <div className="space-y-1">
-              <h3 className="text-lg font-bold text-white">No products found</h3>
-              <p className="text-sm text-slate-400 max-w-sm">
+              <h3 className="text-lg font-bold text-[#1f2937]">No products found</h3>
+              <p className="text-sm text-slate-500 max-w-sm">
                 Try adjusting your search queries, category filters, or add a fresh product to get started.
               </p>
             </div>
@@ -419,17 +419,17 @@ function ProductsCatalog() {
               return (
                 <Card
                   key={prod.id}
-                  className={`group relative rounded-[28px] border overflow-hidden bg-slate-950 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:border-slate-700/80 hover:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.5)] ${
+                  className={`group relative rounded-[28px] border overflow-hidden bg-white flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:border-slate-700/80 hover:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.5)] ${
                     prod.archived
-                      ? 'border-slate-900 opacity-60'
+                      ? 'border-[#f3d9a7] opacity-60'
                       : isLowStock
                       ? 'border-amber-500/20 hover:border-amber-500/40 shadow-[0_12px_24px_-10px_rgba(245,158,11,0.05)]'
-                      : 'border-slate-800/80'
+                      : 'border-[#f3d9a7]'
                   }`}
                 >
                   <div>
                     {/* Header Image area */}
-                    <div className="relative aspect-[16/10] bg-slate-900 border-b border-slate-900/60 overflow-hidden flex items-center justify-center">
+                    <div className="relative aspect-[16/10] bg-[#fff6e6] border-b border-[#f3d9a7]/60 overflow-hidden flex items-center justify-center">
                       {prod.images && prod.images.length > 0 ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -443,7 +443,7 @@ function ProductsCatalog() {
 
                       {/* Floating Status Badges */}
                       <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
-                        <span className="rounded-md bg-slate-950/85 backdrop-blur-md border border-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-300">
+                        <span className="rounded-md bg-white/85 backdrop-blur-md border border-[#f3d9a7] px-2 py-0.5 text-[10px] font-bold text-slate-600">
                           {prod.category}
                         </span>
                         {prod.gst && (
@@ -456,7 +456,7 @@ function ProductsCatalog() {
                       {/* stock alert badge */}
                       <div className="absolute top-3 right-3">
                         {prod.archived ? (
-                          <span className="rounded-md bg-slate-900/95 border border-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-400 uppercase">
+                          <span className="rounded-md bg-[#fff6e6]/95 border border-[#f3d9a7] px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">
                             Archived
                           </span>
                         ) : isLowStock ? (
@@ -475,7 +475,7 @@ function ProductsCatalog() {
                     <div className="p-5 space-y-3">
                       <div className="space-y-1.5">
                         <div className="flex justify-between items-start gap-2">
-                          <h3 className="text-base font-bold text-white line-clamp-1 group-hover:text-accent-400 transition-colors">
+                          <h3 className="text-base font-bold text-[#1f2937] line-clamp-1 group-hover:text-amber-600 transition-colors">
                             {prod.name}
                           </h3>
                         </div>
@@ -484,17 +484,17 @@ function ProductsCatalog() {
                         </p>
                       </div>
 
-                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                         {prod.description}
                       </p>
 
                       {/* Specific metrics specs */}
-                      <div className="grid grid-cols-2 gap-2 bg-slate-900/50 p-2.5 rounded-2xl border border-slate-900/60 text-center">
+                      <div className="grid grid-cols-2 gap-2 bg-[#fff6e6] p-2.5 rounded-2xl border border-[#f3d9a7]/60 text-center">
                         <div>
                           <p className="text-[10px] text-slate-500 uppercase tracking-wider">
                             Min Order (MOQ)
                           </p>
-                          <p className="text-xs font-bold text-white mt-0.5">
+                          <p className="text-xs font-bold text-[#1f2937] mt-0.5">
                             {prod.moq} {prod.unit}
                           </p>
                         </div>
@@ -502,7 +502,7 @@ function ProductsCatalog() {
                           <p className="text-[10px] text-slate-500 uppercase tracking-wider">
                             Delivery
                           </p>
-                          <p className="text-xs font-bold text-white mt-0.5">
+                          <p className="text-xs font-bold text-[#1f2937] mt-0.5">
                             {prod.delivery}
                           </p>
                         </div>
@@ -514,7 +514,7 @@ function ProductsCatalog() {
                           {prod.tags.slice(0, 3).map((t) => (
                             <span
                               key={t}
-                              className="text-[10px] font-medium bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full text-slate-400"
+                              className="text-[10px] font-medium bg-[#fff6e6] border border-[#f3d9a7] px-2 py-0.5 rounded-full text-slate-500"
                             >
                               #{t}
                             </span>
@@ -525,12 +525,12 @@ function ProductsCatalog() {
                   </div>
 
                   {/* Actions bottom tray */}
-                  <div className="p-5 border-t border-slate-900/80 bg-slate-900/10 flex items-center justify-between gap-4 rounded-b-[28px]">
+                  <div className="p-5 border-t border-[#f3d9a7]/80 bg-[#fff0db]/50 flex items-center justify-between gap-4 rounded-b-[28px]">
                     <div>
                       <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
                         Wholesale Price
                       </p>
-                      <p className="text-lg font-black text-white">
+                      <p className="text-lg font-black text-[#1f2937]">
                         ₹{prod.price.toLocaleString('en-IN')}{' '}
                         <span className="text-xs text-slate-500 font-medium">/ {prod.unit}</span>
                       </p>
@@ -542,7 +542,7 @@ function ProductsCatalog() {
                       <button
                         onClick={() => openEditForm(prod)}
                         title="Edit Product"
-                        className="h-9 w-9 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800/80 flex items-center justify-center text-slate-300 hover:text-white transition-all duration-200 active:scale-95"
+                        className="h-9 w-9 rounded-xl bg-[#fff6e6] hover:bg-slate-800 border border-[#f3d9a7] flex items-center justify-center text-slate-600 hover:text-[#1f2937] transition-all duration-200 active:scale-95"
                       >
                         ✏️
                       </button>
@@ -551,7 +551,7 @@ function ProductsCatalog() {
                       <button
                         onClick={() => handleDuplicateProduct(prod)}
                         title="Duplicate Listing"
-                        className="h-9 w-9 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800/80 flex items-center justify-center text-slate-300 hover:text-white transition-all duration-200 active:scale-95"
+                        className="h-9 w-9 rounded-xl bg-[#fff6e6] hover:bg-slate-800 border border-[#f3d9a7] flex items-center justify-center text-slate-600 hover:text-[#1f2937] transition-all duration-200 active:scale-95"
                       >
                         👥
                       </button>
@@ -562,18 +562,18 @@ function ProductsCatalog() {
                         title={prod.archived ? 'Activate Product' : 'Archive Product'}
                         className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all duration-200 active:scale-95 ${
                           prod.archived
-                            ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20'
-                            : 'bg-slate-900 hover:bg-slate-800 border-slate-800/80 text-slate-300 hover:text-amber-400'
+                            ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                            : 'bg-[#fff6e6] hover:bg-slate-800 border-[#f3d9a7] text-slate-600 hover:text-amber-700'
                         }`}
                       >
                         🗄️
                       </button>
-
+                      
                       {/* Delete Button */}
                       <button
                         onClick={() => handleDeleteTrigger(prod.id)}
                         title="Delete Permanently"
-                        className="h-9 w-9 rounded-xl bg-slate-900 hover:bg-rose-950/20 border border-slate-800/80 hover:border-rose-900/30 flex items-center justify-center text-slate-400 hover:text-rose-400 transition-all duration-200 active:scale-95"
+                        className="h-9 w-9 rounded-xl bg-[#fff6e6] hover:bg-rose-50 border border-[#f3d9a7] hover:border-rose-200 flex items-center justify-center text-slate-500 hover:text-rose-700 transition-all duration-200 active:scale-95"
                       >
                         🗑️
                       </button>
@@ -591,15 +591,15 @@ function ProductsCatalog() {
             {/* Backdrop background blur */}
             <div
               onClick={() => setIsFormOpen(false)}
-              className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
+              className="absolute inset-0 bg-white/70 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
             />
 
             {/* Slide-in Form Container */}
-            <div className="relative w-full max-w-2xl h-full bg-slate-950 border-l border-slate-800/80 flex flex-col shadow-2xl z-10 transition-transform duration-300 ease-out transform animate-slide-in">
+            <div className="relative w-full max-w-2xl h-full bg-white border-l border-[#f3d9a7] flex flex-col shadow-2xl z-10 transition-transform duration-300 ease-out transform animate-slide-in">
               {/* Form Header */}
-              <div className="p-6 border-b border-slate-900 flex items-center justify-between bg-slate-950/90 backdrop-blur-md sticky top-0 z-20">
+              <div className="p-6 border-b border-[#f3d9a7] flex items-center justify-between bg-white/90 backdrop-blur-md sticky top-0 z-20">
                 <div>
-                  <h2 className="text-xl font-bold text-white">
+                  <h2 className="text-xl font-bold text-[#1f2937]">
                     {editingProduct ? 'Edit Product Listing' : 'Add New B2B Listing'}
                   </h2>
                   <p className="text-xs text-slate-500 mt-1">
@@ -608,7 +608,7 @@ function ProductsCatalog() {
                 </div>
                 <button
                   onClick={() => setIsFormOpen(false)}
-                  className="h-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                  className="h-10 h-10 rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] flex items-center justify-center text-slate-500 hover:text-[#1f2937] transition-colors"
                 >
                   ✕
                 </button>
@@ -621,22 +621,22 @@ function ProductsCatalog() {
               >
                 {/* 1. Basic Details */}
                 <div className="space-y-4">
-                  <div className="border-b border-slate-900 pb-2">
-                    <h3 className="text-sm font-bold text-accent-400 uppercase tracking-widest">
+                  <div className="border-b border-[#f3d9a7] pb-2">
+                    <h3 className="text-sm font-bold text-amber-600 uppercase tracking-widest">
                       1. Product Details
                     </h3>
                   </div>
 
                   {/* Name field */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Product Name *</label>
+                    <label className="text-xs font-semibold text-slate-600">Product Name *</label>
                     <input
                       type="text"
                       placeholder="e.g. Pure Copper Grounding Grounding Wire"
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
-                      className={`w-full rounded-2xl bg-slate-900 border px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors ${
-                        formErrors.name ? 'border-rose-500' : 'border-slate-800'
+                      className={`w-full rounded-2xl bg-[#fff6e6] border px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors ${
+                        formErrors.name ? 'border-rose-500' : 'border-[#f3d9a7]'
                       }`}
                     />
                     {formErrors.name && (
@@ -647,11 +647,11 @@ function ProductsCatalog() {
                   {/* Category & Sku Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300">Category *</label>
+                      <label className="text-xs font-semibold text-slate-600">Category *</label>
                       <select
                         value={formCategory}
                         onChange={(e) => setFormCategory(e.target.value)}
-                        className="w-full rounded-2xl bg-slate-900 border border-slate-800 px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors"
+                        className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
                       >
                         {CATEGORIES.map((cat) => (
                           <option key={cat} value={cat}>
@@ -662,14 +662,14 @@ function ProductsCatalog() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300">SKU Code *</label>
+                      <label className="text-xs font-semibold text-slate-600">SKU Code *</label>
                       <input
                         type="text"
                         placeholder="e.g. EL-CC-GND"
                         value={formSku}
                         onChange={(e) => setFormSku(e.target.value)}
-                        className={`w-full rounded-2xl bg-slate-900 border px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors ${
-                          formErrors.sku ? 'border-rose-500' : 'border-slate-800'
+                        className={`w-full rounded-2xl bg-[#fff6e6] border px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors ${
+                          formErrors.sku ? 'border-rose-500' : 'border-[#f3d9a7]'
                         }`}
                       />
                       {formErrors.sku && (
@@ -680,14 +680,14 @@ function ProductsCatalog() {
 
                   {/* Description area */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Description *</label>
+                    <label className="text-xs font-semibold text-slate-600">Description *</label>
                     <textarea
                       placeholder="Write premium wholesale description highlighting certifications, build material, dimensions, and standard quality tests..."
                       rows={4}
                       value={formDescription}
                       onChange={(e) => setFormDescription(e.target.value)}
-                      className={`w-full rounded-2xl bg-slate-900 border px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors ${
-                        formErrors.description ? 'border-rose-500' : 'border-slate-800'
+                      className={`w-full rounded-2xl bg-[#fff6e6] border px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors ${
+                        formErrors.description ? 'border-rose-500' : 'border-[#f3d9a7]'
                       }`}
                     />
                     {formErrors.description && (
@@ -700,8 +700,8 @@ function ProductsCatalog() {
 
                 {/* 2. Media Uploads */}
                 <div className="space-y-4">
-                  <div className="border-b border-slate-900 pb-2">
-                    <h3 className="text-sm font-bold text-accent-400 uppercase tracking-widest">
+                  <div className="border-b border-[#f3d9a7] pb-2">
+                    <h3 className="text-sm font-bold text-amber-600 uppercase tracking-widest">
                       2. Product Images
                     </h3>
                   </div>
@@ -710,8 +710,8 @@ function ProductsCatalog() {
 
                 {/* 3. Pricing, Stock & Bulk parameters */}
                 <div className="space-y-4">
-                  <div className="border-b border-slate-900 pb-2">
-                    <h3 className="text-sm font-bold text-accent-400 uppercase tracking-widest">
+                  <div className="border-b border-[#f3d9a7] pb-2">
+                    <h3 className="text-sm font-bold text-amber-600 uppercase tracking-widest">
                       3. Pricing & Fulfillment
                     </h3>
                   </div>
@@ -719,7 +719,7 @@ function ProductsCatalog() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {/* Price field */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300">Unit Price (₹) *</label>
+                      <label className="text-xs font-semibold text-slate-600">Unit Price (₹) *</label>
                       <input
                         type="number"
                         placeholder="e.g. 14500"
@@ -727,8 +727,8 @@ function ProductsCatalog() {
                         onChange={(e) =>
                           setFormPrice(e.target.value === '' ? '' : Number(e.target.value))
                         }
-                        className={`w-full rounded-2xl bg-slate-900 border px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors ${
-                          formErrors.price ? 'border-rose-500' : 'border-slate-800'
+                        className={`w-full rounded-2xl bg-[#fff6e6] border px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors ${
+                          formErrors.price ? 'border-rose-500' : 'border-[#f3d9a7]'
                         }`}
                       />
                       {formErrors.price && (
@@ -738,7 +738,7 @@ function ProductsCatalog() {
 
                     {/* MOQ Field */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300">Min Order Qty *</label>
+                      <label className="text-xs font-semibold text-slate-600">Min Order Qty *</label>
                       <input
                         type="number"
                         placeholder="e.g. 10"
@@ -746,8 +746,8 @@ function ProductsCatalog() {
                         onChange={(e) =>
                           setFormMoq(e.target.value === '' ? '' : Number(e.target.value))
                         }
-                        className={`w-full rounded-2xl bg-slate-900 border px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors ${
-                          formErrors.moq ? 'border-rose-500' : 'border-slate-800'
+                        className={`w-full rounded-2xl bg-[#fff6e6] border px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors ${
+                          formErrors.moq ? 'border-rose-500' : 'border-[#f3d9a7]'
                         }`}
                       />
                       {formErrors.moq && (
@@ -757,7 +757,7 @@ function ProductsCatalog() {
 
                     {/* Stock Inventory */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300">
+                      <label className="text-xs font-semibold text-slate-600">
                         Current Stock Level *
                       </label>
                       <input
@@ -767,8 +767,8 @@ function ProductsCatalog() {
                         onChange={(e) =>
                           setFormStock(e.target.value === '' ? '' : Number(e.target.value))
                         }
-                        className={`w-full rounded-2xl bg-slate-900 border px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors ${
-                          formErrors.stock ? 'border-rose-500' : 'border-slate-800'
+                        className={`w-full rounded-2xl bg-[#fff6e6] border px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors ${
+                          formErrors.stock ? 'border-rose-500' : 'border-[#f3d9a7]'
                         }`}
                       />
                       {formErrors.stock && (
@@ -780,11 +780,11 @@ function ProductsCatalog() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Unit Selector */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300">Unit Type *</label>
+                      <label className="text-xs font-semibold text-slate-600">Unit Type *</label>
                       <select
                         value={formUnit}
                         onChange={(e) => setFormUnit(e.target.value)}
-                        className="w-full rounded-2xl bg-slate-900 border border-slate-800 px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors"
+                        className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
                       >
                         {UNITS.map((u) => (
                           <option key={u} value={u}>
@@ -796,7 +796,7 @@ function ProductsCatalog() {
 
                     {/* Delivery Time frame */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300">
+                      <label className="text-xs font-semibold text-slate-600">
                         Delivery Time *
                       </label>
                       <input
@@ -804,8 +804,8 @@ function ProductsCatalog() {
                         placeholder="e.g. 2-3 days, Next day"
                         value={formDelivery}
                         onChange={(e) => setFormDelivery(e.target.value)}
-                        className={`w-full rounded-2xl bg-slate-900 border px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors ${
-                          formErrors.delivery ? 'border-rose-500' : 'border-slate-800'
+                        className={`w-full rounded-2xl bg-[#fff6e6] border px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors ${
+                          formErrors.delivery ? 'border-rose-500' : 'border-[#f3d9a7]'
                         }`}
                       />
                       {formErrors.delivery && (
@@ -817,9 +817,9 @@ function ProductsCatalog() {
                   </div>
 
                   {/* GST Applicability */}
-                  <div className="flex items-center justify-between bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4">
+                  <div className="flex items-center justify-between bg-[#fff6e6] border border-[#f3d9a7] rounded-2xl p-4">
                     <div>
-                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                      <h4 className="text-xs font-bold text-[#1f2937] uppercase tracking-wider">
                         GST Applicable / Invoicing Available
                       </h4>
                       <p className="text-[11px] text-slate-500 mt-0.5">
@@ -833,22 +833,22 @@ function ProductsCatalog() {
                         onChange={(e) => setFormGst(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-500 peer-checked:after:bg-slate-950 peer-checked:after:border-slate-950" />
+                      <div className="w-11 h-6 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FAB12F] peer-checked:after:bg-white peer-checked:after:border-slate-950" />
                     </label>
                   </div>
                 </div>
 
                 {/* 4. Trust Settings */}
                 <div className="space-y-4">
-                  <div className="border-b border-slate-900 pb-2">
-                    <h3 className="text-sm font-bold text-accent-400 uppercase tracking-widest">
+                  <div className="border-b border-[#f3d9a7] pb-2">
+                    <h3 className="text-sm font-bold text-amber-600 uppercase tracking-widest">
                       4. Communication & Keywords
                     </h3>
                   </div>
 
                   {/* WhatsApp contact number */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">
+                    <label className="text-xs font-semibold text-slate-600">
                       WhatsApp Inquiry Number (With Country Code) *
                     </label>
                     <input
@@ -856,8 +856,8 @@ function ProductsCatalog() {
                       placeholder="e.g. 919876543210"
                       value={formWhatsapp}
                       onChange={(e) => setFormWhatsapp(e.target.value)}
-                      className={`w-full rounded-2xl bg-slate-900 border px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors ${
-                        formErrors.whatsapp ? 'border-rose-500' : 'border-slate-800'
+                      className={`w-full rounded-2xl bg-[#fff6e6] border px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors ${
+                        formErrors.whatsapp ? 'border-rose-500' : 'border-[#f3d9a7]'
                       }`}
                     />
                     <p className="text-[10px] text-slate-500">
@@ -872,14 +872,14 @@ function ProductsCatalog() {
 
                   {/* Tags Editor */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Product Tags / Keywords</label>
+                    <label className="text-xs font-semibold text-slate-600">Product Tags / Keywords</label>
                     <input
                       type="text"
                       placeholder="Type a keyword and press Enter or Comma..."
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={handleAddTag}
-                      className="w-full rounded-2xl bg-slate-900 border border-slate-800 px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors"
+                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
                     />
                     {formTags.length > 0 && (
                       <div className="flex flex-wrap gap-2 pt-2">
@@ -887,7 +887,7 @@ function ProductsCatalog() {
                           <span
                             key={tag}
                             onClick={() => removeTag(tag)}
-                            className="group flex items-center gap-1.5 bg-slate-900 hover:bg-rose-950/20 hover:border-rose-900/30 text-xs font-medium border border-slate-800 hover:text-rose-400 px-3 py-1 rounded-full cursor-pointer transition-colors"
+                            className="group flex items-center gap-1.5 bg-[#fff6e6] hover:bg-rose-950/20 hover:border-rose-900/30 text-xs font-medium border border-[#f3d9a7] hover:text-rose-400 px-3 py-1 rounded-full cursor-pointer transition-colors"
                           >
                             #{tag}{' '}
                             <span className="text-[9px] text-slate-500 group-hover:text-rose-400">
@@ -901,7 +901,7 @@ function ProductsCatalog() {
                 </div>
 
                 {/* Form Buttons */}
-                <div className="pt-6 border-t border-slate-900 flex gap-4 sticky bottom-0 bg-slate-950/90 backdrop-blur-md pb-2">
+                <div className="pt-6 border-t border-[#f3d9a7] flex gap-4 sticky bottom-0 bg-white/90 backdrop-blur-md pb-2">
                   <Button
                     type="button"
                     variant="secondary"
@@ -913,7 +913,7 @@ function ProductsCatalog() {
                   <Button
                     type="submit"
                     variant="primary"
-                    className="flex-1 justify-center rounded-2xl bg-accent-500 text-slate-950 shadow-[0_12px_30px_-6px_rgba(255,149,0,0.3)]"
+                    className="flex-1 justify-center rounded-2xl bg-[#FAB12F] text-slate-950 shadow-[0_12px_30px_-6px_rgba(255,149,0,0.3)]"
                   >
                     {editingProduct ? 'Save Changes' : 'Publish Wholesale Listing'}
                   </Button>
@@ -928,15 +928,15 @@ function ProductsCatalog() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div
               onClick={() => setDeleteConfirmId(null)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-white/80 backdrop-blur-sm"
             />
-            <Card className="relative w-full max-w-md border border-slate-800 bg-slate-950 p-6 rounded-3xl space-y-4 shadow-2xl animate-scale-up">
+            <Card className="relative w-full max-w-md border border-[#f3d9a7] bg-white p-6 rounded-3xl space-y-4 shadow-2xl animate-scale-up">
               <div className="h-12 w-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center text-xl">
                 ⚠️
               </div>
               <div className="space-y-1.5">
-                <h3 className="text-lg font-bold text-white">Permanently delete product?</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <h3 className="text-lg font-bold text-[#1f2937]">Permanently delete product?</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
                   This action is permanent and cannot be undone. Any active WhatsApp reference links
                   to this product from potential trade buyers might break.
                 </p>
@@ -951,7 +951,7 @@ function ProductsCatalog() {
                 </Button>
                 <Button
                   onClick={handleConfirmDelete}
-                  className="flex-1 justify-center bg-rose-500 hover:bg-rose-600 text-white border-transparent rounded-2xl"
+                  className="flex-1 justify-center bg-rose-500 hover:bg-rose-600 text-[#1f2937] border-transparent rounded-2xl"
                 >
                   Confirm Delete
                 </Button>
@@ -968,7 +968,7 @@ export default function ProductsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-sm font-semibold tracking-widest uppercase">
+        <div className="min-h-screen bg-white flex items-center justify-center text-slate-500 text-sm font-semibold tracking-widest uppercase">
           Loading Catalog...
         </div>
       }

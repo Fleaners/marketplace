@@ -101,22 +101,22 @@ export default function AnalyticsPage() {
         {/* Title row */}
         <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Google Analytics Cockpit</h1>
-            <p className="text-sm text-slate-400">
+            <h1 className="text-2xl font-bold tracking-tight text-[#1f2937]">Google Analytics Cockpit</h1>
+            <p className="text-sm text-slate-500">
               Analyze your B2B trade inquiries, location demographics, and pipeline conversion trends.
             </p>
           </div>
 
           {/* Timeframe Selectors */}
-          <div className="flex gap-1.5 bg-slate-900 border border-slate-800 p-1 rounded-2xl">
+          <div className="flex gap-1.5 bg-[#fff6e6] border border-[#f3d9a7] p-1 rounded-2xl">
             {(['7d', '30d', 'all'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setSelectedTimeframe(t)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
                   selectedTimeframe === t
-                    ? 'bg-accent-500 text-slate-950 shadow'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[#FAB12F] text-slate-950 shadow'
+                    : 'text-slate-500 hover:text-[#1f2937]'
                 }`}
               >
                 {t === '7d' ? '7 Days' : t === '30d' ? '30 Days' : 'Lifetime'}
@@ -131,7 +131,7 @@ export default function AnalyticsPage() {
             title="Total Catalog Views"
             value={`+${data.views}`}
             icon="👀"
-            className="min-h-[140px] rounded-3xl border border-slate-800 bg-slate-950 p-6 flex flex-col justify-between"
+            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] bg-white p-6 flex flex-col justify-between"
           >
             <p className="mt-2 text-xs text-emerald-400 font-semibold">
               📈 +12% vs previous period
@@ -142,7 +142,7 @@ export default function AnalyticsPage() {
             title="WhatsApp Connections"
             value={`${data.whatsappClicks}`}
             icon="💬"
-            className="min-h-[140px] rounded-3xl border border-slate-800 bg-slate-950 p-6 flex flex-col justify-between"
+            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] bg-white p-6 flex flex-col justify-between"
           >
             <p className="mt-2 text-xs text-emerald-400 font-semibold">
               📈 +15% conversion lift
@@ -153,9 +153,9 @@ export default function AnalyticsPage() {
             title="Inquiry Conversion Rate"
             value={`${data.conversionRate}%`}
             icon="🎯"
-            className="min-h-[140px] rounded-3xl border border-slate-800 bg-slate-950 p-6 flex flex-col justify-between"
+            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] bg-white p-6 flex flex-col justify-between"
           >
-            <p className="mt-2 text-xs text-slate-400 font-medium">
+            <p className="mt-2 text-xs text-slate-500 font-medium">
               Industry Average: 8.5%
             </p>
           </KPICard>
@@ -164,9 +164,9 @@ export default function AnalyticsPage() {
             title="Est. Sales Pipeline Value"
             value={`₹${data.salesPipeline.toLocaleString('en-IN')}`}
             icon="💰"
-            className="min-h-[140px] rounded-3xl border border-slate-800 bg-slate-950 p-6 flex flex-col justify-between"
+            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] bg-white p-6 flex flex-col justify-between"
           >
-            <p className="mt-2 text-xs text-accent-400 font-bold">
+            <p className="mt-2 text-xs text-amber-600 font-bold">
               Escrow and wholesale inquiries
             </p>
           </KPICard>
@@ -176,33 +176,33 @@ export default function AnalyticsPage() {
         <section className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
           
           {/* Top Listings performance */}
-          <Card className="rounded-3xl border border-slate-800 bg-slate-950 p-6 space-y-4">
+          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Top Performers
               </p>
-              <h3 className="mt-1 text-xl font-bold text-white">Listing Interest Metrics</h3>
+              <h3 className="mt-1 text-xl font-bold text-[#1f2937]">Listing Interest Metrics</h3>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-900 pb-3 text-slate-500 font-bold uppercase tracking-wider">
+                  <tr className="border-b border-[#f3d9a7] pb-3 text-slate-500 font-bold uppercase tracking-wider">
                     <th className="pb-3 text-sm">Product Name</th>
                     <th className="pb-3 text-center text-sm">Views</th>
                     <th className="pb-3 text-center text-sm">Inquiries</th>
                     <th className="pb-3 text-right text-sm">Conversion</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-900/60 font-semibold text-white">
+                <tbody className="divide-y divide-[#f3d9a7]/60 font-semibold text-[#1f2937]">
                   {data.topProducts.map((p, idx) => (
-                    <tr key={idx} className="group hover:bg-slate-900/10">
-                      <td className="py-4 font-bold text-sm text-slate-200 group-hover:text-accent-400 transition-colors">
+                    <tr key={idx} className="group hover:bg-[#fff0db]/50">
+                      <td className="py-4 font-bold text-sm text-slate-700 group-hover:text-amber-600 transition-colors">
                         {p.name}
                       </td>
-                      <td className="py-4 text-center text-slate-300">{p.views}</td>
+                      <td className="py-4 text-center text-slate-600">{p.views}</td>
                       <td className="py-4 text-center text-emerald-400 font-bold">💬 {p.inquiries}</td>
-                      <td className="py-4 text-right text-accent-400 font-bold">{p.conv}%</td>
+                      <td className="py-4 text-right text-amber-600 font-bold">{p.conv}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -211,30 +211,30 @@ export default function AnalyticsPage() {
           </Card>
 
           {/* Regional Demographics */}
-          <Card className="rounded-3xl border border-slate-800 bg-slate-950 p-6 space-y-4 flex flex-col justify-between">
+          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-4 flex flex-col justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Inquiry Demographics
               </p>
-              <h3 className="mt-1 text-xl font-bold text-white">Interstate Trade Reach</h3>
+              <h3 className="mt-1 text-xl font-bold text-[#1f2937]">Interstate Trade Reach</h3>
             </div>
 
             <div className="space-y-4 my-2">
               {data.byState.map((st, idx) => (
                 <div key={idx} className="space-y-1">
                   <div className="flex justify-between items-center text-xs font-semibold">
-                    <span className="text-slate-200">{st.state}</span>
-                    <span className="text-slate-400">
+                    <span className="text-slate-700">{st.state}</span>
+                    <span className="text-slate-500">
                       {st.count} leads ({st.share}%) {st.trend === 'up' ? '↗' : '↘'}
                     </span>
                   </div>
                   {/* Progress visualization track */}
-                  <div className="h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-900">
+                  <div className="h-2 rounded-full bg-[#fff6e6] overflow-hidden border border-[#f3d9a7]">
                     <div
                       style={{ width: `${st.share}%` }}
                       className={`h-full rounded-full transition-all duration-1000 ${
                         idx === 0
-                          ? 'bg-accent-500'
+                          ? 'bg-[#FAB12F]'
                           : idx === 1
                           ? 'bg-emerald-500'
                           : idx === 2
@@ -247,7 +247,7 @@ export default function AnalyticsPage() {
               ))}
             </div>
 
-            <div className="pt-4 border-t border-slate-900/60 text-center">
+            <div className="pt-4 border-t border-[#f3d9a7]/60 text-center">
               <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
                 Google Analytics API Linked ✓
               </p>

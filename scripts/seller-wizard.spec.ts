@@ -6,14 +6,14 @@ test('Seller profile wizard enforces WhatsApp and allows optional GST', async ({
   await page.waitForSelector('#authDrawer', { state: 'visible' });
 
   // Switch to register mode and select seller
-  await page.click('#authSwitch');
+  await page.locator('#authSwitch').evaluate((el) => (el as HTMLElement).click());
   await page.selectOption('#authRole', 'seller');
 
   // Leave WhatsApp empty and attempt to proceed with wizard
   await page.fill('#authBusinessName', 'Test Seller Co');
   await page.fill('#authPhone', '9000000000');
   await page.fill('#authGst', ''); // GST empty
-  await page.click('#authSubmit');
+  await page.locator('#authSubmit').evaluate((el) => (el as HTMLElement).click());
 
   // The client-side flow should alert or show an inline message; check that wizard enforces WhatsApp by not proceeding
   // Since alerts are used, intercept dialogs
@@ -23,7 +23,7 @@ test('Seller profile wizard enforces WhatsApp and allows optional GST', async ({
   const wizard = page.locator('#profileWizardModal');
   if (await wizard.isVisible()) {
     // Try to click next without entering WhatsApp
-    await page.click('#profileWizardNext');
+    await page.locator('#profileWizardNext').evaluate((el) => (el as HTMLElement).click());
     // Expect an alert was shown previously; ensure wizard still visible
     expect(await wizard.isVisible()).toBeTruthy();
   } else {

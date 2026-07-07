@@ -19,6 +19,7 @@ export interface UserProfile {
   id: string;
   role: UserRole;
   subscriptionPlan: SellerPlan;
+  email?: string;
   profileImage?: string;
   coverImage?: string;
   verified: boolean;

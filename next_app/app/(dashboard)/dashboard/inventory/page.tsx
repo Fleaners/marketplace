@@ -172,8 +172,8 @@ export default function InventoryPage() {
         {/* Title action row */}
         <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Spreadsheet Inventory Editor</h1>
-            <p className="text-sm text-slate-400">
+            <h1 className="text-2xl font-bold tracking-tight text-[#1f2937]">Spreadsheet Inventory Editor</h1>
+            <p className="text-sm text-slate-500">
               Bulk modify your listing stock levels and active prices with Excel-style inline editing.
             </p>
           </div>
@@ -185,7 +185,7 @@ export default function InventoryPage() {
                 size="md"
                 onClick={handleReset}
                 disabled={isSaving}
-                className="rounded-xl font-semibold border-slate-800 text-slate-400 hover:text-white"
+                className="rounded-xl font-semibold border-[#f3d9a7] text-slate-500 hover:text-[#1f2937]"
               >
                 Discard Changes
               </Button>
@@ -198,8 +198,8 @@ export default function InventoryPage() {
               disabled={!hasUnsavedChanges || isSaving}
               className={`rounded-xl font-bold flex items-center gap-2 shadow-[0_8px_20px_-6px_rgba(255,149,0,0.3)] transition-all ${
                 hasUnsavedChanges
-                  ? 'bg-accent-500 text-slate-950 hover:scale-[1.01]'
-                  : 'bg-slate-800/40 border-slate-900 text-slate-500 cursor-not-allowed'
+                  ? 'bg-[#FAB12F] text-slate-950 hover:scale-[1.01]'
+                  : 'bg-[#fff6e6]/40 border-[#f3d9a7] text-slate-500 cursor-not-allowed'
               }`}
             >
               {isSaving ? (
@@ -225,7 +225,7 @@ export default function InventoryPage() {
         )}
 
         {/* Searching Filtering */}
-        <Card className="rounded-3xl border border-slate-800 bg-slate-950 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
             <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 text-sm">
               🔍
@@ -235,18 +235,18 @@ export default function InventoryPage() {
               placeholder="Search by product name or SKU..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-2xl bg-slate-900 border border-slate-800 pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors placeholder:text-slate-500"
+              className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] pl-10 pr-4 py-2.5 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors placeholder:text-slate-500"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Filter Category:
             </span>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="rounded-2xl bg-slate-900 border border-slate-800 px-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent-500 transition-colors"
+              className="rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-2.5 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
             >
               <option value="">All Categories</option>
               {CATEGORIES.map((cat) => (
@@ -259,10 +259,10 @@ export default function InventoryPage() {
         </Card>
 
         {/* SPREADSHEET TABLE GRID CARD */}
-        <Card className="rounded-3xl border border-slate-800 bg-slate-950 overflow-hidden shadow-xl">
+        <Card className="rounded-3xl border border-[#f3d9a7] bg-white overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-slate-900/50 border-b border-slate-900 text-xs font-bold uppercase tracking-widest text-slate-400">
+              <thead className="bg-[#fff6e6] border-b border-[#f3d9a7] text-xs font-bold uppercase tracking-widest text-slate-500">
                 <tr>
                   <th className="py-4 px-6">Product Details</th>
                   <th className="py-4 px-6">SKU / Code</th>
@@ -272,7 +272,7 @@ export default function InventoryPage() {
                   <th className="py-4 px-6 text-center">GST Apply</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-900 font-medium">
+              <tbody className="divide-y divide-[#f3d9a7] font-medium">
                 {filteredProducts.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center py-12 text-slate-500 font-medium">
@@ -289,26 +289,26 @@ export default function InventoryPage() {
 
                     // Calculate stock indicators
                     let statusLabel = 'Healthy';
-                    let statusColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
+                    let statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
                     
                     if (activeStock === 0) {
                       statusLabel = 'Out of Stock';
-                      statusColor = 'bg-rose-500/10 text-rose-400 border-rose-500/25';
+                      statusColor = 'bg-rose-50 text-rose-700 border-rose-200';
                     } else if (activeStock <= prod.moq) {
                       statusLabel = 'Low Stock';
-                      statusColor = 'bg-amber-500/10 text-amber-400 border-amber-500/25';
+                      statusColor = 'bg-amber-50 text-amber-700 border-amber-200';
                     }
 
                     return (
                       <tr
                         key={prod.id}
-                        className={`transition-colors group hover:bg-slate-900/10 ${
-                          isEdited ? 'bg-accent-500/5' : ''
+                        className={`transition-colors group hover:bg-[#fff0db]/50 ${
+                          isEdited ? 'bg-[#FAB12F]/5' : ''
                         }`}
                       >
                         {/* 1. Product Name & Thumb */}
                         <td className="py-4 px-6 flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-slate-900 border border-slate-800/80 overflow-hidden flex items-center justify-center text-lg shadow-sm">
+                          <div className="h-10 w-10 rounded-xl bg-[#fff6e6] border border-[#f3d9a7] overflow-hidden flex items-center justify-center text-lg shadow-sm">
                             {prod.images && prod.images.length > 0 ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={prod.images[0]} alt={prod.name} className="h-full w-full object-cover" />
@@ -317,7 +317,7 @@ export default function InventoryPage() {
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-white group-hover:text-accent-400 transition-colors">
+                            <p className="text-sm font-bold text-[#1f2937] group-hover:text-amber-600 transition-colors">
                               {prod.name}
                             </p>
                             <p className="text-[11px] text-slate-500 mt-0.5">{prod.category}</p>
@@ -325,7 +325,7 @@ export default function InventoryPage() {
                         </td>
 
                         {/* 2. SKU Code */}
-                        <td className="py-4 px-6 font-mono text-xs text-slate-400">
+                        <td className="py-4 px-6 font-mono text-xs text-slate-500">
                           {prod.sku}
                         </td>
 
@@ -340,17 +340,17 @@ export default function InventoryPage() {
 
                         {/* 4. Wholesale Price Cell */}
                         <td className="py-4 px-6 text-right">
-                          <div className="inline-flex items-center gap-1.5 bg-slate-900/60 border border-slate-800/60 rounded-xl px-3 py-1.5 focus-within:border-accent-500 focus-within:bg-slate-900 transition-all shadow-inner">
+                          <div className="inline-flex items-center gap-1.5 bg-[#fff6e6] border border-[#f3d9a7]/60 rounded-xl px-3 py-1.5 focus-within:border-accent-500 focus-within:bg-[#fff6e6] transition-all shadow-inner">
                             <span className="text-xs text-slate-500 font-bold">₹</span>
                             <input
                               type="number"
                               value={activePrice}
                               onChange={(e) => handleCellChange(prod.id, 'price', e.target.value)}
-                              className="w-20 bg-transparent text-right text-sm font-bold text-white focus:outline-none placeholder:text-slate-600 font-sans"
+                              className="w-20 bg-transparent text-right text-sm font-bold text-[#1f2937] focus:outline-none placeholder:text-slate-600 font-sans"
                             />
                           </div>
                           {isEdited && editState.price !== prod.price && (
-                            <p className="text-[10px] text-accent-400 font-bold mt-1 block">
+                            <p className="text-[10px] text-amber-600 font-bold mt-1 block">
                               Was: ₹{prod.price}
                             </p>
                           )}
@@ -358,19 +358,19 @@ export default function InventoryPage() {
 
                         {/* 5. Inventory Stock level Cell */}
                         <td className="py-4 px-6 text-right">
-                          <div className="inline-flex items-center gap-1.5 bg-slate-900/60 border border-slate-800/60 rounded-xl px-3 py-1.5 focus-within:border-accent-500 focus-within:bg-slate-900 transition-all shadow-inner">
+                          <div className="inline-flex items-center gap-1.5 bg-[#fff6e6] border border-[#f3d9a7]/60 rounded-xl px-3 py-1.5 focus-within:border-accent-500 focus-within:bg-[#fff6e6] transition-all shadow-inner">
                             <input
                               type="number"
                               value={activeStock}
                               onChange={(e) => handleCellChange(prod.id, 'stock', e.target.value)}
-                              className="w-16 bg-transparent text-right text-sm font-bold text-white focus:outline-none placeholder:text-slate-600 font-sans"
+                              className="w-16 bg-transparent text-right text-sm font-bold text-[#1f2937] focus:outline-none placeholder:text-slate-600 font-sans"
                             />
                             <span className="text-[11px] text-slate-500 font-semibold lowercase">
                               {prod.unit}
                             </span>
                           </div>
                           {isEdited && editState.stock !== prod.stock && (
-                            <p className="text-[10px] text-accent-400 font-bold mt-1 block">
+                            <p className="text-[10px] text-amber-600 font-bold mt-1 block">
                               Was: {prod.stock}
                             </p>
                           )}
@@ -397,20 +397,20 @@ export default function InventoryPage() {
 
         {/* Offline bulk tips and guidelines */}
         <section className="grid gap-6 md:grid-cols-2">
-          <Card className="rounded-3xl border border-slate-800 bg-slate-950 p-6 space-y-2">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-2">
+            <h3 className="text-sm font-bold text-[#1f2937] uppercase tracking-wider">
               💡 Keyboard Productivity tip
             </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Use your keyboard's <kbd className="px-1.5 py-0.5 rounded border border-slate-800 bg-slate-900 text-slate-300 font-mono text-[10px]">Tab</kbd> key to instantly switch focus between columns and price fields. Hit the "Save All Changes" CTA to record your updates in bulk and update analytics in real-time.
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Use your keyboard's <kbd className="px-1.5 py-0.5 rounded border border-[#f3d9a7] bg-[#fff6e6] text-slate-600 font-mono text-[10px]">Tab</kbd> key to instantly switch focus between columns and price fields. Hit the "Save All Changes" CTA to record your updates in bulk and update analytics in real-time.
             </p>
           </Card>
 
-          <Card className="rounded-3xl border border-slate-800 bg-slate-950 p-6 space-y-2">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-2">
+            <h3 className="text-sm font-bold text-[#1f2937] uppercase tracking-wider">
               📦 Warehouse Safety Stock policy
             </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-500 leading-relaxed">
               The dashboard triggers active alert emails and high priority dashboard icons when stock drops beneath your product's configured Minimum Order Quantity (MOQ). This keeps your supply chain highly reliable.
             </p>
           </Card>

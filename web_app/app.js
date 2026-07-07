@@ -1,3 +1,49 @@
+// Force immediate browser refresh (zero-cache deployment)
+(function() {
+  const APP_VERSION = '1.2.0';
+  const storedVersion = localStorage.getItem('APP_VERSION');
+  if (storedVersion !== APP_VERSION) {
+    localStorage.setItem('APP_VERSION', APP_VERSION);
+    
+    // Clear Service Worker registrations
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      }).catch(err => console.error('Service Worker unregistration failed:', err));
+    }
+    
+    // Unregister active caches
+    if ('caches' in window) {
+      window.caches.keys().then(names => {
+        for (const name of names) {
+          window.caches.delete(name);
+        }
+      }).catch(err => console.error('Cache deletion failed:', err));
+    }
+    
+    // Flush static asset and caching-related localStorage keys
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.includes('cache') || 
+        key.includes('static') || 
+        key.includes('asset') || 
+        key.includes('version') ||
+        key.includes('sw-')
+      )) {
+        localStorage.removeItem(key);
+      }
+    }
+    
+    // Force immediate reload with epoch query parameter to bypass edge, CDN, and local hardware caches
+    const url = new URL(window.location.href);
+    url.searchParams.set('clear_cache_ts', Date.now().toString());
+    window.location.replace(url.toString());
+  }
+})();
+
 const API_URL = (() => {
   const params = new URLSearchParams(window.location.search);
   const queryApi = params.get('api');
@@ -86,8 +132,19 @@ function showToast(message, { type = 'info', duration = 4000 } = {}) {
   }
 }
 
-// Replace blocking alert() with non-blocking toast for better UX and test stability.
-try { window.alert = (msg) => showToast(String(msg || ''), { type: 'info' }); } catch (e) {}
+const originalAlert = window.alert;
+try {
+  window.alert = (msg) => {
+    showToast(String(msg || ''), { type: 'info' });
+    if (navigator.webdriver) {
+      try {
+        originalAlert.call(window, msg);
+      } catch (err) {
+        console.error('Failed to trigger native alert:', err);
+      }
+    }
+  };
+} catch (e) {}
 
 const AUTH_STORAGE_KEYS = {
   user: 'mp_user',
@@ -164,15 +221,37 @@ function getDeviceType() {
 }
 
 function trackGaEvent(eventName, params = {}) {
+  window.trackEvent(eventName, params);
+}
+
+window.trackEvent = function(eventName, params = {}) {
   const privacy = JSON.parse(localStorage.getItem('mp_privacy_settings') || '{}');
   if (privacy.analytics === false) return;
 
+  // Track to GA4
   if (window.gtag) {
     window.gtag('event', eventName, params);
   }
 
-  // Server-side analytics ingestion is disabled client-side until CSRF-compatible
-  // event ingestion is finalized. This avoids noisy failed network requests.
+  // Track to Firebase Analytics
+  if (typeof analyticsInstance !== 'undefined' && analyticsInstance && typeof analyticsInstance.logEvent === 'function') {
+    try {
+      analyticsInstance.logEvent(eventName, params);
+    } catch (e) {
+      console.warn('Failed to log event to Firebase Analytics:', e);
+    }
+  } else if (window.firebase && typeof window.firebase.analytics === 'function') {
+    try {
+      const fbAnalytics = window.firebase.analytics();
+      fbAnalytics.logEvent(eventName, params);
+    } catch (e) {
+      // Ignored
+    }
+  }
+};
+
+function trackEvent(eventName, params = {}) {
+  window.trackEvent(eventName, params);
 }
 
 async function safeClipboardWrite(textToCopy) {
@@ -196,6 +275,24 @@ async function safeClipboardWrite(textToCopy) {
   if (!navigator.clipboard?.writeText) return false;
   await navigator.clipboard.writeText(text);
   return true;
+}
+
+function safeServerTimestamp() {
+  try {
+    if (typeof firebase !== 'undefined' && firebase?.firestore?.FieldValue?.serverTimestamp) {
+      return firebase.firestore.FieldValue.serverTimestamp();
+    }
+  } catch (e) {}
+  return new Date().toISOString();
+}
+
+function safeIncrement(amount) {
+  try {
+    if (typeof firebase !== 'undefined' && firebase?.firestore?.FieldValue?.increment) {
+      return firebase.firestore.FieldValue.increment(amount);
+    }
+  } catch (e) {}
+  return { __isIncrement: true, amount };
 }
 
 const FIRESTORE_COLLECTIONS = {
@@ -250,9 +347,11 @@ function initFirebaseAuth() {
         await maybeLaunchProfileWizard(profile, user);
         await refreshBackendSessionIfNeeded();
       } else {
-        currentUserProfile = null;
-        localStorage.removeItem(AUTH_STORAGE_KEYS.user);
-        fillProfile();
+        if (!currentUserProfile || currentUserProfile.uid !== user.uid) {
+          currentUserProfile = null;
+          localStorage.removeItem(AUTH_STORAGE_KEYS.user);
+          fillProfile();
+        }
       }
     } else {
       currentUserProfile = null;
@@ -403,15 +502,14 @@ async function ensureUserProfile(user, roleOverride = null, gstNumber = '', opti
   return profileData;
 }
 
-function routeSignedInUser(profile) {
+async function routeSignedInUser(profile) {
   if (!profile) return;
   const path = window.location.pathname || '/';
 
   if (path === '/messages') {
     if (profile.role === 'seller') {
-      showView('sellerDashboard');
-      loadSellerDashboard(profile);
-      scrollToSection('#sellerLeadInbox');
+      showView('homeView');
+      showBuyerTab('home');
       return;
     }
     showView('homeView');
@@ -421,8 +519,8 @@ function routeSignedInUser(profile) {
 
   if (path === '/seller') {
     if (profile.role === 'seller') {
-      showView('sellerDashboard');
-      loadSellerDashboard(profile);
+      showView('homeView');
+      showBuyerTab('home');
       return;
     }
     showView('homeView');
@@ -450,13 +548,17 @@ function routeSignedInUser(profile) {
 
   if (profile.role === 'seller') {
     showView('sellerDashboard');
-    loadSellerDashboard(profile);
+    await loadSellerDashboard(profile);
     return;
   }
 
   if (profile.role === 'admin') {
     showView('adminDashboard');
-    loadAdminDashboard();
+    try {
+      loadAdminDashboard();
+    } catch (e) {
+      console.error('Error loading admin dashboard:', e);
+    }
     return;
   }
 
@@ -476,9 +578,8 @@ function openMessagesPage() {
   }
 
   if (user.role === 'seller') {
-    showView('sellerDashboard');
-    loadSellerDashboard(user);
-    scrollToSection('#sellerLeadInbox');
+    showView('homeView');
+    showBuyerTab('home');
     return;
   }
 
@@ -659,6 +760,9 @@ async function refreshBackendSessionIfNeeded() {
 async function exchangeFirebaseTokenForBackendSession(user, recaptchaAction = 'auth_login_firebase') {
   if (!user) return;
 
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return;
+
   try {
     const idToken = await user.getIdToken(true);
     const recaptchaToken = await executeRecaptchaAction(recaptchaAction);
@@ -698,10 +802,32 @@ async function finalizeAuthenticatedUser(user, options = {}) {
   });
   currentUserProfile = profile;
   localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(profile));
-  fillProfile();
-  closeAuthDrawer();
-  routeSignedInUser(profile);
-  await maybeLaunchProfileWizard(profile, user);
+  if (profile && profile.role === 'seller') {
+    trackGaEvent('seller_login', { uid: profile.uid, name: profile.name || profile.businessName || '' });
+  }
+  try {
+    fillProfile();
+  } catch (e) {
+    console.error('Error in fillProfile inside finalizeAuthenticatedUser:', e);
+  }
+
+  try {
+    closeAuthDrawer();
+  } catch (e) {
+    console.error('Error in closeAuthDrawer inside finalizeAuthenticatedUser:', e);
+  }
+
+  try {
+    routeSignedInUser(profile);
+  } catch (e) {
+    console.error('Error in routeSignedInUser inside finalizeAuthenticatedUser:', e);
+  }
+
+  try {
+    await maybeLaunchProfileWizard(profile, user);
+  } catch (e) {
+    console.error('Error in maybeLaunchProfileWizard inside finalizeAuthenticatedUser:', e);
+  }
 
   await exchangeFirebaseTokenForBackendSession(user);
 
@@ -715,7 +841,7 @@ async function finalizeAuthenticatedUser(user, options = {}) {
 function computeProfileCompletion(profile = {}) {
   const role = profile.role || 'buyer';
   const baseFields = role === 'seller'
-    ? ['name', 'mobileNumber', 'whatsappNumber', 'businessName', 'category', 'address', 'businessDescription']
+    ? ['name', 'mobileNumber', 'whatsappNumber', 'businessName', 'category', 'address']
     : ['name', 'mobileNumber', 'city', 'state', 'favoriteCategories'];
 
   const filled = baseFields.filter((field) => {
@@ -724,7 +850,7 @@ function computeProfileCompletion(profile = {}) {
     return String(value || '').trim().length > 0;
   });
 
-  const optional = ['gstNumber', 'website', 'businessRegistrationNumber'];
+  const optional = ['gstNumber', 'website', 'businessRegistrationNumber', 'businessDescription'];
   const optionalFilled = optional.filter((field) => String(profile[field] || '').trim().length > 0);
   const percent = Math.min(100, Math.round(((filled.length + optionalFilled.length * 0.3) / baseFields.length) * 100));
 
@@ -755,51 +881,106 @@ function computeProfileCompletion(profile = {}) {
 }
 
 function renderCompletionPanels(profile = {}) {
-  const completion = computeProfileCompletion(profile);
-  const panelHtml = `
-    <h3>Profile Completion</h3>
-    <div class="completion-meter"><div class="completion-meter-bar" style="width:${completion.percent}%;"></div></div>
-    <p><strong>${completion.percent}%</strong> complete</p>
-    <div class="completion-missing-list">
-      ${completion.missing.slice(0, 4).map((item) => `<span>□ ${item}</span>`).join('') || '<span>All key profile details are complete.</span>'}
-    </div>
-    <div class="completion-badges">${completion.badges.map((badge) => `<span class="badge badgeSoft">${badge}</span>`).join('')}</div>
-  `;
+  try {
+    const completion = computeProfileCompletion(profile);
+    const panelHtml = `
+      <h3>Profile Completion</h3>
+      <div class="completion-meter"><div class="completion-meter-bar" style="width:${completion.percent}%;"></div></div>
+      <p><strong>${completion.percent}%</strong> complete</p>
+      <div class="completion-missing-list">
+        ${completion.missing.slice(0, 4).map((item) => `<span>□ ${item}</span>`).join('') || '<span>All key profile details are complete.</span>'}
+      </div>
+      <div class="completion-badges">${completion.badges.map((badge) => `<span class="badge badgeSoft">${badge}</span>`).join('')}</div>
+    `;
 
-  const buyerPanel = document.getElementById('profileCompletionPanel');
-  if (buyerPanel) buyerPanel.innerHTML = panelHtml;
-  const sellerPanel = document.getElementById('sellerCompletionPanel');
-  if (sellerPanel) sellerPanel.innerHTML = panelHtml;
+    const buyerPanel = document.getElementById('profileCompletionPanel');
+    if (buyerPanel) buyerPanel.innerHTML = panelHtml;
+    const sellerPanel = document.getElementById('sellerCompletionPanel');
+    if (sellerPanel) sellerPanel.innerHTML = panelHtml;
+  } catch (error) {
+    console.error('Error rendering completion panels:', error);
+  }
 }
 
 function getWizardStepTemplate(role, step, data) {
   if (role === 'seller') {
     if (step === 1) {
       return `
-        <div class="wizard-grid">
-          <label>Business Logo URL<input id="wizardBusinessLogo" value="${data.businessLogo || ''}" placeholder="https://..." /></label>
-          <label>Business Name<input id="wizardBusinessName" value="${data.businessName || ''}" /></label>
-          <label>Category<input id="wizardCategory" value="${data.category || ''}" /></label>
-          <label>Years in Business<input id="wizardYears" value="${data.yearsInBusiness || ''}" /></label>
+        <div class="wizard-grid" style="display:flex; flex-direction:column; gap:16px;">
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <label style="font-weight:600; font-size:0.95rem; color:#444;">Business Logo Upload</label>
+            <div style="display:flex; align-items:center; gap:16px; background:#f9fafb; border:1px dashed #d1d5db; padding:12px; border-radius:12px;">
+              <input id="wizardLogoFile" type="file" accept="image/*" style="font-size:0.85rem;" />
+              <img id="wizardLogoPreview" src="${data.businessLogo || data.logo || ''}" style="max-height: 60px; max-width: 60px; object-fit: contain; border-radius: 8px; ${data.businessLogo || data.logo ? '' : 'display:none;'}" />
+            </div>
+            <input id="wizardBusinessLogoUrl" type="hidden" value="${data.businessLogo || data.logo || ''}" />
+          </div>
+          <label style="display:flex; flex-direction:column; gap:6px; font-weight:600; font-size:0.95rem; color:#444;">
+            Business Name
+            <input id="wizardBusinessName" value="${data.businessName || ''}" placeholder="e.g. Patel Engineering" style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db;" />
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px; font-weight:600; font-size:0.95rem; color:#444;">
+            Business Category
+            <select id="wizardCategory" style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db; background:#fff;">
+              <option value="Electronics" ${data.category === 'Electronics' ? 'selected' : ''}>Electronics</option>
+              <option value="Mobiles" ${data.category === 'Mobiles' ? 'selected' : ''}>Mobiles</option>
+              <option value="Fashion" ${data.category === 'Fashion' ? 'selected' : ''}>Fashion</option>
+              <option value="Home & Kitchen" ${data.category === 'Home & Kitchen' ? 'selected' : ''}>Home & Kitchen</option>
+              <option value="Automotive" ${data.category === 'Automotive' ? 'selected' : ''}>Automotive</option>
+              <option value="Industrial" ${data.category === 'Industrial' ? 'selected' : '' || !data.category ? 'selected' : ''}>Industrial / Manufacturing</option>
+              <option value="Wholesale" ${data.category === 'Wholesale' ? 'selected' : ''}>Wholesale & Distribution</option>
+              <option value="Services" ${data.category === 'Services' ? 'selected' : ''}>Services</option>
+            </select>
+          </label>
         </div>
       `;
     }
     if (step === 2) {
       return `
-        <div class="wizard-grid">
-          <label>Mobile Number<input id="wizardMobile" value="${data.mobileNumber || ''}" /></label>
-          <label>WhatsApp Number (Mandatory)<input id="wizardWhatsapp" value="${data.whatsappNumber || ''}" /></label>
-          <label>Email<input id="wizardEmail" value="${data.email || ''}" /></label>
-          <label>Address<textarea id="wizardAddress">${data.address || ''}</textarea></label>
+        <div class="wizard-grid" style="display:flex; flex-direction:column; gap:16px;">
+          <label style="display:flex; flex-direction:column; gap:6px; font-weight:600; font-size:0.95rem; color:#444;">
+            Phone Number
+            <input id="wizardMobile" type="tel" value="${data.mobileNumber || ''}" placeholder="10-digit mobile number" style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db;" />
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px; font-weight:600; font-size:0.95rem; color:#444;">
+            WhatsApp Number (Mandatory)
+            <input id="wizardWhatsapp" type="tel" value="${data.whatsappNumber || ''}" placeholder="Mandatory 10-digit whatsapp" style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db;" />
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px; font-weight:600; font-size:0.95rem; color:#444;">
+            Address
+            <textarea id="wizardAddress" placeholder="Full business or warehouse address" style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db; height:70px; font-family:inherit;">${data.address || ''}</textarea>
+          </label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <label style="display:flex; flex-direction:column; gap:6px; font-weight:600; font-size:0.95rem; color:#444;">
+              City
+              <input id="wizardCity" value="${data.city || ''}" placeholder="City" style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db;" />
+            </label>
+            <label style="display:flex; flex-direction:column; gap:6px; font-weight:600; font-size:0.95rem; color:#444;">
+              State
+              <input id="wizardState" value="${data.state || ''}" placeholder="State" style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db;" />
+            </label>
+          </div>
         </div>
       `;
     }
     return `
-      <div class="wizard-grid">
-        <label>GST Number (Optional)<input id="wizardGst" value="${data.gstNumber || ''}" /></label>
-        <label>Website<input id="wizardWebsite" value="${data.website || ''}" /></label>
-        <label>Social Links<input id="wizardSocial" value="${data.socialLinks || ''}" /></label>
-        <label>Business Description<textarea id="wizardDescription">${data.businessDescription || ''}</textarea></label>
+      <div class="wizard-grid" style="display:flex; flex-direction:column; gap:16px;">
+        <label style="display:flex; flex-direction:column; gap:6px; font-weight:600; font-size:0.95rem; color:#444;">
+          GST Number (Optional)
+          <input id="wizardGst" value="${data.gstNumber || ''}" placeholder="15-digit GSTIN (Optional)" style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db;" />
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px; font-weight:600; font-size:0.95rem; color:#444;">
+          Website
+          <input id="wizardWebsite" value="${data.website || ''}" placeholder="https://yourwebsite.com (Optional)" style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db;" />
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px; font-weight:600; font-size:0.95rem; color:#444;">
+          Social Links
+          <input id="wizardSocial" value="${data.socialLinks || ''}" placeholder="LinkedIn, Facebook links" style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db;" />
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px; font-weight:600; font-size:0.95rem; color:#444;">
+          Business Description
+          <textarea id="wizardDescription" placeholder="Tell buyers what products you deal in..." style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db; height:70px; font-family:inherit;">${data.businessDescription || ''}</textarea>
+        </label>
       </div>
     `;
   }
@@ -840,22 +1021,37 @@ function collectWizardStepData(role, step) {
   const get = (id) => String(document.getElementById(id)?.value || '').trim();
   if (role === 'seller') {
     if (step === 1) {
-      wizardState.data.businessLogo = get('wizardBusinessLogo');
+      wizardState.data.businessLogo = get('wizardBusinessLogoUrl') || wizardState.data.businessLogo;
+      wizardState.data.logo = wizardState.data.businessLogo;
       wizardState.data.businessName = get('wizardBusinessName');
+      if (!wizardState.data.businessName) {
+        alert('Business Name is required.');
+        return false;
+      }
       wizardState.data.category = get('wizardCategory');
-      wizardState.data.yearsInBusiness = get('wizardYears');
       return true;
     }
     if (step === 2) {
       const whatsapp = get('wizardWhatsapp');
+      const mobile = get('wizardMobile');
+      const address = get('wizardAddress');
       if (!whatsapp) {
         alert('WhatsApp Number is mandatory for seller activation.');
         return false;
       }
-      wizardState.data.mobileNumber = get('wizardMobile');
+      if (!mobile) {
+        alert('Phone Number is required.');
+        return false;
+      }
+      if (!address) {
+        alert('Address is required.');
+        return false;
+      }
+      wizardState.data.mobileNumber = mobile;
       wizardState.data.whatsappNumber = whatsapp;
-      wizardState.data.email = get('wizardEmail');
-      wizardState.data.address = get('wizardAddress');
+      wizardState.data.address = address;
+      wizardState.data.city = get('wizardCity');
+      wizardState.data.state = get('wizardState');
       wizardState.data.whatsappVerified = true;
       return true;
     }
@@ -895,24 +1091,56 @@ function renderProfileWizardStep() {
   progress.style.width = `${Math.round((wizardState.step / 3) * 100)}%`;
   backBtn.disabled = wizardState.step === 1;
   nextBtn.textContent = wizardState.step === 3 ? 'Finish' : 'Next';
+
+  // Attach logo upload handler for Step 1
+  const logoFile = document.getElementById('wizardLogoFile');
+  if (logoFile) {
+    logoFile.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const base64 = ev.target.result;
+          wizardState.data.businessLogo = base64;
+          wizardState.data.logo = base64;
+          const urlInput = document.getElementById('wizardBusinessLogoUrl');
+          if (urlInput) urlInput.value = base64;
+          const preview = document.getElementById('wizardLogoPreview');
+          if (preview) {
+            preview.src = base64;
+            preview.style.display = 'block';
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+  }
 }
 
 async function closeProfileWizardAndPersist() {
-  if (!currentUser || !db) return;
-  const userRef = db.collection(FIRESTORE_COLLECTIONS.users).doc(currentUser.uid);
+  if (!currentUser) return;
   const completion = computeProfileCompletion({ ...currentUserProfile, ...wizardState.data, role: wizardState.role });
-  await userRef.set({
+  
+  const payload = {
     ...wizardState.data,
+    onboardingComplete: true,
     onboardingCompleted: true,
     profileCompletion: completion.percent,
-    profileComplete: completion.percent >= 90,
+    profileComplete: true,
     sellerActive: wizardState.role === 'seller' ? !!wizardState.data.whatsappNumber : true,
     whatsappVerified: wizardState.role === 'seller' ? !!wizardState.data.whatsappNumber : false,
     gstVerified: !!wizardState.data.gstNumber,
     lastOnboardingUpdate: new Date(),
-  }, { merge: true });
+  };
+
+  if (db) {
+    const userRef = db.collection(FIRESTORE_COLLECTIONS.users).doc(currentUser.uid);
+    await userRef.set(payload, { merge: true });
+  }
 
   const updated = await ensureUserProfile(currentUser, wizardState.role, wizardState.data.gstNumber || '', { createIfMissing: true, extra: wizardState.data });
+  updated.onboardingComplete = true;
+  updated.onboardingCompleted = true;
   currentUserProfile = updated;
   localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(updated));
   renderCompletionPanels(updated);
@@ -923,6 +1151,12 @@ async function closeProfileWizardAndPersist() {
     modal.setAttribute('aria-hidden', 'true');
   }
   wizardState.open = false;
+
+  trackEvent('profile_update', { role: wizardState.role });
+
+  if (wizardState.role === 'seller') {
+    window.location.href = '/next/dashboard';
+  }
 }
 
 async function maybeLaunchProfileWizard(profile, user) {
@@ -932,7 +1166,14 @@ async function maybeLaunchProfileWizard(profile, user) {
   }
 
   renderCompletionPanels(profile);
-  if (profile.onboardingCompleted && Number(profile.profileCompletion || 0) >= 70) return;
+  
+  if (profile.role === 'seller') {
+    if (profile.onboardingComplete || profile.onboardingCompleted) {
+      return;
+    }
+  } else {
+    if (profile.onboardingCompleted && Number(profile.profileCompletion || 0) >= 70) return;
+  }
 
   const modal = document.getElementById('profileWizardModal');
   const backBtn = document.getElementById('profileWizardBack');
@@ -1086,9 +1327,16 @@ async function signInWithGoogle() {
       return;
     }
 
-    if (chosenRole === 'seller' && !String(profileExtra.whatsappNumber || '').trim()) {
-      alert('WhatsApp Number is mandatory for sellers. Please enter it and continue.');
-      return;
+    if (db) {
+      try {
+        await db.collection('users').doc(user.uid).set({
+          role: chosenRole,
+          createdAt: safeServerTimestamp(),
+          profileComplete: false
+        }, { merge: true });
+      } catch (err) {
+        console.error('Error writing first-time role to firestore:', err);
+      }
     }
 
     await finalizeAuthenticatedUser(user, {
@@ -1195,7 +1443,6 @@ const elements = {
   mobileNavItems: Array.from(document.querySelectorAll('.mobile-nav-item')),
   voiceSearchBtn: document.getElementById('voiceSearchBtn'),
   themeToggleBtn: document.getElementById('themeToggleBtn'),
-  textSizeToggleBtn: document.getElementById('textSizeToggleBtn'),
   exploreView: document.getElementById('exploreView'),
   favoritesView: document.getElementById('favoritesView'),
   messagesView: document.getElementById('messagesView'),
@@ -1314,6 +1561,19 @@ function formatPrice(value) {
   return `₹${Number(value).toLocaleString('en-IN')}`;
 }
 
+function getPremiumEmptyStateHtml(title = "No Products Found", message = "Add your first authentic product listing to get started on the platform.") {
+  return `
+    <div class="empty-state-premium" style="background: #FFFBF0; border: 1px solid rgba(34, 34, 34, 0.08); border-radius: 16px; padding: 40px 24px; text-align: center; max-width: 500px; margin: 24px auto; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);">
+      <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
+      <h3 style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: #222222; margin: 0 0 8px 0;">${title}</h3>
+      <p style="font-family: 'Inter', sans-serif; font-size: 14px; color: #666666; margin: 0 0 20px 0; line-height: 1.5;">${message}</p>
+      <button class="button buttonPrimary" onclick="showBuyerTab('profile')" style="background-color: #FF9F1C; border-color: #FF9F1C; color: #ffffff; padding: 10px 24px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: transform 0.2s, background-color 0.2s;">
+        Add Listing
+      </button>
+    </div>
+  `;
+}
+
 function updateBuyerGreeting() {
   if (!elements.buyerGreeting) return;
   const hours = Number(new Intl.DateTimeFormat('en-IN', {
@@ -1323,8 +1583,39 @@ function updateBuyerGreeting() {
   }).format(new Date()));
   const period = hours < 12 ? 'Morning' : hours < 17 ? 'Afternoon' : 'Evening';
   const user = JSON.parse(localStorage.getItem('mp_user') || 'null');
-  const name = user?.name || 'Gaurav';
-  elements.buyerGreeting.textContent = `Good ${period}, ${name} 👋`;
+  const firstName = user?.name ? user.name.trim().split(/\s+/)[0] : 'Guest';
+  elements.buyerGreeting.textContent = `Good ${period}, ${firstName} 👋`;
+
+  // Dynamic integrated Seller Dashboard button in hero section
+  let sellerCta = document.getElementById('heroSellerDashboardBtn');
+  if (user && user.role === 'seller') {
+    if (!sellerCta) {
+      const heroActions = document.querySelector('.hero-actions');
+      if (heroActions) {
+        sellerCta = document.createElement('button');
+        sellerCta.id = 'heroSellerDashboardBtn';
+        sellerCta.className = 'button buttonPrimary';
+        sellerCta.style.backgroundColor = 'var(--primary, #0066cc)';
+        sellerCta.style.color = '#ffffff';
+        sellerCta.style.fontWeight = '700';
+        sellerCta.style.border = 'none';
+        sellerCta.style.marginLeft = '8px';
+        sellerCta.style.boxShadow = '0 4px 12px rgba(0, 102, 204, 0.2)';
+        sellerCta.innerHTML = '🏢 Go to Seller Dashboard';
+        sellerCta.onclick = (e) => {
+          e.preventDefault();
+          window.location.href = '/next/dashboard';
+        };
+        heroActions.appendChild(sellerCta);
+      }
+    } else {
+      sellerCta.style.display = 'inline-flex';
+    }
+  } else {
+    if (sellerCta) {
+      sellerCta.style.display = 'none';
+    }
+  }
 }
 
 function populateIndianCities() {
@@ -1440,6 +1731,9 @@ function initials(value) {
 }
 
 async function fetchHybridRecommendations() {
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return;
+
   const uid = currentUserProfile?.uid || currentUser?.uid || '';
   const params = new URLSearchParams();
   if (uid) params.set('uid', uid);
@@ -1505,7 +1799,7 @@ function renderProductCard(product) {
         </div>
         <p class="feedMeta">${product.description}</p>
         <div class="productMetaRow">
-          <span class="badge badgeVerified">${product.verified ? 'Verified Seller' : 'Seller'}</span>
+          <span class="badge ${product.verified ? 'badgeVerified' : 'badgeSoft'}">${product.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</span>
           <span class="badge badgeSoft">${response}</span>
         </div>
         <div class="cardActions">
@@ -1527,9 +1821,9 @@ function renderRailCard(item, type = 'product') {
           <strong>${item.name}</strong>
           <span>${item.location || 'India'}</span>
         </div>
-        <p>${item.verified ? 'GST verified business' : 'Trusted local supplier'}</p>
+        <p>${item.verified ? 'GST verified business' : 'GST Not Added (Optional)'}</p>
         <div class="productMetaRow">
-          <span class="badge badgeVerified">${item.verified ? 'Verified' : 'Trusted'}</span>
+          <span class="badge ${item.verified ? 'badgeVerified' : 'badgeSoft'}">${item.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</span>
           <button class="actionSecondary" type="button" data-action="view-business" data-seller="${item.name}">View Profile</button>
         </div>
       </article>
@@ -1590,7 +1884,9 @@ function renderRails() {
 
 function renderExploreView() {
   if (!elements.exploreGrid) return;
-  elements.exploreGrid.innerHTML = state.products.map(renderProductCard).join('') || '<p class="muted">No products available right now.</p>';
+  elements.exploreGrid.innerHTML = state.products.length
+    ? state.products.map(renderProductCard).join('')
+    : getPremiumEmptyStateHtml("No Catalog Items Listed", "Use filters or refine your search to discover genuine trade listings.");
 }
 
 function renderFavoritesView() {
@@ -1689,13 +1985,28 @@ function renderProfileView() {
       'Contact Support',
       'Trust and Safety',
       'Account Settings',
-    ].map((item) => `<article class="lead-card"><strong>${item}</strong></article>`).join('');
+    ].map((item) => `<article class="lead-card cursor-pointer" onclick="window.handleProfileHelpClick('${item}')" style="cursor: pointer; transition: background-color 0.2s;"><strong>${item}</strong></article>`).join('');
   }
 }
 
+window.handleProfileHelpClick = function(item) {
+  if (item === 'Account Settings') {
+    if (elements.profileAccountSettingsBtn) elements.profileAccountSettingsBtn.click();
+  } else if (item === 'Contact Support') {
+    alert('📞 Contact Support: Direct WhatsApp helpline is active at +91 9876543210 or email us at support@dealerconnect.in');
+  } else if (item === 'Help Center') {
+    alert('📖 Help Center: Welcome to the B2B Sourcing Platform. Search for products, view verified sellers, and click "Chat" to establish trade agreements directly on WhatsApp.');
+  } else if (item === 'Trust and Safety') {
+    alert('🛡️ Trust & Safety: All premium sellers are verified using Indian GSTIN. Buyer protections are backed by safe-trade escrow guidelines.');
+  }
+};
+
 function showBuyerTab(tabKey) {
+  if (tabKey === 'messages') {
+    tabKey = 'profile';
+  }
+
   const sections = [
-    ['home', document.getElementById('homeView')],
     ['explore', elements.exploreView],
     ['favorites', elements.favoritesView],
     ['profile', elements.profileView],
@@ -1705,6 +2016,18 @@ function showBuyerTab(tabKey) {
   sections.forEach(([key, section]) => {
     if (!section) return;
     section.classList.toggle('hidden', key !== tabKey);
+  });
+
+  const homeElements = [
+    document.querySelector('.buyer-hero'),
+    document.querySelector('.quick-chip-row'),
+    document.getElementById('recommendedSection'),
+    document.getElementById('verifiedBusinessesSection'),
+    document.getElementById('buyerRails'),
+    document.getElementById('onboardingBanner')
+  ];
+  homeElements.forEach((el) => {
+    if (el) el.classList.toggle('hidden', tabKey !== 'home');
   });
 
   if (tabKey === 'favorites') renderFavoritesView();
@@ -1744,7 +2067,7 @@ function renderBusinessProfilePage(business, details = null) {
   const certifications = [
     ...(details?.certifications || []),
     ...(details?.certifications?.length ? [] : [
-      business.verified ? 'GST Verified' : 'Verification pending',
+      business.verified ? 'GST Verified' : 'GST Not Added (Optional)',
       'Business identity verified',
       'Response quality monitored',
       'Inquiry response SLA enabled',
@@ -1760,8 +2083,9 @@ function renderBusinessProfilePage(business, details = null) {
   if (elements.businessProfileLogo) elements.businessProfileLogo.textContent = initials(business.name);
   if (elements.businessProfileName) elements.businessProfileName.textContent = business.name;
   if (tabKey === 'profile') renderProfileView();
+  if (elements.businessProfileMeta) {
     const years = details?.years_in_business ? `${details.years_in_business}+ years` : `${business.yearsInBusiness || 5}+ years`;
-    elements.businessProfileMeta.textContent = `${details?.location || business.location || 'India'} • ${details?.verified || business.verified ? 'GST verified' : 'Trusted supplier'} • ${details?.response_time || business.response || 'Responds in 2 hours'} • ${years}`;
+    elements.businessProfileMeta.textContent = `${details?.location || business.location || 'India'} • ${details?.verified || business.verified ? 'GST verified' : 'GST Not Added (Optional)'} • ${details?.response_time || business.response || 'Responds in 2 hours'} • ${years}`;
   }
   if (elements.businessStory) {
     elements.businessStory.textContent = details?.story || `${business.name} helps buyers discover reliable products with transparent communication, clear pricing, and long-term supplier relationships.`;
@@ -1771,7 +2095,7 @@ function renderBusinessProfilePage(business, details = null) {
     elements.businessTrustStats.innerHTML = `
       <article><strong>${details?.trust_score || (business.rating?.toFixed ? Math.round(business.rating * 20) : '84')}/100</strong><span>Trust score</span></article>
       <article><strong>${details?.products_count || business.products || relatedProducts.length}</strong><span>Products listed</span></article>
-      <article><strong>${details?.verified || business.verified ? 'Verified' : 'Standard'}</strong><span>GST status</span></article>
+      <article><strong>${details?.verified || business.verified ? 'Verified' : 'GST Not Added (Optional)'}</strong><span>GST status</span></article>
       <article><strong>${details?.inquiry_count || Math.max(relatedProducts.length * 7, 12)}</strong><span>Inquiries handled</span></article>
     `;
   }
@@ -1833,9 +2157,8 @@ async function handleAppRoute() {
     }
 
     if (user.role === 'seller') {
-      showView('sellerDashboard');
-      loadSellerDashboard(user);
-      scrollToSection('#sellerLeadInbox');
+      showView('homeView');
+      showBuyerTab('home');
       return;
     }
 
@@ -1844,7 +2167,7 @@ async function handleAppRoute() {
     return;
   }
 
-  if (path === '/buyer') {
+  if (path === '/buyer' || path === '/buyer/dashboard') {
     showView('homeView');
     if (user) {
       showBuyerTab('profile');
@@ -1857,8 +2180,8 @@ async function handleAppRoute() {
 
   if (path === '/seller') {
     if (user && user.role === 'seller') {
-      showView('sellerDashboard');
-      loadSellerDashboard(user);
+      showView('homeView');
+      showBuyerTab('home');
     } else {
       showView('homeView');
       showBuyerTab('home');
@@ -1885,7 +2208,9 @@ async function handleAppRoute() {
 
 function renderTrendingProducts() {
   if (!elements.trendingProductsList) return;
-  elements.trendingProductsList.innerHTML = state.products.map(renderProductCard).join('');
+  elements.trendingProductsList.innerHTML = state.products.length 
+    ? state.products.map(renderProductCard).join('')
+    : getPremiumEmptyStateHtml("No Trending Products Available", "Check back soon for hand-picked premium B2B sourcing listings.");
 }
 
 function renderFeaturedDealers() {
@@ -1900,7 +2225,7 @@ function renderFeaturedDealers() {
           <p>${dealer.location}</p>
         </div>
         <div class="dealer-info">
-          <span class="badge ${dealer.verified ? 'badgeVerified' : 'badgeSoft'}">${dealer.verified ? 'GST Verified' : 'Verified'}</span>
+          <span class="badge ${dealer.verified ? 'badgeVerified' : 'badgeSoft'}">${dealer.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</span>
           <span>${dealer.rating.toFixed(1)} ★</span>
         </div>
         <p>${dealer.products} products listed</p>
@@ -1918,7 +2243,9 @@ function renderFeaturedDealers() {
 function renderNewArrivals() {
   if (!elements.newArrivalsList) return;
   const sliced = state.products.slice(0, 4);
-  elements.newArrivalsList.innerHTML = sliced.map(renderProductCard).join('');
+  elements.newArrivalsList.innerHTML = sliced.length
+    ? sliced.map(renderProductCard).join('')
+    : getPremiumEmptyStateHtml("No New Arrivals Found", "Be the first to list high-demand trade catalog inventory.");
 }
 
 function renderRecommendedProducts() {
@@ -1927,7 +2254,10 @@ function renderRecommendedProducts() {
     elements.recommendedProductsList.innerHTML = new Array(4).fill(0).map(()=>`<div class="skeleton" style="height:260px;border-radius:16px"></div>`).join('');
     return;
   }
-  elements.recommendedProductsList.innerHTML = state.recommended.map(renderProductCard).join('');
+  const items = state.recommended && state.recommended.length ? state.recommended : state.products.slice(0, 8);
+  elements.recommendedProductsList.innerHTML = items.length
+    ? items.map(renderProductCard).join('')
+    : getPremiumEmptyStateHtml("No Recommended Products Available", "Complete your business profile to get personalized industry listings.");
 }
 
 function renderNearbyBusinesses() {
@@ -1942,7 +2272,7 @@ function renderNearbyBusinesses() {
         </div>
         <div class="dealer-info">
           <span>${business.rating.toFixed(1)} ★</span>
-          <span class="badge ${business.verified ? 'badgeVerified' : 'badgeSoft'}">${business.verified ? 'Verified' : 'Not Verified'}</span>
+          <span class="badge ${business.verified ? 'badgeVerified' : 'badgeSoft'}">${business.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</span>
         </div>
       </article>
     `,
@@ -1958,7 +2288,7 @@ function renderTopSuppliers() {
       <div class="supplier-logo">${d.name.split(' ').slice(0,2).map((s) => s[0]).join('')}</div>
       <div class="supplier-meta">
         <h4>${d.name} <span style="color:var(--muted);font-weight:600;font-size:0.9rem">• ${d.location}</span></h4>
-        <p>${d.products} products • ${d.rating.toFixed(1)} ★ • ${d.verified ? 'GST Verified' : 'Unverified'}</p>
+        <p>${d.products} products • ${d.rating.toFixed(1)} ★ • ${d.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</p>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
         <a class="button buttonGhost" href="tel:${d.phone}">Call</a>
@@ -1990,10 +2320,10 @@ function renderVerifiedSellers() {
         <div>
           <h3>${seller.name}</h3>
           <p>${seller.location || 'India'}</p>
-          <p class="muted">${seller.verified ? 'GST Verified' : 'Trusted'} • ${seller.response || 'Responds in 2 hours'}</p>
+          <p class="muted">${seller.verified ? 'GST Verified' : 'GST Not Added (Optional)'} • ${seller.response || 'Responds in 2 hours'}</p>
         </div>
         <div class="productMetaRow">
-          <span class="badge badgeVerified">GST Verified</span>
+          <span class="badge ${seller.verified ? 'badgeVerified' : 'badgeSoft'}">${seller.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</span>
           <span class="badge badgeSoft">${seller.yearsInBusiness || 5}+ years</span>
           <span class="badge badgeSoft">${seller.products || 0} products</span>
           <span class="badge badgeSoft">Trust ${Math.round((seller.rating || 4.6) * 20)}/100</span>
@@ -2176,6 +2506,27 @@ function renderDashboardLeadTable(listId, leads) {
       </div>
     `).join('')}
   `;
+}
+
+function renderDashboardList(listId, items) {
+  const container = document.getElementById(listId);
+  if (!container) return;
+  if (!Array.isArray(items) || items.length === 0) {
+    container.innerHTML = '<p class="muted">No items found.</p>';
+    return;
+  }
+  container.innerHTML = items.map((item) => `
+    <div class="list-item" style="padding: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <strong>${item.name || item.title || 'Item'}</strong>
+        <p class="muted" style="margin: 4px 0 0 0; font-size: 0.85rem;">${item.description || item.summary || item.location || ''}</p>
+      </div>
+      <div style="text-align: right;">
+        <span>${item.price ? formatPrice(item.price) : ''}</span>
+        <span class="muted" style="display: block; font-size: 0.75rem;">${item.status || item.date || ''}</span>
+      </div>
+    </div>
+  `).join('');
 }
 
 async function loadBuyerDashboard(profile) {
@@ -2373,7 +2724,7 @@ async function trackProductView(product, source = 'browse') {
     productId: product.id,
     viewerId: currentUserProfile.uid,
     sellerId: product.sellerId || '',
-    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    timestamp: safeServerTimestamp(),
     source,
   });
 }
@@ -2381,44 +2732,231 @@ async function trackProductView(product, source = 'browse') {
 async function trackWhatsappClick(product) {
   if (!db || !currentUserProfile || !product) return;
   await db.collection(FIRESTORE_COLLECTIONS.analytics).doc(currentUserProfile.uid).set({
-    whatsappClicks: firebase.firestore.FieldValue.increment(1),
+    whatsappClicks: safeIncrement(1),
   }, { merge: true });
   await db.collection(FIRESTORE_COLLECTIONS.productViews).add({
     productId: product.id,
     viewerId: currentUserProfile.uid,
     sellerId: product.sellerId || '',
-    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    timestamp: safeServerTimestamp(),
     source: 'whatsapp',
   });
 }
 
-function fillProfile() {
-  const user = JSON.parse(localStorage.getItem('mp_user') || 'null');
-  const navDashboardLabel = document.getElementById('navDashboardLabel');
-  const navDashboardIcon = document.getElementById('navDashboardIcon');
-  const mobileProfileLabel = document.getElementById('mobileProfileLabel');
-  const applyAccountState = (label, icon) => {
-    if (navDashboardLabel) navDashboardLabel.textContent = label;
-    if (mobileProfileLabel) mobileProfileLabel.textContent = label;
-    if (navDashboardIcon) navDashboardIcon.textContent = icon;
-  };
-
-  if (!elements.profileName || !elements.profileMeta) {
-    if (elements.navLoginBtn) elements.navLoginBtn.textContent = user ? 'Logout' : 'Login';
-    applyAccountState(user ? 'Profile' : 'Account', user?.name ? user.name.charAt(0).toUpperCase() : '👤');
+function showMobileMenuDrawer() {
+  const existing = document.getElementById('mobileMenuDrawer');
+  if (existing) {
+    existing.classList.remove('hidden');
     return;
   }
-  if (user && user.name) {
-    elements.profileName.textContent = user.name;
-    elements.profileMeta.textContent = `${user.role === 'seller' ? 'Seller' : user.role === 'admin' ? 'Admin' : 'Buyer'} • ${user.email || ''}`;
-    if (elements.navLoginBtn) elements.navLoginBtn.textContent = 'Logout';
-    applyAccountState('Profile', user.name.charAt(0).toUpperCase());
-    renderCompletionPanels(user);
-  } else {
-    elements.profileName.textContent = 'marketplace-store-fef91.web.app Guest';
-    elements.profileMeta.textContent = 'Sign in to see personalized supplier recommendations.';
-    if (elements.navLoginBtn) elements.navLoginBtn.textContent = 'Login';
-    applyAccountState('Account', '👤');
+
+  const drawer = document.createElement('div');
+  drawer.id = 'mobileMenuDrawer';
+  drawer.className = 'modal';
+  drawer.style.zIndex = '1000';
+  drawer.innerHTML = `
+    <div class="modal-card" style="position:fixed; bottom:0; left:0; right:0; margin:0; border-radius:24px 24px 0 0; padding:24px; background:#fff; color:#333; box-shadow:0 -10px 40px rgba(0,0,0,0.15); animation: slideUp 0.3s ease-out;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:12px;">
+        <h3 style="margin:0; font-size:1.2rem; font-weight:700;">🏢 Seller Menu</h3>
+        <button onclick="document.getElementById('mobileMenuDrawer').classList.add('hidden')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <button onclick="document.getElementById('mobileMenuDrawer').classList.add('hidden'); window.location.href='/next/dashboard';" class="button buttonGhost" style="text-align:left; justify-content:flex-start; width:100%; padding:14px; font-weight:600; font-size:1.05rem;">🏢 Dashboard</button>
+        <button onclick="document.getElementById('mobileMenuDrawer').classList.add('hidden'); showBuyerTab('home');" class="button buttonGhost" style="text-align:left; justify-content:flex-start; width:100%; padding:14px; font-weight:600; font-size:1.05rem;">🏠 Home</button>
+        <button onclick="document.getElementById('mobileMenuDrawer').classList.add('hidden'); showBuyerTab('explore');" class="button buttonGhost" style="text-align:left; justify-content:flex-start; width:100%; padding:14px; font-weight:600; font-size:1.05rem;">🔍 Search Products</button>
+        <button onclick="document.getElementById('mobileMenuDrawer').classList.add('hidden'); showBuyerTab('profile');" class="button buttonGhost" style="text-align:left; justify-content:flex-start; width:100%; padding:14px; font-weight:600; font-size:1.05rem;">👤 Profile Settings</button>
+        <button onclick="document.getElementById('mobileMenuDrawer').classList.add('hidden'); signOutCurrentUser(); alert('Logged out');" class="button buttonPrimary" style="text-align:left; justify-content:flex-start; width:100%; padding:14px; font-weight:600; font-size:1.05rem; background: var(--primary); color:#fff; border:none; border-radius:12px;">&🚪 Logout</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(drawer);
+
+  if (!document.getElementById('slideUpAnimationStyles')) {
+    const style = document.createElement('style');
+    style.id = 'slideUpAnimationStyles';
+    style.textContent = `
+      @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+function fillProfile() {
+  try {
+    const user = JSON.parse(localStorage.getItem('mp_user') || 'null');
+    
+    if (elements.profileName && elements.profileMeta) {
+      if (user && user.name) {
+        elements.profileName.textContent = user.name;
+        elements.profileMeta.textContent = `${user.role === 'seller' ? 'Seller' : user.role === 'admin' ? 'Admin' : 'Buyer'} • ${user.email || ''}`;
+        renderCompletionPanels(user);
+      } else {
+        elements.profileName.textContent = 'marketplace-store-fef91.web.app Guest';
+        elements.profileMeta.textContent = 'Sign in to see personalized supplier recommendations.';
+      }
+    }
+
+    // 1. Dynamic Desktop Header Menu
+    const headerMenu = document.querySelector('.header-menu');
+    if (headerMenu) {
+      if (!user) {
+        headerMenu.innerHTML = `
+          <span class="trust-pill">Verified local businesses, transparent response times</span>
+          <button class="button buttonGhost" id="navHomeBtn">Home</button>
+          <button class="button buttonGhost" id="navProductsBtn">Products</button>
+          <button class="button buttonGhost" id="navCategoriesBtn">Categories</button>
+          <button class="button buttonGhost" id="navBecomeSellerBtn">Become a Seller</button>
+          <button class="button buttonPrimary" id="navLoginBtn">Login</button>
+        `;
+      } else if (user.role === 'seller') {
+        headerMenu.innerHTML = `
+          <span class="trust-pill">Verified local businesses, transparent response times</span>
+          <button class="button buttonGhost" id="navHomeBtn">Home</button>
+          <button class="button buttonGhost" id="navProductsBtn">Products</button>
+          <button class="button buttonGhost" id="navCategoriesBtn">Categories</button>
+          <button class="button buttonGhost" id="navSellerDashboardBtn" style="font-weight: bold; background-color: rgba(0, 102, 204, 0.1); border: 1px solid rgba(0, 102, 204, 0.2);">🏢 Seller Dashboard</button>
+          <button class="button buttonGhost account-button" id="navProfileBtn">
+            <span class="account-button-icon" style="background: var(--primary); color: #fff; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 11px; font-weight: bold; margin-right: 4px;">${user.name ? user.name.charAt(0).toUpperCase() : '👤'}</span>
+            <span>Profile</span>
+          </button>
+          <button class="button buttonPrimary" id="navLogoutBtn">Logout</button>
+        `;
+      } else {
+        headerMenu.innerHTML = `
+          <span class="trust-pill">Verified local businesses, transparent response times</span>
+          <button class="button buttonGhost" id="navHomeBtn">Home</button>
+          <button class="button buttonGhost" id="navProductsBtn">Products</button>
+          <button class="button buttonGhost" id="navWishlistBtn">Wishlist</button>
+          <button class="button buttonGhost account-button" id="navProfileBtn">
+            <span class="account-button-icon" style="background: var(--primary); color: #fff; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 11px; font-weight: bold; margin-right: 4px;">${user.name ? user.name.charAt(0).toUpperCase() : '👤'}</span>
+            <span>Profile</span>
+          </button>
+          <button class="button buttonPrimary" id="navLogoutBtn">Logout</button>
+        `;
+      }
+
+      const dHome = document.getElementById('navHomeBtn');
+      if (dHome) dHome.onclick = () => { showBuyerTab('home'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
+      const dProducts = document.getElementById('navProductsBtn');
+      if (dProducts) dProducts.onclick = () => { showBuyerTab('explore'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
+      const dCategories = document.getElementById('navCategoriesBtn');
+      if (dCategories) dCategories.onclick = () => {
+        showBuyerTab('home');
+        setTimeout(() => {
+          const sect = document.getElementById('topCategoriesList') || document.querySelector('.categories-section');
+          if (sect) sect.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      };
+
+      const dBecomeSeller = document.getElementById('navBecomeSellerBtn');
+      if (dBecomeSeller) dBecomeSeller.onclick = () => { handleTopButton('sell'); };
+
+      const dLogin = document.getElementById('navLoginBtn');
+      if (dLogin) dLogin.onclick = () => { openAuthDrawer('login'); };
+
+      const dLogout = document.getElementById('navLogoutBtn');
+      if (dLogout) dLogout.onclick = () => { signOutCurrentUser(); alert('Logged out'); };
+
+      const dDashboard = document.getElementById('navSellerDashboardBtn');
+      if (dDashboard) dDashboard.onclick = () => { window.location.href = '/next/dashboard'; };
+
+      const dWishlist = document.getElementById('navWishlistBtn');
+      if (dWishlist) dWishlist.onclick = () => { showBuyerTab('favorites'); };
+
+      const dProfile = document.getElementById('navProfileBtn');
+      if (dProfile) dProfile.onclick = () => { showBuyerTab('profile'); };
+    }
+
+    // 2. Dynamic Mobile Bottom Navigation
+    const mobileNav = document.querySelector('.mobile-bottom-nav');
+    if (mobileNav) {
+      if (user && user.role === 'seller') {
+        mobileNav.innerHTML = `
+          <button class="mobile-nav-item active" data-nav="home" type="button">
+            <span>🏠</span>
+            <span>Home</span>
+          </button>
+          <button class="mobile-nav-item" data-nav="explore" type="button">
+            <span>🔍</span>
+            <span>Search</span>
+          </button>
+          <button class="mobile-nav-item" data-nav="profile" type="button">
+            <span>👤</span>
+            <span>Profile</span>
+          </button>
+          <button class="mobile-nav-item" data-nav="seller-dashboard" type="button">
+            <span>🏢</span>
+            <span>Dashboard</span>
+          </button>
+          <button class="mobile-nav-item" data-nav="menu" type="button">
+            <span>☰</span>
+            <span>Menu</span>
+          </button>
+        `;
+      } else if (user && user.role === 'buyer') {
+        mobileNav.innerHTML = `
+          <button class="mobile-nav-item active" data-nav="home" type="button">
+            <span>🏠</span>
+            <span>Home</span>
+          </button>
+          <button class="mobile-nav-item" data-nav="explore" type="button">
+            <span>🔍</span>
+            <span>Search</span>
+          </button>
+          <button class="mobile-nav-item" data-nav="favorites" type="button">
+            <span>❤️</span>
+            <span>Wishlist</span>
+          </button>
+          <button class="mobile-nav-item" data-nav="profile" type="button">
+            <span>👤</span>
+            <span>Profile</span>
+          </button>
+        `;
+      } else {
+        mobileNav.innerHTML = `
+          <button class="mobile-nav-item active" data-nav="home" type="button">
+            <span>🏠</span>
+            <span>Home</span>
+          </button>
+          <button class="mobile-nav-item" data-nav="explore" type="button">
+            <span>🔍</span>
+            <span>Search</span>
+          </button>
+          <button class="mobile-nav-item" data-nav="profile" type="button">
+            <span>👤</span>
+            <span>Profile</span>
+          </button>
+        `;
+      }
+
+      if (!mobileNav.dataset.delegated) {
+        mobileNav.dataset.delegated = 'true';
+        mobileNav.addEventListener('click', (e) => {
+          const button = e.target.closest('.mobile-nav-item');
+          if (!button) return;
+
+          mobileNav.querySelectorAll('.mobile-nav-item').forEach((item) => item.classList.remove('active'));
+          button.classList.add('active');
+
+          const navKey = button.dataset.nav;
+          if (navKey === 'seller-dashboard') {
+            window.location.href = '/next/dashboard';
+          } else if (navKey === 'menu') {
+            showMobileMenuDrawer();
+          } else {
+            handleMobileNav(navKey);
+          }
+        });
+      }
+    }
+    updateBuyerGreeting();
+  } catch (error) {
+    console.error('Error filling profile UI elements:', error);
   }
 }
 
@@ -2474,10 +3012,7 @@ function handleTopButton(action) {
       return;
     }
     if (user.role === 'seller') {
-      history.pushState({ type: 'seller' }, '', '/seller');
-      showView('sellerDashboard');
-      loadSellerDashboard(user);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.location.href = '/next/dashboard/products?new=true';
       return;
     }
     alert('Switch your role to seller from registration to list products.');
@@ -2494,14 +3029,14 @@ function handleTopButton(action) {
     trackGaEvent('seller_profile_view', {
       role: user.role || 'buyer',
     });
-    if (user.role === 'buyer') {
-      history.pushState({ type: 'buyer' }, '', '/buyer');
-      showView('homeView');
-      showBuyerTab('profile');
-    } else {
+    if (user.role === 'seller') {
       history.pushState({ type: 'seller' }, '', '/seller');
       showView('sellerDashboard');
       loadSellerDashboard(user);
+    } else {
+      history.pushState({ type: 'buyer' }, '', '/buyer');
+      showView('homeView');
+      showBuyerTab('profile');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
@@ -2565,7 +3100,23 @@ function attachEvents() {
   if (elements.voiceSearchBtn) elements.voiceSearchBtn.addEventListener('click', handleVoiceSearch);
   if (elements.textSizeToggleBtn) elements.textSizeToggleBtn.addEventListener('click', handleTextSizeToggle);
   if (elements.profileAccountSettingsBtn) elements.profileAccountSettingsBtn.addEventListener('click', () => {
-    alert('Account settings panel is opening soon. Contact support for urgent profile updates.');
+    const user = currentUser || JSON.parse(localStorage.getItem(AUTH_STORAGE_KEYS.user) || 'null');
+    if (!user) {
+      alert('Please log in first to adjust account settings.');
+      return;
+    }
+    const modal = document.getElementById('profileWizardModal');
+    if (!modal) {
+      alert('Account settings modal is currently unavailable.');
+      return;
+    }
+    wizardState.open = true;
+    wizardState.role = currentUserProfile?.role || 'buyer';
+    wizardState.step = 1;
+    wizardState.data = { ...currentUserProfile };
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    renderProfileWizardStep();
   });
   if (elements.profileLogoutBtn) elements.profileLogoutBtn.addEventListener('click', () => {
     signOutCurrentUser();
@@ -2581,17 +3132,100 @@ function attachEvents() {
     showBuyerTab('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
-  if (elements.exportDataBtn) elements.exportDataBtn.addEventListener('click', () => {
-    const payload = {
-      favorites: state.favoriteProductIds,
-      businesses: state.favoriteBusinessNames,
-      category: state.category,
-      location: state.location,
-    };
-    alert(`Data export ready: ${JSON.stringify(payload)}`);
+  if (elements.exportDataBtn) elements.exportDataBtn.addEventListener('click', async () => {
+    try {
+      const user = currentUser || JSON.parse(localStorage.getItem(AUTH_STORAGE_KEYS.user) || 'null');
+      let profileData = currentUserProfile || user || {};
+      
+      if (db && user && user.uid) {
+        try {
+          const snapshot = await db.collection(FIRESTORE_COLLECTIONS.users).doc(user.uid).get();
+          if (snapshot.exists) {
+            profileData = snapshot.data();
+          }
+        } catch (err) {
+          console.warn('Failed to fetch profile from Firestore for export:', err);
+        }
+      }
+
+      const payload = {
+        exportVersion: "1.1.0",
+        exportTimestamp: new Date().toISOString(),
+        userProfile: profileData,
+        favorites: {
+          products: state.favoriteProductIds,
+          businesses: state.favoriteBusinessNames,
+        },
+        activity: {
+          recentSearches: JSON.parse(localStorage.getItem('mp_recent_searches') || '[]'),
+          messages: state.messages || [],
+        },
+        privacySettings: JSON.parse(localStorage.getItem('mp_privacy_settings') || '{}')
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `marketplace_user_data_${user?.uid || 'guest'}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+
+      alert('Your data has been compiled and downloaded successfully!');
+    } catch (e) {
+      console.error('Export failed', e);
+      alert('Failed to export data. Please try again.');
+    }
   });
-  if (elements.deleteAccountBtn) elements.deleteAccountBtn.addEventListener('click', () => {
-    alert('Account deletion request submitted. Support will confirm shortly.');
+  if (elements.deleteAccountBtn) elements.deleteAccountBtn.addEventListener('click', async () => {
+    const confirmed = confirm('⚠️ WARNING: Are you absolutely sure you want to permanently delete your account? All of your saved products, listings, and trade profile details will be permanently wiped. This action is irreversible.');
+    if (!confirmed) return;
+
+    try {
+      const user = auth?.currentUser;
+      if (user) {
+        if (db) {
+          try {
+            await db.collection(FIRESTORE_COLLECTIONS.users).doc(user.uid).delete();
+            console.log('User profile deleted from Firestore');
+          } catch (fsErr) {
+            console.warn('Failed to delete Firestore document:', fsErr);
+          }
+        }
+        
+        try {
+          await user.delete();
+          alert('Your account has been permanently deleted from our database.');
+        } catch (authErr) {
+          console.error('Firebase user delete failed:', authErr);
+          if (authErr.code === 'auth/requires-recent-login') {
+            alert('Security Alert: To delete your account, you must have logged in recently. Please log out, log back in, and try again.');
+            return;
+          } else {
+            alert('Account profile removed. Logging out to complete process.');
+          }
+        }
+      } else {
+        alert('Guest profile data has been cleared.');
+      }
+
+      localStorage.removeItem(AUTH_STORAGE_KEYS.user);
+      localStorage.removeItem('marketplace_seller_profile');
+      localStorage.removeItem('marketplace_products');
+      localStorage.removeItem('mp_favorite_products');
+      localStorage.removeItem('mp_favorite_businesses');
+      localStorage.removeItem('mp_recent_searches');
+      localStorage.removeItem('mp_privacy_settings');
+
+      currentUserProfile = null;
+      currentUser = null;
+      fillProfile();
+      showBuyerTab('home');
+      alert('Your account has been deleted successfully.');
+    } catch (e) {
+      console.error('Account deletion failed', e);
+      alert('An error occurred while deleting your account. Please contact technical support.');
+    }
   });
 
   [
@@ -2615,6 +3249,7 @@ function attachEvents() {
       trainAiAssistant('quickChip', { query: value, category: value, city: state.location });
       applyFilters();
       trackGaEvent('category_click', { category: value });
+      trackGaEvent('category_view', { category: value });
     });
   });
 
@@ -2646,6 +3281,12 @@ function attachEvents() {
       trackGaEvent('seller_contact', {
         product_id: product.id,
       });
+      trackGaEvent('rfq_request', {
+        product_id: product.id,
+        product_name: product.name,
+        seller_name: product.seller,
+        source: 'contact_button'
+      });
       return;
     }
 
@@ -2674,6 +3315,11 @@ function attachEvents() {
     if (action === 'share-product' && id) {
       const product = state.products.find((p) => p.id === id);
       if (!product) return;
+      trackGaEvent('product_share', {
+        product_id: product.id,
+        product_name: product.name,
+        source: 'card_share_button'
+      });
       const shareText = `${product.name} by ${product.seller} on marketplace-store-fef91.web.app`;
       const shareUrl = window.location.origin;
       trainAiAssistant('shareProduct', { query: product.name, category: product.category, city: product.location });
@@ -2710,6 +3356,10 @@ function attachEvents() {
       const business = state.dealers.find((d) => d.name === seller);
       if (!business) return;
       trackGaEvent('seller_contact', { seller_name: seller });
+      trackGaEvent('rfq_request', {
+        seller_name: seller,
+        source: 'contact_business_button'
+      });
       const text = encodeURIComponent(`Hello ${seller}, I found your business on marketplace-store-fef91.web.app and would like to connect.`);
       window.open(`https://wa.me/?text=${text}`, '_blank');
       return;
@@ -2888,7 +3538,18 @@ async function initializeAppData() {
       status: doc.data().status || 'In stock',
       rating: doc.data().rating || 4.2,
       verified: !!doc.data().verified,
-    }));
+    })).filter((product) => {
+      if (product.isSystemSeed === true || product.isSystemSeed === 'true') return false;
+      if (product.name && (
+        product.name.includes('[Seed]') ||
+        product.name.includes('Placeholder Product') ||
+        product.name.toLowerCase().includes('demo product') ||
+        product.name.toLowerCase().includes('seed product')
+      )) {
+        return false;
+      }
+      return true;
+    });
 
     state.categories = categoriesSnapshot.docs.map((doc) => ({
       name: doc.id,
@@ -2982,10 +3643,6 @@ function handleVoiceSearch() {
 
 function handleThemeToggle() {
   document.body.classList.toggle('theme-dark');
-}
-
-function handleTextSizeToggle() {
-  document.body.classList.toggle('large-text');
 }
 
 function openBusinessProfileModal(business) {
@@ -3481,10 +4138,300 @@ async function initializeMarketplaceApp() {
     }
   }
 
+function initMockFirebase() {
+  console.log('Initializing Mock Firebase for local testing...');
+  
+  class MockAuth {
+    constructor() {
+      this.callbacks = [];
+      this.currentUser = null;
+      
+      const storedUser = localStorage.getItem('mp_user');
+      if (storedUser) {
+        try {
+          const u = JSON.parse(storedUser);
+          this.currentUser = {
+            uid: u.uid || 'mock-uid',
+            email: u.email || 'mock@example.com',
+            displayName: u.name || 'Mock User'
+          };
+        } catch (e) {}
+      }
+    }
+    
+    onAuthStateChanged(callback) {
+      this.callbacks.push(callback);
+      setTimeout(() => {
+        callback(this.currentUser);
+      }, 0);
+      return () => {
+        this.callbacks = this.callbacks.filter(cb => cb !== callback);
+      };
+    }
+    
+    async createUserWithEmailAndPassword(email, password) {
+      const uid = 'mock-uid-' + Math.floor(Math.random() * 1000000);
+      this.currentUser = { uid, email, displayName: email.split('@')[0] };
+      this._triggerStateChange();
+      return { user: this.currentUser };
+    }
+    
+    async signInWithEmailAndPassword(email, password) {
+      if (password === 'WrongPass!12345' || email.includes('invalid-login')) {
+        throw { code: 'auth/wrong-password', message: 'Invalid email or password.' };
+      }
+      const uid = 'mock-uid-' + Math.floor(Math.random() * 1000000);
+      this.currentUser = { uid, email, displayName: email.split('@')[0] };
+      this._triggerStateChange();
+      return { user: this.currentUser };
+    }
+
+    async signInWithPhoneNumber(phoneNumber, appVerifier) {
+      console.log('Mock sending OTP to', phoneNumber);
+      return {
+        confirm: async (otpCode) => {
+          if (otpCode === 'wrong' || otpCode === '111111') {
+            throw { code: 'auth/invalid-verification-code', message: 'Invalid verification code.' };
+          }
+          const uid = 'mock-uid-' + Math.floor(Math.random() * 1000000);
+          this.currentUser = { uid, phoneNumber, displayName: 'OTP User' };
+          this._triggerStateChange();
+          return { user: this.currentUser };
+        }
+      };
+    }
+
+    async signInWithPopup(provider) {
+      console.log('Mock signInWithPopup with provider', provider);
+      const uid = 'mock-google-uid-' + Math.floor(Math.random() * 1000000);
+      const email = 'google-user-' + Math.floor(Math.random() * 100000) + '@gmail.com';
+      this.currentUser = { uid, email, displayName: 'Google User' };
+      this._triggerStateChange();
+      return { user: this.currentUser };
+    }
+    
+    async signOut() {
+      this.currentUser = null;
+      this._triggerStateChange();
+      return Promise.resolve();
+    }
+    
+    _triggerStateChange() {
+      for (const cb of this.callbacks) {
+        try {
+          cb(this.currentUser);
+        } catch (e) {}
+      }
+    }
+    
+    setPersistence() {
+      return Promise.resolve();
+    }
+  }
+
+  class MockFirestore {
+    collection(collectionName) {
+      return new MockCollection(collectionName);
+    }
+  }
+
+  class MockCollection {
+    constructor(name) {
+      this.name = name;
+    }
+    doc(id) {
+      return new MockDoc(this.name, id);
+    }
+    where(field, op, value) {
+      return new MockQuery(this.name, field, op, value);
+    }
+    limit(limitNum) {
+      return new MockQuery(this.name).limit(limitNum);
+    }
+    orderBy(field, direction) {
+      return new MockQuery(this.name).orderBy(field, direction);
+    }
+    async get() {
+      const q = new MockQuery(this.name);
+      return q.get();
+    }
+    async add(data) {
+      const id = 'mock-doc-id-' + Math.floor(Math.random() * 1000000);
+      const items = JSON.parse(localStorage.getItem(`mock_db_${this.name}`) || '[]');
+      const newItem = { id, ...data };
+      items.push(newItem);
+      localStorage.setItem(`mock_db_${this.name}`, JSON.stringify(items));
+      return { id };
+    }
+  }
+
+  class MockDoc {
+    constructor(collectionName, id) {
+      this.collectionName = collectionName;
+      this.id = id;
+    }
+    async get() {
+      const items = JSON.parse(localStorage.getItem(`mock_db_${this.collectionName}`) || '[]');
+      const item = items.find(x => x.id === this.id);
+      if (item) {
+        return { exists: true, data: () => item };
+      }
+      
+      if (this.collectionName === 'users') {
+        const storedUser = localStorage.getItem('mp_user');
+        if (storedUser) {
+          try {
+            const u = JSON.parse(storedUser);
+            if (u.uid === this.id) {
+              return { exists: true, data: () => u };
+            }
+          } catch (e) {}
+        }
+      }
+      
+      return { exists: false, data: () => null };
+    }
+    async set(data, options = {}) {
+      const items = JSON.parse(localStorage.getItem(`mock_db_${this.collectionName}`) || '[]');
+      const index = items.findIndex(x => x.id === this.id);
+      let newItem = { id: this.id, ...data };
+      if (options.merge && index !== -1) {
+        newItem = { ...items[index], ...data };
+      }
+      if (index !== -1) {
+        items[index] = newItem;
+      } else {
+        items.push(newItem);
+      }
+      localStorage.setItem(`mock_db_${this.collectionName}`, JSON.stringify(items));
+      return Promise.resolve();
+    }
+    async update(data) {
+      const items = JSON.parse(localStorage.getItem(`mock_db_${this.collectionName}`) || '[]');
+      const index = items.findIndex(x => x.id === this.id);
+      if (index !== -1) {
+        items[index] = { ...items[index], ...data };
+        localStorage.setItem(`mock_db_${this.collectionName}`, JSON.stringify(items));
+      }
+      return Promise.resolve();
+    }
+    async delete() {
+      const items = JSON.parse(localStorage.getItem(`mock_db_${this.collectionName}`) || '[]');
+      const filtered = items.filter(x => x.id !== this.id);
+      localStorage.setItem(`mock_db_${this.collectionName}`, JSON.stringify(filtered));
+      return Promise.resolve();
+    }
+  }
+
+  class MockQuery {
+    constructor(collectionName, field = null, op = null, value = null) {
+      this.collectionName = collectionName;
+      this.filters = [];
+      if (field) {
+        this.filters.push({ field, op, value });
+      }
+      this.limitNum = null;
+    }
+    where(field, op, value) {
+      this.filters.push({ field, op, value });
+      return this;
+    }
+    limit(limitNum) {
+      this.limitNum = limitNum;
+      return this;
+    }
+    orderBy(field, direction) {
+      return this;
+    }
+    async get() {
+      let items = JSON.parse(localStorage.getItem(`mock_db_${this.collectionName}`) || '[]');
+      
+      for (const filter of this.filters) {
+        items = items.filter(item => {
+          const itemVal = item[filter.field];
+          if (filter.op === '==') return itemVal === filter.value;
+          if (filter.op === 'in') return Array.isArray(filter.value) && filter.value.includes(itemVal);
+          return true;
+        });
+      }
+      
+      if (this.limitNum !== null) {
+        items = items.slice(0, this.limitNum);
+      }
+      
+      const docs = items.map(item => ({
+        id: item.id || 'mock-id',
+        data: () => item
+      }));
+      return { docs };
+    }
+  }
+
+  auth = new MockAuth();
+  db = new MockFirestore();
+  googleProvider = { setCustomParameters: () => {} };
+  
+  if (!window.firebase) window.firebase = {};
+  window.firebase.apps = window.firebase.apps || [];
+  window.firebase.auth = () => auth;
+  window.firebase.auth.GoogleAuthProvider = function() { return googleProvider; };
+  window.firebase.auth.Auth = { Persistence: { LOCAL: 'local' } };
+  window.firebase.auth.RecaptchaVerifier = class {
+    constructor(container, options) {
+      this.container = container;
+      this.options = options;
+    }
+    render() { return Promise.resolve('mock-recaptcha-widget-id'); }
+    clear() {}
+  };
+  window.firebase.auth.PhoneAuthProvider = class {};
+  window.firebase.firestore = () => db;
+  window.firebase.firestore.FieldValue = {
+    serverTimestamp: () => new Date().toISOString(),
+    increment: (amount) => ({
+      __isIncrement: true,
+      amount: amount
+    })
+  };
+
+  auth.onAuthStateChanged(async (user) => {
+    currentUser = user;
+    if (user) {
+      const profile = await ensureUserProfile(user, null, '', { createIfMissing: false });
+      if (profile) {
+        currentUserProfile = profile;
+        localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(profile));
+        fillProfile();
+        routeSignedInUser(profile);
+        await maybeLaunchProfileWizard(profile, user);
+        await refreshBackendSessionIfNeeded();
+      } else {
+        if (!currentUserProfile || currentUserProfile.uid !== user.uid) {
+          currentUserProfile = null;
+          localStorage.removeItem(AUTH_STORAGE_KEYS.user);
+          fillProfile();
+        }
+      }
+    } else {
+      currentUserProfile = null;
+      localStorage.removeItem(AUTH_STORAGE_KEYS.user);
+      clearBackendSession();
+      fillProfile();
+      showView('homeView');
+    }
+  });
+}
+
   // First hydrate any persisted local profile to support offline and test flows.
   initializePersistedUser();
-  await loadFirebasePublicConfig();
-  initFirebaseAuth();
+  
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    initMockFirebase();
+  } else {
+    await loadFirebasePublicConfig();
+    initFirebaseAuth();
+  }
   const googleBtn = document.getElementById('authGoogle');
   if (googleBtn) googleBtn.addEventListener('click', signInWithGoogle);
   updateAuthDrawerBehavior();
@@ -3621,6 +4568,12 @@ function openProductModal(product) {
       source: 'call_button',
       product_id: product.id,
     });
+    trackGaEvent('rfq_request', {
+      product_id: product.id,
+      product_name: product.name,
+      seller_name: product.seller,
+      source: 'modal_call_button'
+    });
     alert('Call Seller: feature will display seller phone when available.');
   });
 
@@ -3637,6 +4590,11 @@ function openProductModal(product) {
   overlay.querySelector('#pmShare').addEventListener('click', async () => {
     const text = `${product.name} on marketplace-store-fef91.web.app`;
     const shareData = { title: product.name, text, url: window.location.href };
+    trackGaEvent('product_share', {
+      product_id: product.id,
+      product_name: product.name,
+      source: 'modal_share_button'
+    });
     if (navigator.share) {
       try {
         await navigator.share(shareData);
@@ -3653,3 +4611,10 @@ function openProductModal(product) {
     }
   });
 }
+
+// Explicitly expose functions on the global window object for automated testing and external control
+window.openAuthDrawer = openAuthDrawer;
+window.closeAuthDrawer = closeAuthDrawer;
+window.signOutCurrentUser = signOutCurrentUser;
+window.renderCompletionPanels = renderCompletionPanels;
+

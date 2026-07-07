@@ -109,7 +109,8 @@ test.describe('Authentication flow coverage', () => {
       .toBe('seller');
 
     await page.goto(`${BASE_URL}/seller`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#sellerDashboard')).toBeVisible();
+    await expect(page.locator('#homeView')).toBeVisible();
+    await expect(page.locator('#navSellerDashboardBtn')).toBeVisible();
   });
 
   test('invalid email credentials show error', async ({ page }) => {

@@ -12,12 +12,43 @@ const mime = {
 const server = http.createServer((req, res) => {
   let file = req.url.split('?')[0];
   if (file === '/') file = '/index.html';
-  const filePath = path.join(root, file);
-  fs.readFile(filePath, (err, data) => {
-    if (err) { res.statusCode = 404; res.end('Not found'); return; }
-    const ext = path.extname(filePath);
-    res.setHeader('Content-Type', mime[ext] || 'application/octet-stream');
-    res.end(data);
+  let filePath = path.join(root, file);
+
+  fs.stat(filePath, (err, stats) => {
+    let resolvedPath = filePath;
+    if (err) {
+      // Check if it's a clean URL without extension
+      const ext = path.extname(filePath);
+      if (!ext) {
+        const htmlPath = filePath + '.html';
+        const indexHtmlPath = path.join(filePath, 'index.html');
+        if (fs.existsSync(indexHtmlPath)) {
+          resolvedPath = indexHtmlPath;
+        } else if (fs.existsSync(htmlPath)) {
+          resolvedPath = htmlPath;
+        } else {
+          resolvedPath = path.join(root, 'index.html');
+        }
+      } else {
+        res.statusCode = 404;
+        res.end('Not found');
+        return;
+      }
+    } else if (stats.isDirectory()) {
+      resolvedPath = path.join(filePath, 'index.html');
+    }
+
+    fs.readFile(resolvedPath, (err, data) => {
+      if (err) {
+        res.statusCode = 404;
+        res.end('Not found');
+        return;
+      }
+      const ext = path.extname(resolvedPath);
+
+      res.setHeader('Content-Type', mime[ext] || 'application/octet-stream');
+      res.end(data);
+    });
   });
 });
 

@@ -143,14 +143,14 @@ export default function DashboardPage() {
       <div className="space-y-6">
         
         {/* Welcome Header */}
-        <section className="rounded-[32px] bg-gradient-to-r from-accent-500/10 via-slate-900 to-slate-950 border border-slate-800 p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <section className="rounded-[32px] bg-white border border-[#f3d9a7] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-400">Merchant Cockpit</p>
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-600">Merchant Cockpit</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1f2937] font-display">
               Welcome back, {state.sellerName} 👋
             </h1>
-            <p className="text-base text-slate-300 font-medium">
-              Your business reached <span className="text-accent-400 font-bold">+{state.buyerReachThisWeek} new buyers</span> this week.
+            <p className="text-base text-slate-600 font-bold">
+              Your business reached <span className="text-[#FAB12F] font-black">+{state.buyerReachThisWeek} new buyers</span> this week.
             </p>
           </div>
           <div>
@@ -159,11 +159,11 @@ export default function DashboardPage() {
               size="lg"
               onClick={handleAddProductClick}
               icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
               }
-              className="rounded-2xl shadow-[0_12px_30px_-6px_rgba(255,149,0,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+              className="rounded-2xl bg-[#FAB12F] hover:bg-[#e09e1b] text-slate-900 font-extrabold border border-[#f3d9a7] shadow-[0_12px_30px_-6px_rgba(250,177,47,0.35)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
               data-testid="add-product-btn"
             >
               Add Product
@@ -178,18 +178,18 @@ export default function DashboardPage() {
             title="People Interested"
             value={`+${state.viewsCount}`}
             icon="👀"
-            className="min-h-[140px] rounded-3xl border border-slate-800 bg-slate-950 p-6 flex flex-col justify-between"
+            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
           >
-            <p className="mt-2 text-xs text-slate-400 font-medium">Product detail page views</p>
+            <p className="mt-2 text-xs text-slate-500 font-bold">Product detail page views</p>
           </KPICard>
 
           <KPICard
             title="WhatsApp Inquiries"
             value={`${state.whatsappInquiries}`}
             icon="💬"
-            className="min-h-[140px] rounded-3xl border border-slate-800 bg-slate-950 p-6 flex flex-col justify-between"
+            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
           >
-            <p className="mt-2 text-xs text-emerald-400 font-semibold flex items-center gap-1">
+            <p className="mt-2 text-xs text-emerald-600 font-extrabold flex items-center gap-1">
               <span>●</span> Direct buyer contacts initiated
             </p>
           </KPICard>
@@ -198,38 +198,169 @@ export default function DashboardPage() {
             title="Products Running Low"
             value={`${state.lowStockCount}`}
             icon="⚠️"
-            className={`min-h-[140px] rounded-3xl border p-6 flex flex-col justify-between ${
+            className={`min-h-[140px] rounded-3xl border p-6 flex flex-col justify-between transition-all hover:shadow-md ${
               state.lowStockCount > 0 
-                ? 'border-amber-500/20 bg-amber-500/5 text-amber-300' 
-                : 'border-slate-800 bg-slate-950 text-white'
+                ? 'border-amber-500/30 bg-amber-50/50 text-amber-800' 
+                : 'border-[#f3d9a7] bg-white text-[#1f2937]'
             }`}
           >
-            <p className="mt-2 text-xs text-slate-400 font-medium">Items near or below MOQ</p>
+            <p className={`mt-2 text-xs font-bold ${state.lowStockCount > 0 ? 'text-amber-700/80' : 'text-slate-500'}`}>
+              Items near or below MOQ
+            </p>
           </KPICard>
 
           <KPICard
             title="Top Product"
             value={state.topProduct}
             icon="🏆"
-            className="min-h-[140px] rounded-3xl border border-slate-800 bg-slate-950 p-6 flex flex-col justify-between"
+            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
           >
-            <p className="mt-2 text-xs text-slate-400 font-medium truncate">Generated most interest</p>
+            <p className="mt-2 text-xs text-slate-500 font-bold truncate">Generated most interest</p>
           </KPICard>
 
+        </section>
+
+        {/* Operations Cockpit Quick Access */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Business Control Center</p>
+              <h2 className="text-xl font-extrabold text-[#1f2937] mt-1 font-display">Operational Modules</h2>
+            </div>
+            <span className="text-xs text-amber-600 font-bold flex items-center gap-1">
+              <span>●</span> Fully Synchronized
+            </span>
+          </div>
+          
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            
+            {/* Orders Cockpit Card */}
+            <Card 
+              className="rounded-3xl border border-[#f3d9a7] bg-white p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
+              onClick={() => router.push('/dashboard/orders')}
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-200">
+                    📝
+                  </div>
+                  <span className="text-[10px] bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                    Pipeline
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-[#1f2937] group-hover:text-[#e09e1b] transition-colors">
+                    Orders Cockpit
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 font-medium">
+                    Track custom B2B quotes, buyer requirements, and update deal pipelines.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 text-xs font-bold text-[#FAB12F] flex items-center gap-1 group-hover:translate-x-1 transition-transform duration-200">
+                Open Orders <span>→</span>
+              </div>
+            </Card>
+
+            {/* WhatsApp Leads Card */}
+            <Card 
+              className="rounded-3xl border border-[#f3d9a7] bg-white p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
+              onClick={() => router.push('/dashboard/leads')}
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-200">
+                    💬
+                  </div>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                    Realtime
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-[#1f2937] group-hover:text-[#e09e1b] transition-colors">
+                    WhatsApp Leads
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 font-medium">
+                    View automated customer inquiries, referral paths, and chat histories.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 text-xs font-bold text-[#FAB12F] flex items-center gap-1 group-hover:translate-x-1 transition-transform duration-200">
+                View Leads <span>→</span>
+              </div>
+            </Card>
+
+            {/* Buyer Reviews Card */}
+            <Card 
+              className="rounded-3xl border border-[#f3d9a7] bg-white p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
+              onClick={() => router.push('/dashboard/reviews')}
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-200">
+                    ⭐
+                  </div>
+                  <span className="text-[10px] bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                    Ratings
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-[#1f2937] group-hover:text-[#e09e1b] transition-colors">
+                    Buyer Reviews
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 font-medium">
+                    Check trade feedback, manage aggregate ratings, and reply to client reviews.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 text-xs font-bold text-[#FAB12F] flex items-center gap-1 group-hover:translate-x-1 transition-transform duration-200">
+                Manage Reviews <span>→</span>
+              </div>
+            </Card>
+
+            {/* Settings Profile Card */}
+            <Card 
+              className="rounded-3xl border border-[#f3d9a7] bg-white p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
+              onClick={() => router.push('/dashboard/settings')}
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-200">
+                    ⚙️
+                  </div>
+                  <span className="text-[10px] bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                    Profile
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-[#1f2937] group-hover:text-[#e09e1b] transition-colors">
+                    Business Settings
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 font-medium">
+                    Configure UPI payments, set shipping terms, and modify alert notifications.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 text-xs font-bold text-[#FAB12F] flex items-center gap-1 group-hover:translate-x-1 transition-transform duration-200">
+                Adjust Settings <span>→</span>
+              </div>
+            </Card>
+
+          </div>
         </section>
 
         {/* Primary Row: Lead Inbox & AI Assistant */}
         <section className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
           
           {/* Active Inquiries Card */}
-          <Card className="rounded-3xl border border-slate-800 bg-slate-950 p-6 space-y-4 flex flex-col justify-between">
+          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-4 flex flex-col justify-between shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
             <div>
-              <div className="flex items-center justify-between border-b border-slate-900 pb-4">
+              <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Live Inquiries</p>
-                  <h3 className="mt-1 text-xl font-bold text-white">Direct WhatsApp Contacts</h3>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Live Inquiries</p>
+                  <h3 className="mt-1 text-xl font-bold text-[#1f2937]">Direct WhatsApp Contacts</h3>
                 </div>
-                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600 flex items-center gap-1.5 border border-emerald-500/20">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -238,24 +369,24 @@ export default function DashboardPage() {
                 </span>
               </div>
 
-              <div className="divide-y divide-slate-900 mt-4">
+              <div className="divide-y divide-neutral-100 mt-4">
                 {recentInquiries.map((inq, idx) => (
-                  <div key={idx} className="flex items-start justify-between py-4 gap-4 hover:bg-slate-900/10 px-2 rounded-2xl transition-colors">
+                  <div key={idx} className="flex items-start justify-between py-4 gap-4 hover:bg-[#fff0db]/20 px-2 rounded-2xl transition-colors">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-semibold text-white">{inq.buyer}</h4>
-                        <span className="text-[10px] bg-slate-900 text-slate-400 px-2 py-0.5 rounded-full font-medium">{inq.location}</span>
+                        <h4 className="text-sm font-bold text-[#1f2937]">{inq.buyer}</h4>
+                        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">{inq.location}</span>
                       </div>
-                      <p className="text-xs text-slate-400 line-clamp-1 italic">"{inq.message}"</p>
+                      <p className="text-xs text-slate-500 line-clamp-1 italic">"{inq.message}"</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs text-slate-500 font-medium whitespace-nowrap">{inq.time}</span>
+                      <span className="text-xs text-slate-400 font-bold whitespace-nowrap">{inq.time}</span>
                       <div className="mt-1">
                         <a 
                           href={`https://wa.me/919876543210?text=Hello%20${encodeURIComponent(inq.buyer)},%20thank%20you%20for%20reaching%20out%20on%20DealerConnect.`}
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className="text-[11px] font-semibold text-accent-400 hover:text-accent-300 transition-colors"
+                          className="text-[11px] font-bold text-[#FAB12F] hover:text-[#e09e1b] transition-colors"
                         >
                           Chat Live →
                         </a>
@@ -266,10 +397,10 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            <div className="pt-4 border-t border-slate-900">
+            <div className="pt-4 border-t border-neutral-100">
               <Button 
                 variant="secondary" 
-                className="w-full justify-center rounded-2xl text-slate-300"
+                className="w-full justify-center rounded-2xl border-[#f3d9a7] bg-[#fff6e6] text-[#1f2937] hover:bg-[#fff0db] font-bold"
                 onClick={() => router.push('/dashboard/profile')}
               >
                 Configure WhatsApp Settings
@@ -278,30 +409,30 @@ export default function DashboardPage() {
           </Card>
 
           {/* AI Assistant Chat Box */}
-          <Card className="rounded-3xl border border-slate-800 bg-slate-950 p-6 flex flex-col h-[400px] justify-between">
+          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 flex flex-col h-[400px] justify-between shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
             <div>
-              <div className="flex items-center gap-2.5 border-b border-slate-900 pb-4">
-                <div className="h-8 w-8 rounded-2xl bg-gradient-to-br from-accent-500 to-slate-800 flex items-center justify-center text-xs">
+              <div className="flex items-center gap-2.5 border-b border-neutral-100 pb-4">
+                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#FAB12F] to-[#f59e0b] flex items-center justify-center text-sm shadow-sm font-bold">
                   🤖
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">AI Business Advisor</h3>
-                  <p className="text-[11px] text-slate-500 font-medium">Real-time marketplace insights</p>
+                  <h3 className="text-sm font-bold text-[#1f2937]">AI Business Advisor</h3>
+                  <p className="text-[11px] text-slate-500 font-bold">Real-time marketplace insights</p>
                 </div>
               </div>
             </div>
 
             {/* Message Area */}
-            <div className="flex-1 overflow-y-auto my-4 space-y-3 px-1 scrollbar-thin scrollbar-thumb-slate-800">
+            <div className="flex-1 overflow-y-auto my-4 space-y-3 px-1 scrollbar-thin scrollbar-thumb-slate-200">
               {chatLog.map((chat, idx) => (
                 <div 
                   key={idx} 
                   className={`flex ${chat.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[85%] rounded-[20px] px-4 py-2.5 text-xs font-medium leading-relaxed ${
+                  <div className={`max-w-[85%] rounded-[20px] px-4 py-2.5 text-xs font-bold leading-relaxed shadow-sm ${
                     chat.sender === 'user' 
-                      ? 'bg-accent-500 text-slate-950 rounded-br-none' 
-                      : 'bg-slate-900 text-slate-200 rounded-bl-none border border-slate-800'
+                      ? 'bg-[#FAB12F] text-slate-950 rounded-br-none' 
+                      : 'bg-[#fff6e6] text-[#1f2937] rounded-bl-none border border-[#f3d9a7]'
                   }`}>
                     {chat.text}
                   </div>
@@ -310,17 +441,17 @@ export default function DashboardPage() {
             </div>
 
             {/* Input Form */}
-            <form onSubmit={handleSendMessage} className="flex gap-2 border-t border-slate-900 pt-3">
+            <form onSubmit={handleSendMessage} className="flex gap-2 border-t border-neutral-100 pt-3">
               <input
                 type="text"
                 placeholder="Ask about inventory, GST benefits..."
                 value={aiMessage}
                 onChange={(e) => setAiMessage(e.target.value)}
-                className="flex-1 rounded-2xl bg-slate-900 border border-slate-800 px-4 py-2.5 text-xs text-white focus:outline-none focus:border-accent-500 transition-colors placeholder:text-slate-500"
+                className="flex-1 rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-2.5 text-xs text-[#1f2937] focus:outline-none focus:border-[#FAB12F] focus:ring-[#FAB12F]/10 transition-colors placeholder:text-slate-400 font-bold"
               />
               <button 
                 type="submit"
-                className="h-10 w-10 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-200 transition-all duration-200"
+                className="h-10 w-10 rounded-2xl bg-[#fff6e6] hover:bg-[#fff0db] border border-[#f3d9a7] flex items-center justify-center text-[#1f2937] font-bold transition-all duration-200 hover:scale-105"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />

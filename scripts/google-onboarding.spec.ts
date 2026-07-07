@@ -7,7 +7,7 @@ test('Google first-time user role selection and onboarding', async ({ page }) =>
 
   // Trigger Google sign-in button (simulated flow)
   // The app opens a modal to select role after Google sign-in; simulate by calling askGoogleAuthRole flow via UI
-  await page.click('#authGoogle');
+  await page.locator('#authGoogle').evaluate((el) => (el as HTMLElement).click());
 
   // If googleRoleModal appears, choose seller then continue
   const modal = page.locator('#googleRoleModal');

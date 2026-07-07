@@ -13,6 +13,8 @@ package-lock.json
 yarn.lock
 
 # Local env files
+.env
+.env.encrypted
 .env.local
 .env.*.local
 

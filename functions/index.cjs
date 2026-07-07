@@ -211,21 +211,21 @@ app.use((req, res, next) => {
 
 app.get('/api/public/config', (req, res) => {
   const hostDerivedProjectId = deriveProjectIdFromHost(req.hostname);
-  const projectId = process.env.FIREBASE_PROJECT_ID || hostDerivedProjectId || '';
-  const authDomain = process.env.FIREBASE_AUTH_DOMAIN || (projectId ? `${projectId}.firebaseapp.com` : '');
-  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || (projectId ? `${projectId}.appspot.com` : '');
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.MP_FIREBASE_PROJECT_ID || hostDerivedProjectId || '';
+  const authDomain = process.env.FIREBASE_AUTH_DOMAIN || process.env.MP_FIREBASE_AUTH_DOMAIN || (projectId ? `${projectId}.firebaseapp.com` : '');
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || process.env.MP_FIREBASE_STORAGE_BUCKET || (projectId ? `${projectId}.appspot.com` : '');
 
   res.json({
     firebase: {
-      apiKey: process.env.FIREBASE_WEB_API_KEY || '',
+      apiKey: process.env.FIREBASE_WEB_API_KEY || process.env.MP_FIREBASE_WEB_API_KEY || '',
       authDomain,
       projectId,
       storageBucket,
-      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
-      appId: process.env.FIREBASE_APP_ID || '',
+      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || process.env.MP_FIREBASE_MESSAGING_SENDER_ID || '',
+      appId: process.env.FIREBASE_APP_ID || process.env.MP_FIREBASE_APP_ID || '',
     },
     recaptcha: {
-      siteKey: process.env.RECAPTCHA_SITE_KEY || '',
+      siteKey: process.env.RECAPTCHA_SITE_KEY || process.env.MP_RECAPTCHA_SITE_KEY || '',
       enterprise: true,
     },
   });
