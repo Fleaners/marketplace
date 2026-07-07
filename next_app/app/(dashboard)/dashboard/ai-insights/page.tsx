@@ -94,6 +94,7 @@ export default function AIInsightsPage() {
   // 2. Chat States
   const [chatSelectedAgent, setChatSelectedAgent] = useState<string>('All-Agent Orchestrator');
   const [chatMessage, setChatMessage] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
   const [chatLog, setChatLog] = useState<Array<{ sender: 'user' | 'agent'; text: string; agentName: string; time: string }>>([
     {
       sender: 'agent',
@@ -278,9 +279,9 @@ export default function AIInsightsPage() {
   }, [gstInvoiceForm, products]);
 
   // Handle Conversational chat submission
-  const handleSendChatMessage = (e: React.FormEvent) => {
+  const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatMessage.trim()) return;
+    if (!chatMessage.trim() || chatLoading) return;
 
     const userText = chatMessage;
     const nowTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -293,8 +294,8 @@ export default function AIInsightsPage() {
     }]);
 
     setChatMessage('');
+    setChatLoading(true);
 
-    // Trigger state changes to show agent responding
     const matchingAgentIndex = agents.findIndex(a => 
       chatSelectedAgent.toLowerCase().includes(a.name.split(' ')[0].toLowerCase())
     );
@@ -303,47 +304,95 @@ export default function AIInsightsPage() {
       setAgents(prev => prev.map((a, i) => i === matchingAgentIndex ? { ...a, status: 'running' } : a));
     }
 
-    // Agent response mapping simulating genuine multi-agent context
-    setTimeout(() => {
-      let replyText = '';
-      let senderName = chatSelectedAgent;
-      const lowerQuery = userText.toLowerCase();
+    try {
+      // Gather dynamic context from local state/localStorage
+      const profileStr = localStorage.getItem('marketplace_seller_profile');
+      const profile = profileStr ? JSON.parse(profileStr) : {};
 
-      if (chatSelectedAgent === 'All-Agent Orchestrator') {
-        if (lowerQuery.includes('stock') || lowerQuery.includes('inventory')) {
-          senderName = 'Inventory Optimization Agent';
-          replyText = `LSTM evaluation shows safety stocks for "Copper Core Grounding Wire" are critically low (4 units left, MOQ is 5). Reorder within 3 days.`;
-        } else if (lowerQuery.includes('tax') || lowerQuery.includes('gst') || lowerQuery.includes('invoice')) {
-          senderName = 'GST Intelligence Agent';
-          replyText = `Based on current B2B guidelines, products matching HSN 8413 (Pumps) can be billed optionally under 12% or 18% slab rules. Non-GST billing remains fully supported.`;
-        } else if (lowerQuery.includes('marketing') || lowerQuery.includes('ads') || lowerQuery.includes('campaign')) {
-          senderName = 'Digital Marketing Agent';
-          replyText = `Our regional reach simulation reveals high conversion densities in Maharashtra. Launching a ₹10,000 WhatsApp broadcast is forecasted to pull ~80 qualified trade leads.`;
-        } else {
-          senderName = 'Commerce Intelligence Agent';
-          replyText = `Trade inquiries for Electrical equipment have grown 28% this month. I recommend offering volume discounts of 5% on "Copper Core Grounding Wire" bulk quantities.`;
+      const leadsStr = localStorage.getItem('marketplace_leads');
+      const leads = leadsStr ? JSON.parse(leadsStr) : [];
+
+      const businessContext = {
+        sellerProfile: {
+          name: profile.businessName || 'Gaurav Enterprise',
+          category: profile.category || 'Electrical & Industrial',
+          location: profile.city || 'India',
+          verified: !!profile.gstNumber
+        },
+        productsSummary: products.map(p => ({
+          name: p.name,
+          price: p.price,
+          stock: p.stock,
+          moq: p.moq
+        })).slice(0, 5),
+        inquiriesCount: leads.length,
+        recentLeads: leads.map((l: any) => ({
+          productName: l.productName,
+          status: l.status
+        })).slice(0, 3)
+      };
+
+      // Get Firebase Auth token if available
+      let token = '';
+      try {
+        const { getFirebaseServices } = require('@/lib/firebase');
+        const services = await getFirebaseServices();
+        if (services?.auth?.currentUser) {
+          token = await services.auth.currentUser.getIdToken();
         }
-      } else if (chatSelectedAgent === 'Commerce Intelligence Agent') {
-        replyText = `I have analyzed wholesale search trends across India. Competitor indices indicate our "Industrial Water Pump" price (₹14,500) is highly competitive. Category margins are shifting (+4% lift).`;
-      } else if (chatSelectedAgent === 'GST Intelligence Agent') {
-        replyText = `GST validation verified. Invoicing under GST structure yields 40% higher buyer confidence indexes. We can auto-format CGST/SGST lines depending on buyer state codes.`;
-      } else if (chatSelectedAgent === 'Digital Marketing Agent') {
-        replyText = `Suggested Campaign: "Monsoon B2B Wholesale Spike". I have pre-written SEO meta copy for your pages. WhatsApp broadcasts yield highest click conversions (4.5%).`;
-      } else if (chatSelectedAgent === 'Inventory Optimization Agent') {
-        replyText = `Lead velocity ARIMA forecasting indicates a 30% restock pipeline latency during monsoon seasons. Plan 4 extra days of shipping lead times for hardware supplies.`;
+      } catch (err) {
+        console.warn('Could not get id token:', err);
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+      const response = await fetch(`${API_BASE}/api/ai/analyze`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          prompt: userText,
+          data: businessContext
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Server processing error.');
       }
 
       setChatLog(prev => [...prev, {
         sender: 'agent',
-        agentName: senderName,
-        text: replyText,
+        agentName: chatSelectedAgent,
+        text: payload.answer || 'Consultation complete.',
         time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
       }]);
 
       if (matchingAgentIndex !== -1) {
         setAgents(prev => prev.map((a, i) => i === matchingAgentIndex ? { ...a, status: 'success' } : a));
       }
-    }, 1000);
+    } catch (err: any) {
+      console.error('AI Insights Request Error:', err);
+      
+      setChatLog(prev => [...prev, {
+        sender: 'agent',
+        agentName: 'System Advisor',
+        text: err.message || 'Apologies, we encountered a technical interruption. Please verify your connection and try again shortly.',
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      }]);
+
+      if (matchingAgentIndex !== -1) {
+        setAgents(prev => prev.map((a, i) => i === matchingAgentIndex ? { ...a, status: 'idle' } : a));
+      }
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   return (
@@ -550,6 +599,22 @@ export default function AIInsightsPage() {
                   </p>
                 </div>
               </Card>
+
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-3 gap-3">
+                <Card className="bg-white border border-[#f3d9a7] p-3.5 rounded-2xl text-center space-y-1">
+                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Performance</p>
+                  <p className="text-sm font-extrabold text-[#1f2937]">84%</p>
+                </Card>
+                <Card className="bg-white border border-[#f3d9a7] p-3.5 rounded-2xl text-center space-y-1">
+                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">SEO Score</p>
+                  <p className="text-sm font-extrabold text-[#1f2937]">92%</p>
+                </Card>
+                <Card className="bg-white border border-[#f3d9a7] p-3.5 rounded-2xl text-center space-y-1">
+                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Inv Health</p>
+                  <p className="text-sm font-extrabold text-emerald-600">95%</p>
+                </Card>
+              </div>
 
               {/* Opportunity Stream */}
               <Card className="bg-white border border-[#f3d9a7] p-6 rounded-3xl space-y-4">
@@ -770,18 +835,54 @@ export default function AIInsightsPage() {
                     )}
                   </div>
                 ))}
+                {chatLoading && (
+                  <div className="flex flex-col max-w-[80%] mr-auto items-start">
+                    <span className="text-[10px] font-bold text-slate-500 mb-1">
+                      {chatSelectedAgent} • Thinking...
+                    </span>
+                    <div className="p-4 rounded-2xl text-xs font-semibold leading-relaxed border bg-[#fff6e6] text-slate-400 border-[#f3d9a7] rounded-tl-none flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-bounce" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-bounce [animation-delay:0.2s]" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-bounce [animation-delay:0.4s]" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Suggested Prompts Badges */}
+              <div className="px-6 py-2 border-t border-[#f3d9a7]/60 bg-[#fff6e6]/20 flex flex-wrap gap-2">
+                <span className="text-[10px] text-slate-500 font-bold self-center mr-1">Suggested:</span>
+                {[
+                  'How to calculate GST for my catalog?',
+                  'Write B2B WhatsApp campaign meta copy',
+                  'Suggest SEO keywords for my product names',
+                  'Predict seasonal demand spikes'
+                ].map((promptText) => (
+                  <button
+                    key={promptText}
+                    type="button"
+                    disabled={chatLoading}
+                    onClick={() => {
+                      setChatMessage(promptText);
+                    }}
+                    className="text-[10px] bg-[#fff6e6] hover:bg-[#FAB12F]/20 text-[#ea580c] font-bold py-1 px-2.5 rounded-full border border-[#f3d9a7] transition-colors disabled:opacity-50"
+                  >
+                    {promptText}
+                  </button>
+                ))}
               </div>
 
               {/* Chat Input form */}
               <form onSubmit={handleSendChatMessage} className="p-4 bg-[#fff6e6]/50 border-t border-[#f3d9a7] flex gap-2">
                 <Input
-                  placeholder={`Ask the ${chatSelectedAgent}... e.g. "Suggest a WhatsApp campaign" or "Is Grounding wire running low?"`}
+                  placeholder={chatLoading ? 'Agent is thinking...' : `Ask the ${chatSelectedAgent}...`}
                   value={chatMessage}
+                  disabled={chatLoading}
                   onChange={(e) => setChatMessage(e.target.value)}
-                  className="flex-1 rounded-xl text-xs bg-white border-[#f3d9a7]"
+                  className="flex-1 rounded-xl text-xs bg-white border-[#f3d9a7] disabled:opacity-70"
                 />
-                <Button type="submit" variant="primary" className="rounded-xl text-xs px-5">
-                  Send Consult
+                <Button type="submit" variant="primary" disabled={chatLoading} className="rounded-xl text-xs px-5">
+                  {chatLoading ? 'Thinking...' : 'Send Consult'}
                 </Button>
               </form>
             </Card>
