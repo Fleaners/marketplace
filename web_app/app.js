@@ -1478,6 +1478,7 @@ const elements = {
   becomeSellerBtn: document.getElementById('becomeSellerBtn'),
   buyerBrowseBtn: document.getElementById('buyerBrowseBtn'),
   sellerAddProductBtn: document.getElementById('sellerAddProductBtn'),
+  sellerHomeBtn: document.getElementById('sellerHomeBtn'),
   navSellerBtn: document.getElementById('navSellerBtn'),
   navSellerBtnSecondary: document.getElementById('navSellerBtnSecondary'),
   navDashboardBtn: document.getElementById('navDashboardBtn'),
@@ -1831,29 +1832,52 @@ function renderCategories() {
 
 function renderProductCard(product) {
   const response = product.responseTime || 'Responds in 2 hours';
+  const moqText = product.moq ? `${product.moq} units` : '10 units';
+  const isSaved = state.favoriteProductIds.includes(product.id);
+  const ratingStars = product.rating ? `${product.rating} ★` : '4.5 ★';
+  
+  // Premium blue/gold badge for GST verified sellers
+  const gstBadge = product.verified ? `
+    <span class="badge badgeVerified font-semibold" style="border: 1px solid #FAB12F; background: #eff6ff; color: #FAB12F;" title="This seller has a verified GST registration.">🏅 GST Verified</span>
+  ` : `
+    <span class="badge badgeSoft">GST Optional</span>
+  `;
+
   return `
-    <article class="feedCard">
-      <img class="feedImage" src="${product.image}" alt="${product.name}" />
-      <div class="feedCardBody">
-        <div class="feedHead">
-          <span>${product.seller}</span>
-          <span>${product.location}</span>
+    <article class="feedCard" style="border: 1px solid #f3d9a7; border-radius: 24px; overflow: hidden; background: #ffffff; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.02); transition: all 0.3s ease;">
+      <div style="position: relative;">
+        <img class="feedImage" src="${product.image}" alt="${product.name}" style="width: 100%; height: 200px; object-fit: cover;" />
+        <button type="button" data-action="save-product" data-id="${product.id}" class="save-product-btn" style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.1); font-size: 1.1rem; color: ${isSaved ? '#ef4444' : '#9ca3af'}; transition: all 0.2s;" title="Save Product">
+          ${isSaved ? '❤️' : '🖤'}
+        </button>
+      </div>
+      <div class="feedCardBody" style="padding: 16px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="margin-bottom: 12px;">
+          <div class="feedHead" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #6b7280; margin-bottom: 6px; font-weight: 700;">
+            <span style="color: #ea580c; cursor: pointer;" data-action="view-business" data-seller="${product.seller}">🏢 ${product.seller}</span>
+            <span>📍 ${product.location}</span>
+          </div>
+          <div class="feedTitle" style="font-size: 1rem; font-weight: 800; color: #1f2937; line-height: 1.4; margin-bottom: 8px; cursor: pointer;" data-action="details" data-id="${product.id}">${product.name}</div>
+          <div style="font-size: 0.8rem; color: #4b5563; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; font-weight: 600;">
+            <span>Category: <span style="color: #ea580c;">${product.category || 'Industrial'}</span></span>
+            <span>•</span>
+            <span>MOQ: <span style="color: #ea580c;">${moqText}</span></span>
+          </div>
+          <div class="productMetaRow" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <span class="metaBadge" style="background: #fff6e6; color: #ea580c; font-weight: 800; padding: 4px 10px; border-radius: 8px; font-size: 0.9rem;">${formatPrice(product.price)}</span>
+            <span class="metaBadgeSoft" style="color: #eab308; font-weight: 700; font-size: 0.8rem;">${ratingStars}</span>
+          </div>
+          <p class="feedMeta" style="font-size: 0.8rem; color: #6b7280; line-clamp: 2; margin-bottom: 12px; line-height: 1.5;">${product.description}</p>
+          <div class="productMetaRow" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+            ${gstBadge}
+            <span class="badge badgeSoft">${response}</span>
+          </div>
         </div>
-        <div class="feedTitle">${product.name}</div>
-        <div class="productMetaRow">
-          <span class="metaBadge">${formatPrice(product.price)}</span>
-          <span class="metaBadgeSoft">${product.rating} ★</span>
-        </div>
-        <p class="feedMeta">${product.description}</p>
-        <div class="productMetaRow">
-          <span class="badge ${product.verified ? 'badgeVerified' : 'badgeSoft'}">${product.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</span>
-          <span class="badge badgeSoft">${response}</span>
-        </div>
-        <div class="cardActions">
-          <button class="actionPrimary" type="button" data-action="contact" data-id="${product.id}">Contact Dealer</button>
-          <button class="actionSecondary" type="button" data-action="whatsapp" data-id="${product.id}">WhatsApp Dealer</button>
-          <button class="actionSecondary" type="button" data-action="save-product" data-id="${product.id}">Save Product</button>
-          <button class="actionSecondary" type="button" data-action="share-product" data-id="${product.id}">Share</button>
+        <div class="cardActions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto;">
+          <button class="actionPrimary" type="button" data-action="contact" data-id="${product.id}" style="grid-column: span 2; width: 100%; padding: 12px; font-weight: 800; border-radius: 12px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">Contact Seller</button>
+          <button class="actionSecondary" type="button" data-action="rfq" data-id="${product.id}" style="padding: 10px; border-radius: 12px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;">Send RFQ</button>
+          <button class="actionSecondary" type="button" data-action="whatsapp" data-id="${product.id}" style="padding: 10px; border-radius: 12px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px;">💬 WhatsApp</button>
+          <button class="actionSecondary" type="button" data-action="share-product" data-id="${product.id}" style="grid-column: span 2; padding: 8px; border-radius: 12px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;">🔗 Share Product Details</button>
         </div>
       </div>
     </article>
@@ -1862,20 +1886,34 @@ function renderProductCard(product) {
 
 function renderRailCard(item, type = 'product') {
   if (type === 'business') {
+    const isVerified = item.verified;
+    const gstBadge = isVerified ? `
+      <span class="badge badgeVerified font-semibold" style="border: 1px solid #FAB12F; background: #eff6ff; color: #FAB12F;" title="This seller has a verified GST registration.">🏅 GST Verified</span>
+    ` : `
+      <span class="badge badgeSoft">GST Optional</span>
+    `;
+
     return `
       <article class="rail-card" data-business="${item.name}">
         <div class="rail-business-head">
           <strong>${item.name}</strong>
           <span>${item.location || 'India'}</span>
         </div>
-        <p>${item.verified ? 'GST verified business' : 'GST Not Added (Optional)'}</p>
-        <div class="productMetaRow">
-          <span class="badge ${item.verified ? 'badgeVerified' : 'badgeSoft'}">${item.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</span>
-          <button class="actionSecondary" type="button" data-action="view-business" data-seller="${item.name}">View Profile</button>
+        <p>${isVerified ? 'GST verified business' : 'GST Not Added (Optional)'}</p>
+        <div class="productMetaRow" style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          ${gstBadge}
+          <button class="actionSecondary" type="button" data-action="view-business" data-seller="${item.name}" style="padding: 4px 10px; border-radius: 8px; font-size: 0.75rem;">View Profile</button>
         </div>
       </article>
     `;
   }
+
+  const isVerified = item.verified;
+  const gstBadge = isVerified ? `
+    <span class="badge badgeVerified font-semibold" style="border: 1px solid #FAB12F; background: #eff6ff; color: #FAB12F;" title="This seller has a verified GST registration.">🏅 GST Verified</span>
+  ` : `
+    <span class="badge badgeSoft">GST Optional</span>
+  `;
 
   return `
     <article class="rail-card" data-id="${item.id}">
@@ -1883,9 +1921,9 @@ function renderRailCard(item, type = 'product') {
       <div>
         <strong>${item.name}</strong>
         <p>${item.location || 'India'} • ${item.responseTime || 'Fast response'}</p>
-        <div class="productMetaRow">
-          <span class="badge badgeVerified">${item.verified ? 'Verified' : 'Trusted'}</span>
-          <button class="actionSecondary" type="button" data-action="details" data-id="${item.id}">Open</button>
+        <div class="productMetaRow" style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          ${gstBadge}
+          <button class="actionSecondary" type="button" data-action="details" data-id="${item.id}" style="padding: 4px 10px; border-radius: 8px; font-size: 0.75rem;">Open</button>
         </div>
       </div>
     </article>
@@ -2111,10 +2149,17 @@ function renderBusinessProfilePage(business, details = null) {
       }))
     : state.products.filter((item) => item.seller === business.name).slice(0, 12);
 
+  const isVerified = details?.verified || business.verified;
+  const gstBadge = isVerified ? `
+    <span class="badge badgeVerified font-semibold" style="border: 1px solid #FAB12F; background: #eff6ff; color: #FAB12F; font-size: 0.8rem; padding: 4px 10px; border-radius: 8px; display: inline-flex; align-items: center;" title="This seller has a verified GST registration.">🏅 GST Verified</span>
+  ` : `
+    <span class="badge badgeSoft">GST Optional</span>
+  `;
+
   const certifications = [
     ...(details?.certifications || []),
     ...(details?.certifications?.length ? [] : [
-      business.verified ? 'GST Verified' : 'GST Not Added (Optional)',
+      isVerified ? 'GST Verified' : 'GST Not Added (Optional)',
       'Business identity verified',
       'Response quality monitored',
       'Inquiry response SLA enabled',
@@ -2128,11 +2173,19 @@ function renderBusinessProfilePage(business, details = null) {
 
   if (elements.businessProfileTitle) elements.businessProfileTitle.textContent = `${business.name} Profile`;
   if (elements.businessProfileLogo) elements.businessProfileLogo.textContent = initials(business.name);
-  if (elements.businessProfileName) elements.businessProfileName.textContent = business.name;
+  if (elements.businessProfileName) {
+    elements.businessProfileName.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <span>${business.name}</span>
+        ${gstBadge}
+      </div>
+    `;
+  }
   if (tabKey === 'profile') renderProfileView();
   if (elements.businessProfileMeta) {
     const years = details?.years_in_business ? `${details.years_in_business}+ years` : `${business.yearsInBusiness || 5}+ years`;
-    elements.businessProfileMeta.textContent = `${details?.location || business.location || 'India'} • ${details?.verified || business.verified ? 'GST verified' : 'GST Not Added (Optional)'} • ${details?.response_time || business.response || 'Responds in 2 hours'} • ${years}`;
+    const responseTime = details?.response_time || business.response || 'Responds in 2 hours';
+    elements.businessProfileMeta.textContent = `${details?.location || business.location || 'India'} • ${responseTime} • ${years}`;
   }
   if (elements.businessStory) {
     elements.businessStory.textContent = details?.story || `${business.name} helps buyers discover reliable products with transparent communication, clear pricing, and long-term supplier relationships.`;
@@ -2142,7 +2195,7 @@ function renderBusinessProfilePage(business, details = null) {
     elements.businessTrustStats.innerHTML = `
       <article><strong>${details?.trust_score || (business.rating?.toFixed ? Math.round(business.rating * 20) : '84')}/100</strong><span>Trust score</span></article>
       <article><strong>${details?.products_count || business.products || relatedProducts.length}</strong><span>Products listed</span></article>
-      <article><strong>${details?.verified || business.verified ? 'Verified' : 'GST Not Added (Optional)'}</strong><span>GST status</span></article>
+      <article><strong>${isVerified ? 'Verified' : 'Optional'}</strong><span>GST status</span></article>
       <article><strong>${details?.inquiry_count || Math.max(relatedProducts.length * 7, 12)}</strong><span>Inquiries handled</span></article>
     `;
   }
@@ -3123,6 +3176,16 @@ function handleWhatsApp() {
 
 function attachEvents() {
   if (elements.searchHeroForm) elements.searchHeroForm.addEventListener('submit', handleSearchSubmit);
+  if (elements.globalSearch) {
+    elements.globalSearch.addEventListener('input', showSearchSuggestions);
+    elements.globalSearch.addEventListener('focus', showSearchSuggestions);
+  }
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('searchSuggestionsDropdown');
+    if (dropdown && !dropdown.contains(e.target) && e.target !== elements.globalSearch) {
+      dropdown.classList.add('hidden');
+    }
+  });
   if (elements.stateSelect) {
     elements.stateSelect.addEventListener('change', () => {
       state.selectedState = elements.stateSelect.value || '';
@@ -3138,6 +3201,12 @@ function attachEvents() {
   if (elements.becomeSellerBtn) elements.becomeSellerBtn.addEventListener('click', () => handleTopButton('sell'));
   if (elements.buyerBrowseBtn) elements.buyerBrowseBtn.addEventListener('click', () => scrollToSection('#trendingProductsList'));
   if (elements.sellerAddProductBtn) elements.sellerAddProductBtn.addEventListener('click', () => handleTopButton('sell'));
+  if (elements.sellerHomeBtn) {
+    elements.sellerHomeBtn.addEventListener('click', () => {
+      showView('homeView');
+      showBuyerTab('home');
+    });
+  }
   if (elements.navSellerBtn) elements.navSellerBtn.addEventListener('click', () => handleTopButton('sell'));
   if (elements.navSellerBtnSecondary) elements.navSellerBtnSecondary.addEventListener('click', () => handleTopButton('sell'));
   if (elements.navDashboardBtn) elements.navDashboardBtn.addEventListener('click', () => handleTopButton('profile'));
@@ -3626,16 +3695,21 @@ async function initializeAppData() {
 
     // Set up real-time listener for products
     db.collection(FIRESTORE_COLLECTIONS.products).limit(40).onSnapshot((productsSnapshot) => {
-      state.products = productsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        image: doc.data().image || 'https://via.placeholder.com/520x320?text=Product',
-        category: doc.data().category || 'General',
-        location: doc.data().location || 'India',
-        status: doc.data().status || 'In stock',
-        rating: doc.data().rating || 4.2,
-        verified: !!doc.data().verified,
-      })).filter((product) => {
+      state.products = productsSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        const sellerDealer = state.dealers.find((dealer) => dealer.name === data.seller);
+        const isProductVerified = !!(data.verified || (sellerDealer && sellerDealer.verified));
+        return {
+          id: doc.id,
+          ...data,
+          image: data.image || 'https://via.placeholder.com/520x320?text=Product',
+          category: data.category || 'General',
+          location: data.location || 'India',
+          status: data.status || 'In stock',
+          rating: data.rating || 4.2,
+          verified: isProductVerified,
+        };
+      }).filter((product) => {
         if (product.isSystemSeed === true || product.isSystemSeed === 'true') return false;
         if (product.name && (
           product.name.includes('[Seed]') ||
@@ -4018,7 +4092,31 @@ async function verifyPhoneOtp(otp) {
 }
 
 function validateGSTIN(gstin) {
-  return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin.toUpperCase());
+  gstin = String(gstin || '').trim().toUpperCase();
+  if (gstin.length !== 15) return false;
+
+  const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[0-9A-Z]{1}[0-9A-Z]{1}$/;
+  if (!gstinRegex.test(gstin)) return false;
+
+  const stateCode = parseInt(gstin.substring(0, 2), 10);
+  if ((stateCode < 1 || stateCode > 38) && stateCode !== 97) return false;
+
+  const pan = gstin.substring(2, 12);
+  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+  if (!panRegex.test(pan)) return false;
+
+  const charList = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let sum = 0;
+  for (let i = 0; i < 14; i++) {
+    const val = charList.indexOf(gstin[i]);
+    const factor = (i % 2 === 0) ? 1 : 2;
+    let product = val * factor;
+    product = Math.floor(product / 36) + (product % 36);
+    sum += product;
+  }
+  const checkDigit = (36 - (sum % 36)) % 36;
+  const expectedChar = charList[checkDigit];
+  return gstin[14] === expectedChar;
 }
 
 async function handleAuthSubmit(mode, action = 'register') {
@@ -4593,31 +4691,54 @@ if (document.readyState === 'loading') {
 function openProductModal(product) {
   const overlay = document.createElement('div');
   overlay.className = 'modal';
+  const moqText = product.moq ? `${product.moq} units` : '10 units';
+  const isSaved = state.favoriteProductIds.includes(product.id);
+  const ratingStars = product.rating ? `${product.rating} ★` : '4.5 ★';
+  const response = product.responseTime || 'Responds in 2 hours';
+  const address = product.address || 'GIDC Industrial Estate, Sector 2, Gandhinagar';
+  const stockStatus = product.stock > 0 ? `<span style="color: #10b981; font-weight: 700;">In Stock (${product.stock} units)</span>` : `<span style="color: #ef4444; font-weight: 700;">Out of Stock</span>`;
+
+  // Premium blue/gold badge for GST verified sellers
+  const gstBadge = product.verified ? `
+    <span class="badge badgeVerified font-semibold" style="border: 1px solid #FAB12F; background: #eff6ff; color: #FAB12F;" title="This seller has a verified GST registration.">🏅 GST Verified</span>
+  ` : `
+    <span class="badge badgeSoft">GST Optional</span>
+  `;
+
   overlay.innerHTML = `
-    <div class="modal-card">
+    <div class="modal-card" style="max-width: 680px; border-radius: 28px; padding: 24px;">
       <button class="modal-close">×</button>
-      <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
-        <img src="${product.image}" alt="${product.name}" style="width:280px;height:200px;object-fit:cover;border-radius:12px;" />
-        <div style="flex:1;min-width:320px;">
-          <h2>${product.name}</h2>
-          <p style="color:var(--muted);">${product.description}</p>
-          <div class="productMetaRow" style="margin-top:8px;">
-            <span class="badge badgeVerified">${product.verified ? 'Verified business' : 'Trusted business'}</span>
-            <span class="badge badgeSoft">${product.responseTime || 'Responds in 2 hours'}</span>
-            <span class="badge badgeSoft">${product.location || 'India'}</span>
+      <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;margin-top:8px;">
+        <img src="${product.image}" alt="${product.name}" style="width:280px;height:240px;object-fit:cover;border-radius:18px;border: 1px solid #f3d9a7;" />
+        <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <h2 style="font-size: 1.3rem; font-weight: 800; color: #1f2937; margin:0 0 6px 0;">${product.name}</h2>
+            <p style="color: #ea580c; font-size: 0.85rem; font-weight: 700; margin:0; cursor: pointer;" data-action="view-business" data-seller="${product.seller}">🏢 ${product.seller}</p>
           </div>
-          <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
-            <button class="button actionPrimary" id="pmContact">Contact Dealer</button>
-            <button class="button actionSecondary" id="pmWhatsapp">WhatsApp Dealer</button>
-            <button class="button actionSecondary" id="pmSave">Save Product</button>
-            <button class="button actionSecondary" id="pmShare">Share</button>
+          
+          <div class="productMetaRow" style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${gstBadge}
+            <span class="badge badgeSoft">${response}</span>
+            <span class="badge badgeSoft">📍 ${product.location || 'India'}</span>
           </div>
-          <div style="margin-top:14px;color:var(--muted);">
-            <div><strong>Price:</strong> ${formatPrice(product.price)}</div>
-            <div><strong>Seller:</strong> ${product.seller}</div>
-            <div><strong>Location:</strong> ${product.location}</div>
-            <div><strong>Business age:</strong> ${product.businessAge || '5+ years'}</div>
-            <div><strong>Rating:</strong> ${product.rating} ★</div>
+
+          <div style="font-size: 0.85rem; color: #4b5563; background: #fffdf9; border: 1px dashed #f3d9a7; padding: 12px; border-radius: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div><strong>Price:</strong> <span style="color: #ea580c; font-weight: 800; font-size: 0.95rem;">${formatPrice(product.price)}</span></div>
+            <div><strong>MOQ:</strong> <span style="font-weight: 700;">${moqText}</span></div>
+            <div><strong>Stock Status:</strong> ${stockStatus}</div>
+            <div><strong>Rating:</strong> <span style="color:#eab308; font-weight:700;">${ratingStars}</span></div>
+            <div style="grid-column: span 2;"><strong>Sourcing Category:</strong> ${product.category || 'Industrial'}</div>
+            <div style="grid-column: span 2;"><strong>Business Address:</strong> ${address}</div>
+          </div>
+
+          <p style="color:#4b5563; font-size:0.85rem; line-height:1.6; margin:4px 0;">${product.description}</p>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:6px;">
+            <button class="button actionPrimary" id="pmContact" style="grid-column: span 2; padding: 12px; font-weight:800;">Contact Seller</button>
+            <button class="button actionSecondary" id="pmRfq" style="padding: 10px; font-weight:700;">Send RFQ</button>
+            <button class="button actionSecondary" id="pmWhatsapp" style="padding: 10px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:4px;">💬 WhatsApp</button>
+            <button class="button actionSecondary" id="pmSave" style="padding: 8px; font-weight:700;">${isSaved ? '❤️ Saved' : '🖤 Save Product'}</button>
+            <button class="button actionSecondary" id="pmShare" style="padding: 8px; font-weight:700;">🔗 Share Details</button>
           </div>
         </div>
       </div>
@@ -4635,22 +4756,19 @@ function openProductModal(product) {
       product_id: product.id,
     });
     await trackWhatsappClick(product);
-    const text = encodeURIComponent(`Hello, I found your product "${product.name}" on marketplace-store-fef91.web.app and would like more information.`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
+    const text = encodeURIComponent(`Hello, I found your product "${product.name}" on marketplace.store and would like a sourcing quotation.`);
+    const phone = String(product.whatsapp || '').replace(/\D/g, '') || '919876543210';
+    window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
   });
 
   overlay.querySelector('#pmContact').addEventListener('click', () => {
-    trackGaEvent('contact_seller', {
-      source: 'call_button',
-      product_id: product.id,
-    });
-    trackGaEvent('rfq_request', {
-      product_id: product.id,
-      product_name: product.name,
-      seller_name: product.seller,
-      source: 'modal_call_button'
-    });
-    alert('Call Seller: feature will display seller phone when available.');
+    overlay.remove();
+    openRfqModal(product, 'Hello, I would like to discuss business terms and bulk pricing for ' + product.name);
+  });
+
+  overlay.querySelector('#pmRfq').addEventListener('click', () => {
+    overlay.remove();
+    openRfqModal(product);
   });
 
   overlay.querySelector('#pmSave').addEventListener('click', () => {
@@ -4660,11 +4778,12 @@ function openProductModal(product) {
       trackGaEvent('favorite_product', { product_id: product.id });
     }
     renderFavoritesView();
+    overlay.remove();
     alert('Product saved to favorites.');
   });
 
   overlay.querySelector('#pmShare').addEventListener('click', async () => {
-    const text = `${product.name} on marketplace-store-fef91.web.app`;
+    const text = `${product.name} on marketplace.store`;
     const shareData = { title: product.name, text, url: window.location.href };
     trackGaEvent('product_share', {
       product_id: product.id,
@@ -4675,7 +4794,7 @@ function openProductModal(product) {
       try {
         await navigator.share(shareData);
       } catch (error) {
-        // Ignore cancellation.
+        // Ignore
       }
       return;
     }
@@ -4683,8 +4802,245 @@ function openProductModal(product) {
     if (copied) {
       alert('Product link copied to clipboard.');
     } else {
-      alert('Clipboard permission not available. Please copy from the address bar.');
+      alert('Clipboard permission not available.');
     }
+  });
+}
+
+async function createInquiry(product, messageText) {
+  if (!db || !currentUserProfile) {
+    alert('Please log in to send inquiries.');
+    handleLoginButton();
+    return;
+  }
+  try {
+    const inquiryData = {
+      productId: product.id,
+      productName: product.name,
+      category: product.category || 'General',
+      buyerId: currentUserProfile.uid,
+      buyerName: currentUserProfile.name || currentUserProfile.displayName || currentUserProfile.email?.split('@')[0] || 'Buyer',
+      buyerEmail: currentUserProfile.email || '',
+      buyerPhone: currentUserProfile.whatsappNumber || currentUserProfile.mobileNumber || '',
+      sellerId: product.sellerId || '',
+      sellerName: product.seller,
+      message: messageText,
+      timestamp: safeServerTimestamp(),
+      status: 'pending'
+    };
+    
+    await db.collection(FIRESTORE_COLLECTIONS.inquiries).add(inquiryData);
+    
+    trackGaEvent('rfq_request', {
+      product_id: product.id,
+      product_name: product.name,
+      seller_name: product.seller,
+      source: 'rfq_modal'
+    });
+    
+    alert('Your RFQ / Inquiry has been submitted successfully to ' + product.seller + '!');
+  } catch (err) {
+    console.error('Failed to create inquiry:', err);
+    alert('Failed to submit RFQ. Please verify your connection.');
+  }
+}
+
+function openRfqModal(product, defaultMessage = '') {
+  if (!currentUserProfile) {
+    alert('Please log in as a buyer to contact sellers or send RFQs.');
+    handleLoginButton();
+    return;
+  }
+  
+  const overlay = document.createElement('div');
+  overlay.className = 'modal';
+  overlay.innerHTML = `
+    <div class="modal-card" style="max-width: 450px; border-radius: 24px; padding: 24px;">
+      <button class="modal-close">×</button>
+      <h2 style="font-size: 1.25rem; font-weight: 800; color: #1f2937; margin:0 0 8px 0;">B2B Trade Inquiry & RFQ</h2>
+      <p style="color: var(--muted); font-size: 0.85rem; margin-bottom: 16px;">
+        Send your sourcing requirements to <strong>${product.seller}</strong> for <strong>${product.name}</strong>.
+      </p>
+      
+      <form id="rfqModalForm" style="display: grid; gap: 14px;">
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 6px;">Requirement Details</label>
+          <textarea id="rfqMessage" required style="width:100%; padding:12px; border:1px solid #f3d9a7; border-radius:12px; font-size:0.85rem; min-height:90px; outline:none; background:#fffdfc;">${defaultMessage || `Hello, I am interested in purchasing "${product.name}". Please share pricing and bulk availability.`}</textarea>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 6px;">Sourcing Qty</label>
+            <input id="rfqQty" type="number" min="1" value="${product.moq || 1}" style="width:100%; padding:10px; border:1px solid #f3d9a7; border-radius:12px; font-size:0.85rem;" />
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 6px;">Required By</label>
+            <input id="rfqDate" type="date" style="width:100%; padding:10px; border:1px solid #f3d9a7; border-radius:12px; font-size:0.85rem;" />
+          </div>
+        </div>
+
+        <button type="submit" class="button buttonPrimary" style="width:100%; padding:14px; margin-top:8px; border-radius: 12px; font-weight: 800;">Submit RFQ to Seller</button>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('.modal-close').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) overlay.remove(); });
+
+  overlay.querySelector('#rfqModalForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const messageText = overlay.querySelector('#rfqMessage').value.trim();
+    const qty = overlay.querySelector('#rfqQty').value;
+    const requiredDate = overlay.querySelector('#rfqDate').value;
+    
+    const fullMessage = `${messageText} (Quantity Required: ${qty} units${requiredDate ? `, Target Date: ${requiredDate}` : ''})`;
+    
+    overlay.remove();
+    await createInquiry(product, fullMessage);
+  });
+}
+
+function showSearchSuggestions() {
+  const dropdown = document.getElementById('searchSuggestionsDropdown');
+  if (!dropdown) return;
+  const input = elements.globalSearch;
+  if (!input) return;
+  const query = input.value.trim().toLowerCase();
+
+  if (!query) {
+    // Show Popular Searches & Recent Searches
+    const recent = JSON.parse(localStorage.getItem('mp_recent_searches') || '[]');
+    const popular = ['Pipes', 'Cables', 'Pumps', 'Hardware', 'Valves'];
+    
+    let html = '';
+    if (recent.length > 0) {
+      html += `
+        <div class="suggestion-group">
+          <div class="suggestion-group-title">🕒 Recent Searches</div>
+          ${recent.slice(0, 3).map(r => `
+            <div class="suggestion-item" data-type="search" data-value="${r}">
+              <span>${r}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+    html += `
+      <div class="suggestion-group">
+        <div class="suggestion-group-title">🔥 Popular Searches</div>
+        ${popular.map(p => `
+          <div class="suggestion-item" data-type="search" data-value="${p}">
+            <span>${p}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    dropdown.innerHTML = html;
+    dropdown.classList.remove('hidden');
+    bindSuggestionClicks();
+    return;
+  }
+
+  // Filter matching categories
+  const categories = [...new Set(state.products.map(p => p.category))].filter(Boolean);
+  const matchingCategories = categories.filter(c => c.toLowerCase().includes(query));
+
+  // Filter matching businesses (sellers)
+  const sellers = [...new Set(state.products.map(p => p.seller))].filter(Boolean);
+  const matchingSellers = sellers.filter(s => s.toLowerCase().includes(query));
+
+  // Filter matching products
+  const matchingProducts = state.products.filter(p => p.name.toLowerCase().includes(query));
+
+  let html = '';
+  
+  if (matchingCategories.length > 0) {
+    html += `
+      <div class="suggestion-group">
+        <div class="suggestion-group-title">📁 Category Suggestions</div>
+        ${matchingCategories.slice(0, 3).map(c => `
+          <div class="suggestion-item" data-type="category" data-value="${c}">
+            <span>📂 <strong>${c}</strong></span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  if (matchingSellers.length > 0) {
+    html += `
+      <div class="suggestion-group">
+        <div class="suggestion-group-title">🏪 Business Suggestions</div>
+        ${matchingSellers.slice(0, 3).map(s => `
+          <div class="suggestion-item" data-type="seller" data-value="${s}">
+            <span>🏢 <strong>${s}</strong></span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  if (matchingProducts.length > 0) {
+    html += `
+      <div class="suggestion-group">
+        <div class="suggestion-group-title">📦 Product Suggestions</div>
+        ${matchingProducts.slice(0, 5).map(p => `
+          <div class="suggestion-item" data-type="product" data-value="${p.name}" data-id="${p.id}">
+            <span>🔍 ${p.name} <span class="suggestion-meta">in ${p.category}</span></span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  if (!html) {
+    dropdown.innerHTML = `<div class="suggestion-empty">No results found for "${query}"</div>`;
+  } else {
+    dropdown.innerHTML = html;
+  }
+  dropdown.classList.remove('hidden');
+  bindSuggestionClicks();
+}
+
+function bindSuggestionClicks() {
+  const dropdown = document.getElementById('searchSuggestionsDropdown');
+  if (!dropdown) return;
+  
+  const items = dropdown.querySelectorAll('.suggestion-item');
+  items.forEach(item => {
+    item.addEventListener('click', (e) => {
+      const type = item.getAttribute('data-type');
+      const value = item.getAttribute('data-value');
+      const id = item.getAttribute('data-id');
+
+      if (elements.globalSearch) {
+        elements.globalSearch.value = value;
+      }
+      dropdown.classList.add('hidden');
+
+      if (type === 'product' && id) {
+        const product = state.products.find(p => p.id === id);
+        if (product) openProductModal(product);
+      } else if (type === 'seller') {
+        const found = state.products.find(p => p.seller === value);
+        if (found) {
+          showBuyerTab('explore');
+          renderBusinessProfilePage({ name: value, location: found.location, phone: found.whatsapp || '' }, null);
+          showView('businessProfileView');
+        }
+      } else if (type === 'category') {
+        if (elements.categorySelect) {
+          elements.categorySelect.value = value;
+        }
+        state.category = value;
+        applyFilters();
+      } else {
+        if (elements.searchHeroForm) {
+          elements.searchHeroForm.requestSubmit();
+        }
+      }
+    });
   });
 }
 

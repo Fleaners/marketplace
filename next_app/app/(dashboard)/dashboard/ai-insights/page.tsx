@@ -67,14 +67,14 @@ export default function AIInsightsPage() {
     },
     {
       name: 'Digital Marketing Agent',
-      role: 'SMM, WhatsApp Lead Gen & SEO Optimization',
+      role: 'SMM, Google/Meta Ads & Omnichannel Performance Optimizer',
       status: 'idle',
       lastRun: '44s ago',
       color: 'from-pink-500 to-rose-500',
       logs: [
-        'Ingested buyer search intent queries in Delhi-NCR region...',
-        'Generated SEO Keyword sets: Bulk industrial gear, high-conductivity grounding cable.',
-        'Calculated optimal marketing budget allocation: ₹15,000 lead gen threshold.'
+        'Ingested buyer search intent queries across Google, Meta, and LinkedIn...',
+        'Generated SEO Keyword sets & ad copies for Google Search, Facebook, and Instagram.',
+        'Calculated optimal marketing budget allocation across active social & search campaigns.'
       ]
     },
     {
@@ -122,7 +122,7 @@ export default function AIInsightsPage() {
   const [marketingForm, setMarketingForm] = useState({
     campaignName: 'Monsoon Wholesale Booster',
     targetRegion: 'Maharashtra & South India',
-    campaignType: 'WhatsApp B2B Broadcast',
+    campaignType: 'Facebook Ads',
     budget: 12000,
     durationDays: 7
   });
@@ -217,19 +217,79 @@ export default function AIInsightsPage() {
 
   // Pre-calculate Marketing Campaign outputs based on budget & category
   useEffect(() => {
-    const costPerClick = 12.5; // Avg INR CPC
-    const ctr = 0.045; // 4.5% Click-through-rate
-    const reach = Math.round(marketingForm.budget * 0.25);
-    const expectedClicks = Math.round(reach * ctr);
-    const leads = Math.round(expectedClicks * 0.15); // 15% conversion on WhatsApp B2B
+    let costPerClick = 12.5;
+    let ctr = 0.032;
+    let conversionRate = 0.12;
+
+    switch (marketingForm.campaignType) {
+      case 'Facebook Ads':
+        costPerClick = 14.5;
+        ctr = 0.032;
+        conversionRate = 0.12;
+        break;
+      case 'Instagram Ads':
+        costPerClick = 16.0;
+        ctr = 0.028;
+        conversionRate = 0.10;
+        break;
+      case 'Google Search Ads':
+        costPerClick = 22.0;
+        ctr = 0.055;
+        conversionRate = 0.18;
+        break;
+      case 'Google Display Ads':
+        costPerClick = 8.5;
+        ctr = 0.012;
+        conversionRate = 0.05;
+        break;
+      case 'YouTube Ads':
+        costPerClick = 15.0;
+        ctr = 0.021;
+        conversionRate = 0.08;
+        break;
+      case 'LinkedIn Ads':
+        costPerClick = 45.0;
+        ctr = 0.018;
+        conversionRate = 0.14;
+        break;
+      case 'Twitter / X Ads':
+        costPerClick = 18.0;
+        ctr = 0.020;
+        conversionRate = 0.06;
+        break;
+      case 'TikTok Ads':
+        costPerClick = 11.0;
+        ctr = 0.025;
+        conversionRate = 0.09;
+        break;
+      case 'Pinterest Ads':
+        costPerClick = 10.0;
+        ctr = 0.015;
+        conversionRate = 0.07;
+        break;
+      default:
+        costPerClick = 12.5;
+        ctr = 0.030;
+        conversionRate = 0.10;
+    }
+
+    const reach = Math.round(marketingForm.budget / (costPerClick * 0.05));
+    const expectedClicks = Math.round(marketingForm.budget / costPerClick);
+    const leads = Math.round(expectedClicks * conversionRate);
 
     const campaignsTemplates: Record<string, string> = {
-      'WhatsApp B2B Broadcast': `👋 Greetings from Gaurav Enterprise! We noticed your B2B requirements. Get special wholesale deals on top-tier industrial supplies. Direct shipping & secure escrow. Let's discuss today!`,
-      'Google Ads B2B Campaign': `Premium B2B Industrial Supplies in India. Trusted by 2,000+ businesses. Get GST Compliant Invoices & MOQ discounts. Request quotes inside 1-minute. Click to call on WhatsApp now!`,
-      'Meta B2B Ad Segment': `🔨 Restocking wholesale? Skip the middleman. Secure authentic industrial gears, PVC fittings, and electrical components with zero-hassle delivery. Tap "Send Message" to chat with us.`
+      'Facebook Ads': `🔥 Wholesale B2B Industrial Supplies. Get bulk discounts on top-tier components. GST compliant invoicing & secure escrow delivery across India. Tap to view our full catalog now!`,
+      'Instagram Ads': `✨ Restocking your wholesale inventory? Get premium industrial gear, PVC fittings, and high-conductivity grounding wires delivered straight to your site. Tap "Learn More" to chat with us on WhatsApp.`,
+      'Google Search Ads': `Premium B2B Industrial Supplies India | Get Bulk Pricing & GST Invoices. ISO-certified products. Low MOQ. Request a custom quote in under 1 minute. Call or WhatsApp us today!`,
+      'Google Display Ads': `Industrial supply restocks simplified. Secure transactions, verified dealers. Direct factory shipping across India. Save up to 25% on wholesale volume orders.`,
+      'YouTube Ads': `📺 Watch how Gaurav Enterprise streamlines industrial and electrical supply distribution. Verified MSME partner. Lowest bulk prices. Subscribe & click to request the July price list.`,
+      'LinkedIn Ads': `👔 Procuring industrial or electrical supplies for your enterprise projects? Download our comprehensive wholesale price list. Secure credit terms, verified vendor. Streamline your supply chain.`,
+      'Twitter / X Ads': `Restock wholesale industrial electricals & construction hardware with zero hassle. India-wide delivery. Secure transaction platform. DM us or tap to get a quote. #B2B #Manufacturing`,
+      'TikTok Ads': `🎵 Unboxing premium grade copper grounding wires and heavy duty coupling joints. High quality, wholesale prices, low MOQ. Tap the link in bio to start your order!`,
+      'Pinterest Ads': `📌 Industrial workshop and office setup supplies. High quality materials, hardware fittings, and category price sheets. Pin to save or click to buy wholesale bulk packs.`
     };
 
-    const campaignTemplate = campaignsTemplates[marketingForm.campaignType] || campaignsTemplates['WhatsApp B2B Broadcast'];
+    const campaignTemplate = campaignsTemplates[marketingForm.campaignType] || campaignsTemplates['Facebook Ads'];
     setMarketingFormOutput({
       reach,
       expectedClicks,
@@ -332,20 +392,60 @@ export default function AIInsightsPage() {
         })).slice(0, 3)
       };
 
-      // Get Firebase Auth token if available
+      // Get custom backend JWT token from localStorage if available, fallback to Firebase ID token
       let token = '';
-      try {
-        const { getFirebaseServices } = require('@/lib/firebase');
-        const services = await getFirebaseServices();
-        if (services?.auth?.currentUser) {
-          token = await services.auth.currentUser.getIdToken();
+      if (typeof window !== 'undefined') {
+        token = localStorage.getItem('mp_backend_token') || '';
+      }
+      if (!token) {
+        try {
+          const { getFirebaseServices } = require('@/lib/firebase');
+          const services = await getFirebaseServices();
+          if (services?.auth) {
+            if (services.auth.currentUser) {
+              token = await services.auth.currentUser.getIdToken();
+            } else {
+              // Wait up to 3.5 seconds for auth to initialize
+              token = await new Promise<string>((resolve) => {
+                let resolved = false;
+                const unsubscribe = services.auth.onAuthStateChanged(async (user: any) => {
+                  unsubscribe();
+                  if (!resolved) {
+                    resolved = true;
+                    if (user) {
+                      try {
+                        const t = await user.getIdToken();
+                        resolve(t);
+                      } catch {
+                        resolve('');
+                      }
+                    } else {
+                      resolve('');
+                    }
+                  }
+                });
+                setTimeout(() => {
+                  if (!resolved) {
+                    resolved = true;
+                    unsubscribe();
+                    resolve('');
+                  }
+                }, 3500);
+              });
+            }
+          }
+        } catch (err) {
+          console.warn('Could not get id token fallback:', err);
         }
-      } catch (err) {
-        console.warn('Could not get id token:', err);
       }
 
+      const timestamp = Date.now().toString();
+      const nonce = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Timestamp': timestamp,
+        'X-Nonce': nonce
       };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -595,7 +695,7 @@ export default function AIInsightsPage() {
                     <span>📈</span> +4% growth factor calculated this cycle.
                   </p>
                   <p className="text-[11px] text-slate-500 mt-1 leading-normal">
-                    Adding valid HSN slabs and deploying a localized WhatsApp promotion can elevate your performance index to 92.
+                    Adding valid HSN slabs and deploying targeted Facebook and Google Search ads can elevate your performance index to 92.
                   </p>
                 </div>
               </Card>
@@ -646,7 +746,7 @@ export default function AIInsightsPage() {
                     <div>
                       <h4 className="text-xs font-bold text-[#1f2937]">Suggested Promotional Campaign</h4>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        Launch a WhatsApp B2B Campaign targeted to builders in South India. Recommended budget ₹12,000; expected reach 3,000 businesses.
+                        Launch a Facebook Ads Campaign targeted to builders in South India. Recommended budget ₹12,000; expected reach 3,000 businesses.
                       </p>
                     </div>
                   </div>
@@ -854,7 +954,7 @@ export default function AIInsightsPage() {
                 <span className="text-[10px] text-slate-500 font-bold self-center mr-1">Suggested:</span>
                 {[
                   'How to calculate GST for my catalog?',
-                  'Write B2B WhatsApp campaign meta copy',
+                  'Write Facebook & Google Ads copy',
                   'Suggest SEO keywords for my product names',
                   'Predict seasonal demand spikes'
                 ].map((promptText) => (
@@ -1334,19 +1434,30 @@ export default function AIInsightsPage() {
                 {/* Campaign Channel */}
                 <div className="space-y-1.5">
                   <label className="text-slate-500">Marketing Promotion Type</label>
-                  <div className="flex gap-2">
-                    {['WhatsApp B2B Broadcast', 'Google Ads B2B Campaign', 'Meta B2B Ad Segment'].map(type => (
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'Facebook Ads', label: 'Facebook', icon: '🔵' },
+                      { id: 'Instagram Ads', label: 'Instagram', icon: '📸' },
+                      { id: 'Google Search Ads', label: 'Google Search', icon: '🔍' },
+                      { id: 'Google Display Ads', label: 'Google Display', icon: '🖼️' },
+                      { id: 'YouTube Ads', label: 'YouTube', icon: '🎥' },
+                      { id: 'LinkedIn Ads', label: 'LinkedIn', icon: '💼' },
+                      { id: 'Twitter / X Ads', label: 'Twitter / X', icon: '🐦' },
+                      { id: 'TikTok Ads', label: 'TikTok', icon: '🎵' },
+                      { id: 'Pinterest Ads', label: 'Pinterest', icon: '📌' }
+                    ].map(platform => (
                       <button
-                        key={type}
+                        key={platform.id}
                         type="button"
-                        onClick={() => setMarketingForm(prev => ({ ...prev, campaignType: type }))}
-                        className={`flex-1 py-2.5 px-2.5 rounded-xl border text-[10px] leading-tight font-bold ${
-                          marketingForm.campaignType === type
-                            ? 'bg-[#FAB12F]/15 border-accent-500 text-amber-600'
-                            : 'bg-[#fff6e6] border-[#f3d9a7] text-slate-500 hover:text-[#1f2937]'
+                        onClick={() => setMarketingForm(prev => ({ ...prev, campaignType: platform.id }))}
+                        className={`py-2 px-1 rounded-xl border text-[10px] leading-tight font-bold flex flex-col items-center justify-center gap-1 transition-all ${
+                          marketingForm.campaignType === platform.id
+                            ? 'bg-[#FAB12F]/20 border-[#FAB12F] text-amber-800 shadow-sm scale-[1.03]'
+                            : 'bg-white border-[#f3d9a7] text-slate-600 hover:border-[#FAB12F] hover:bg-[#fff6e6]/30'
                         }`}
                       >
-                        {type}
+                        <span className="text-base">{platform.icon}</span>
+                        <span>{platform.label}</span>
                       </button>
                     ))}
                   </div>
@@ -1424,7 +1535,7 @@ export default function AIInsightsPage() {
                           generatedResponse: marketingOutput.template,
                           correctedText: customTemplate,
                           implicitScore: 1,
-                          featureArea: 'whatsapp-campaign'
+                          featureArea: 'digital-marketing'
                         });
                       }
                     }}
@@ -1432,7 +1543,7 @@ export default function AIInsightsPage() {
 
                   <div className="bg-[#FAB12F]/5 border border-accent-500/10 p-3.5 rounded-2xl text-[11px] text-amber-600 leading-normal">
                     📢 <strong>Digital Advisor Performance Score:</strong>{' '}
-                    Expected Click-Through-Rate: <span className="font-bold">{marketingOutput.ctr}</span>. Marketing models evaluate higher B2B response ratios for direct WhatsApp CTA triggers over landing website forms.
+                    Expected Click-Through-Rate: <span className="font-bold">{marketingOutput.ctr}</span>. Marketing models evaluate higher B2B response ratios for targeted Google and Meta ads optimized for lead generation forms.
                   </div>
                 </Card>
 

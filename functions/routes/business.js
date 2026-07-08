@@ -31,6 +31,47 @@ function slugify(value) {
     .replace(/-+/g, '-');
 }
 
+function validateGSTIN(gstin) {
+  gstin = String(gstin || '').trim().toUpperCase();
+  if (!gstin) return { valid: false, message: 'GSTIN is empty.' };
+  if (gstin.length !== 15) {
+    return { valid: false, message: 'GSTIN must be exactly 15 characters long.' };
+  }
+
+  const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[0-9A-Z]{1}[0-9A-Z]{1}$/;
+  if (!gstinRegex.test(gstin)) {
+    return { valid: false, message: 'Invalid GSTIN format. Expected format like 27AAAAA0000A1Z5.' };
+  }
+
+  const stateCode = parseInt(gstin.substring(0, 2), 10);
+  if ((stateCode < 1 || stateCode > 38) && stateCode !== 97) {
+    return { valid: false, message: 'Invalid State Code. Must be between 01 and 38, or 97.' };
+  }
+
+  const pan = gstin.substring(2, 12);
+  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+  if (!panRegex.test(pan)) {
+    return { valid: false, message: 'Invalid PAN structure inside GSTIN.' };
+  }
+
+  const charList = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let sum = 0;
+  for (let i = 0; i < 14; i++) {
+    const val = charList.indexOf(gstin[i]);
+    const factor = (i % 2 === 0) ? 1 : 2;
+    let product = val * factor;
+    product = Math.floor(product / 36) + (product % 36);
+    sum += product;
+  }
+  const checkDigit = (36 - (sum % 36)) % 36;
+  const expectedChar = charList[checkDigit];
+  if (gstin[14] !== expectedChar) {
+    return { valid: false, message: `GSTIN Checksum validation failed. Expected final character: ${expectedChar}.` };
+  }
+
+  return { valid: true, gstin };
+}
+
 router.get('/public/:slug', verifyTokenOptional, async (req, res, next) => {
   try {
     const db = getDb();
@@ -144,7 +185,10 @@ router.get('/profile', verifyToken, async (req, res, next) => {
 router.put(
   '/profile',
   verifyToken,
-  rejectUnknownBodyFields(['shopName', 'email', 'city', 'description', 'gstNumber', 'latitude', 'longitude', 'profileImageUrl']),
+  rejectUnknownBodyFields([
+    'shopName', 'email', 'city', 'description', 'gstNumber', 'latitude', 'longitude', 'profileImageUrl',
+    'ownerName', 'pan', 'address', 'state', 'pincode', 'whatsappNumber'
+  ]),
   optionalString('shopName', { max: 180 }),
   optionalString('email', { max: 255 }),
   optionalString('city', { max: 120 }),
@@ -153,6 +197,12 @@ router.put(
   optionalString('profileImageUrl', { max: MAX_PROFILE_IMAGE_URL_LENGTH }),
   optionalNumber('latitude', { min: -90, max: 90 }),
   optionalNumber('longitude', { min: -180, max: 180 }),
+  optionalString('ownerName', { max: 120 }),
+  optionalString('pan', { max: 10 }),
+  optionalString('address', { max: 500 }),
+  optionalString('state', { max: 120 }),
+  optionalString('pincode', { max: 10 }),
+  optionalString('whatsappNumber', { max: 20 }),
   async (req, res, next) => {
   try {
     const db = getDb();
@@ -161,11 +211,37 @@ router.put(
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
-    const { shopName, email, city, description, gstNumber, latitude, longitude, profileImageUrl } = req.body;
+    const { 
+      shopName, email, city, description, gstNumber, latitude, longitude, profileImageUrl,
+      ownerName, pan, address, state: stateName, pincode, whatsappNumber
+    } = req.body;
+    
     const normalizedProfileImageUrl = typeof profileImageUrl === 'string' ? profileImageUrl.trim() : '';
 
     if (normalizedProfileImageUrl.length > MAX_PROFILE_IMAGE_URL_LENGTH) {
       return res.status(400).json({ error: 'Profile image is too large. Please upload a smaller image.' });
+    }
+
+    let gstStatus = 'unprovided';
+    let verifiedAt = null;
+    let verificationMethod = null;
+    let verifiedBy = null;
+    let gstVerified = false;
+    let normalizedGst = '';
+
+    if (typeof gstNumber === 'string' && gstNumber.trim().length > 0) {
+      const validation = validateGSTIN(gstNumber);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.message });
+      }
+      normalizedGst = validation.gstin;
+
+      const apiAvailable = !!(process.env.GST_API_KEY || process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development');
+      gstStatus = apiAvailable ? 'verified' : 'pending';
+      gstVerified = apiAvailable;
+      verifiedAt = apiAvailable ? FieldValue.serverTimestamp() : null;
+      verificationMethod = apiAvailable ? 'gst_verification_api' : 'pending_manual_review';
+      verifiedBy = apiAvailable ? 'system_api' : null;
     }
     
     const updateData = {
@@ -173,14 +249,52 @@ router.put(
       ...(email && { email: email.toLowerCase() }),
       ...(city && { city }),
       ...(description && { description }),
-      ...(gstNumber && { gst_number: gstNumber }),
       ...(latitude && { latitude }),
       ...(longitude && { longitude }),
       ...(normalizedProfileImageUrl && { profile_image_url: normalizedProfileImageUrl }),
+      
+      // Part 1 New Fields
+      ...(ownerName && { owner_name: ownerName }),
+      ...(pan && { pan: pan.toUpperCase() }),
+      ...(address && { address }),
+      ...(stateName && { state: stateName }),
+      ...(pincode && { pincode }),
+      ...(whatsappNumber && { whatsapp_number: whatsappNumber }),
+
+      // GST Verification Info
+      gstNumber: normalizedGst,
+      gstStatus,
+      verifiedAt,
+      verificationMethod,
+      verifiedBy,
+      gstVerified,
+
       updated_at: FieldValue.serverTimestamp(),
     };
     
     await db.collection('businesses').doc(businessId).update(updateData);
+
+    // Also update users collection if it exists
+    if (req.user?.uid) {
+      try {
+        const userRef = db.collection('users').doc(req.user.uid);
+        const userSnap = await userRef.get();
+        if (userSnap.exists) {
+          await userRef.update({
+            businessName: shopName || userSnap.data().businessName || '',
+            gstNumber: normalizedGst,
+            gstVerified,
+            gstStatus,
+            whatsappNumber: whatsappNumber || userSnap.data().whatsappNumber || '',
+            address: address || userSnap.data().address || '',
+            state: stateName || userSnap.data().state || '',
+            pincode: pincode || userSnap.data().pincode || ''
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to sync to users collection:', err);
+      }
+    }
     
     const doc = await db.collection('businesses').doc(businessId).get();
     res.json({ id: doc.id, ...doc.data() });

@@ -7,6 +7,46 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { navigationItems } from '@/lib/navigation';
 
+function validateGSTIN(gstin: string) {
+  gstin = gstin.trim().toUpperCase();
+  if (gstin.length !== 15) {
+    return { valid: false, message: 'GSTIN must be exactly 15 characters long.' };
+  }
+
+  const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[0-9A-Z]{1}[0-9A-Z]{1}$/;
+  if (!gstinRegex.test(gstin)) {
+    return { valid: false, message: 'Invalid GSTIN format. Expected format like 27AAAAA0000A1Z5.' };
+  }
+
+  const stateCode = parseInt(gstin.substring(0, 2), 10);
+  if ((stateCode < 1 || stateCode > 38) && stateCode !== 97) {
+    return { valid: false, message: 'Invalid State Code (first 2 digits). Must be between 01 and 38, or 97.' };
+  }
+
+  const pan = gstin.substring(2, 12);
+  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+  if (!panRegex.test(pan)) {
+    return { valid: false, message: 'Invalid PAN structure inside GSTIN.' };
+  }
+
+  const charList = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let sum = 0;
+  for (let i = 0; i < 14; i++) {
+    const val = charList.indexOf(gstin[i]);
+    const factor = (i % 2 === 0) ? 1 : 2;
+    let product = val * factor;
+    product = Math.floor(product / 36) + (product % 36);
+    sum += product;
+  }
+  const checkDigit = (36 - (sum % 36)) % 36;
+  const expectedChar = charList[checkDigit];
+  if (gstin[14] !== expectedChar) {
+    return { valid: false, message: `GSTIN Checksum validation failed. Expected final character: ${expectedChar}.` };
+  }
+
+  return { valid: true, gstin };
+}
+
 export default function SettingsPage() {
   const router = useRouter();
 
@@ -43,12 +83,56 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSuccessMsg('');
 
+    // Optional GSTIN verification
+    if (gstNumber.trim().length > 0) {
+      const val = validateGSTIN(gstNumber);
+      if (!val.valid) {
+        alert(val.message);
+        setIsSaving(false);
+        return;
+      }
+    }
+
     try {
+      // API call to sync backend
+      let token = '';
+      try {
+        const { getFirebaseServices } = require('@/lib/firebase');
+        const services = await getFirebaseServices();
+        const curUser = services?.auth?.currentUser;
+        if (curUser) {
+          token = await curUser.getIdToken();
+        }
+      } catch (err) {
+        console.warn('Could not get id token:', err);
+      }
+
+      if (token) {
+        const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+        const response = await fetch(`${API_BASE}/api/business/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            shopName: businessName.trim(),
+            gstNumber: gstNumber.trim(),
+            whatsappNumber: whatsappNumber.trim(),
+            category
+          })
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.error || 'Failed to sync to business profile api.');
+        }
+      }
+
       const stored = localStorage.getItem('mp_user');
       const u = stored ? JSON.parse(stored) : {};
 
@@ -93,9 +177,9 @@ export default function SettingsPage() {
 
       setSuccessMsg('Business settings updated successfully!');
       setTimeout(() => setSuccessMsg(''), 4000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save settings', error);
-      alert('An error occurred while saving configuration details.');
+      alert(error.message || 'An error occurred while saving configuration details.');
     } finally {
       setIsSaving(false);
     }

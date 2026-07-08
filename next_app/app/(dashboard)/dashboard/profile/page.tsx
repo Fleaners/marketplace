@@ -12,9 +12,13 @@ interface SellerProfile {
   whatsappNumber: string;
   email: string;
   gstin: string;
+  pan: string;
   address: string;
+  state: string;
+  pincode: string;
   // Trust Toggles
   gstVerified: boolean;
+  gstStatus: string;
   msmeRegistered: boolean;
   verifiedSupplier: boolean;
   buyerProtectionActive: boolean;
@@ -33,8 +37,48 @@ const CHECKLIST_ITEMS = [
   { id: 'buyer_protect', label: 'Opt-in to Trade Buyer Protection program', description: 'Guarantee timely fulfillment and elevate trust with trade partners.' },
   { id: 'payment_setup', label: 'Configure Bank Account / UPI Routing', description: 'Provide details to settle bulk escrow transactions and payouts.' },
   { id: 'logo_branding', label: 'Upload High-Res Brand Logo & Banner', description: 'Establish premium brand identity on mobile and catalog details.' },
-  { id: 'first_deal', label: 'Complete Onboarding Onboarding Checklist', description: 'Ready to connect and secure wholesale purchase agreements.' },
+  { id: 'first_deal', label: 'Complete Onboarding Checklist', description: 'Ready to connect and secure wholesale purchase agreements.' },
 ];
+
+function validateGSTIN(gstin: string) {
+  gstin = gstin.trim().toUpperCase();
+  if (gstin.length !== 15) {
+    return { valid: false, message: 'GSTIN must be exactly 15 characters long.' };
+  }
+
+  const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[0-9A-Z]{1}[0-9A-Z]{1}$/;
+  if (!gstinRegex.test(gstin)) {
+    return { valid: false, message: 'Invalid GSTIN format. Expected format like 27AAAAA0000A1Z5.' };
+  }
+
+  const stateCode = parseInt(gstin.substring(0, 2), 10);
+  if ((stateCode < 1 || stateCode > 38) && stateCode !== 97) {
+    return { valid: false, message: 'Invalid State Code (first 2 digits). Must be between 01 and 38, or 97.' };
+  }
+
+  const pan = gstin.substring(2, 12);
+  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+  if (!panRegex.test(pan)) {
+    return { valid: false, message: 'Invalid PAN structure inside GSTIN.' };
+  }
+
+  const charList = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let sum = 0;
+  for (let i = 0; i < 14; i++) {
+    const val = charList.indexOf(gstin[i]);
+    const factor = (i % 2 === 0) ? 1 : 2;
+    let product = val * factor;
+    product = Math.floor(product / 36) + (product % 36);
+    sum += product;
+  }
+  const checkDigit = (36 - (sum % 36)) % 36;
+  const expectedChar = charList[checkDigit];
+  if (gstin[14] !== expectedChar) {
+    return { valid: false, message: `GSTIN Checksum validation failed. Expected final character: ${expectedChar}.` };
+  }
+
+  return { valid: true, gstin };
+}
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<SellerProfile>({
@@ -43,8 +87,12 @@ export default function ProfilePage() {
     whatsappNumber: '919876543210',
     email: 'partner@dealerconnect.in',
     gstin: '27AAAAA0000A1Z5',
-    address: 'Plot 42, GIDC Industrial Estate, Sector 2, Gandhinagar, Gujarat - 382010',
+    pan: 'AAAAA0000A',
+    address: 'Plot 42, GIDC Industrial Estate, Sector 2, Gandhinagar',
+    state: 'Gujarat',
+    pincode: '382010',
     gstVerified: true,
+    gstStatus: 'verified',
     msmeRegistered: true,
     verifiedSupplier: false,
     buyerProtectionActive: false,
@@ -65,20 +113,79 @@ export default function ProfilePage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [validationError, setValidationError] = useState('');
 
-  // Load state from localStorage on mount
+  // Initial load from unified profile cache & API
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('marketplace_seller_profile');
-      if (stored) {
-        setProfile(JSON.parse(stored));
-      } else {
-        localStorage.setItem('marketplace_seller_profile', JSON.stringify(profile));
+    const loadProfile = async () => {
+      let storedProfile: any = null;
+      try {
+        const stored = localStorage.getItem('marketplace_seller_profile');
+        if (stored) {
+          storedProfile = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.error('Failed to load local storage profile', e);
       }
-    } catch (e) {
-      console.error('Failed to load seller profile', e);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+      try {
+        const { getFirebaseServices } = require('@/lib/firebase');
+        const services = await getFirebaseServices();
+        const curUser = services?.auth?.currentUser;
+        if (curUser) {
+          const token = await curUser.getIdToken();
+          const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+          const response = await fetch(`${API_BASE}/api/business/profile`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const mappedProfile: SellerProfile = {
+              businessName: data.shop_name || storedProfile?.businessName || 'Gaurav Enterprise',
+              contactPerson: data.owner_name || storedProfile?.contactPerson || 'Gaurav Patel',
+              whatsappNumber: data.whatsapp_number || storedProfile?.whatsappNumber || '919876543210',
+              email: data.email || storedProfile?.email || 'partner@dealerconnect.in',
+              gstin: data.gstNumber || storedProfile?.gstin || '',
+              pan: data.pan || storedProfile?.pan || '',
+              address: data.address || storedProfile?.address || '',
+              state: data.state || storedProfile?.state || '',
+              pincode: data.pincode || storedProfile?.pincode || '',
+              gstVerified: !!data.gstVerified,
+              gstStatus: data.gstStatus || 'unprovided',
+              msmeRegistered: data.msmeRegistered || storedProfile?.msmeRegistered || false,
+              verifiedSupplier: data.verifiedSupplier || storedProfile?.verifiedSupplier || false,
+              buyerProtectionActive: data.buyerProtectionActive || storedProfile?.buyerProtectionActive || false,
+              whatsappConnected: data.whatsappConnected || storedProfile?.whatsappConnected || false,
+              checklist: data.checklist || storedProfile?.checklist || {
+                business_details: true,
+                whatsapp_setup: true,
+                gstin_entry: false,
+                add_products: true,
+                warehouse_address: true,
+                msme_reg: false,
+                buyer_protect: false,
+                payment_setup: false,
+                logo_branding: false,
+                first_deal: false,
+              }
+            };
+            setProfile(mappedProfile);
+            localStorage.setItem('marketplace_seller_profile', JSON.stringify(mappedProfile));
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load profile from API, fallback to local storage:', err);
+      }
+
+      if (storedProfile) {
+        setProfile(storedProfile);
+      }
+    };
+
+    loadProfile();
   }, []);
 
   // Save profile state helper
@@ -103,7 +210,6 @@ export default function ProfilePage() {
       [itemId]: !profile.checklist[itemId],
     };
     
-    // Automatically match badge states to checklist items for high-fidelity response
     let updatedGstVerified = profile.gstVerified;
     let updatedMsmeRegistered = profile.msmeRegistered;
     let updatedBuyerProtect = profile.buyerProtectionActive;
@@ -126,25 +232,117 @@ export default function ProfilePage() {
     saveProfile(updatedProfile);
   };
 
-  // Save CTA handler
-  const handleSaveCTA = (e: React.FormEvent) => {
+  // Save CTA handler with API synchronization & verification
+  const handleSaveCTA = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSaveSuccess(false);
- 
-    setTimeout(() => {
+    setValidationError('');
+
+    // Field Validations
+    if (!profile.businessName.trim()) {
+      setValidationError('Business Name is mandatory.');
       setIsSaving(false);
+      return;
+    }
+    if (!profile.contactPerson.trim()) {
+      setValidationError('Owner Name (Contact Person) is mandatory.');
+      setIsSaving(false);
+      return;
+    }
+    if (!profile.address.trim()) {
+      setValidationError('Business Address is mandatory.');
+      setIsSaving(false);
+      return;
+    }
+    if (!profile.state.trim()) {
+      setValidationError('State is mandatory.');
+      setIsSaving(false);
+      return;
+    }
+    if (!profile.pincode.trim()) {
+      setValidationError('Pincode is mandatory.');
+      setIsSaving(false);
+      return;
+    }
+    if (!profile.whatsappNumber.trim()) {
+      setValidationError('WhatsApp Sourcing Contact Number is mandatory.');
+      setIsSaving(false);
+      return;
+    }
+
+    // Optional GSTIN structural validation
+    if (profile.gstin.trim().length > 0) {
+      const gstinVal = validateGSTIN(profile.gstin);
+      if (!gstinVal.valid) {
+        setValidationError(gstinVal.message || 'Invalid GST number.');
+        setIsSaving(false);
+        return;
+      }
+    }
+
+    try {
+      let token = '';
+      const { getFirebaseServices } = require('@/lib/firebase');
+      const services = await getFirebaseServices();
+      const curUser = services?.auth?.currentUser;
+      if (curUser) {
+        token = await curUser.getIdToken();
+      }
+
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+      const response = await fetch(`${API_BASE}/api/business/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({
+          shopName: profile.businessName,
+          email: profile.email,
+          description: '',
+          gstNumber: profile.gstin,
+          ownerName: profile.contactPerson,
+          pan: profile.pan,
+          address: profile.address,
+          state: profile.state,
+          pincode: profile.pincode,
+          whatsappNumber: profile.whatsappNumber
+        })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to update seller directory profile.');
+      }
+
+      // Sync state with returned backend details (which contains generated verification status)
+      const updatedProfile: SellerProfile = {
+        ...profile,
+        gstin: payload.gstNumber || '',
+        gstStatus: payload.gstStatus || 'unprovided',
+        gstVerified: !!payload.gstVerified,
+        pan: payload.pan || '',
+        address: payload.address || '',
+        state: payload.state || '',
+        pincode: payload.pincode || '',
+      };
+      
+      saveProfile(updatedProfile);
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    }, 600);
+      setTimeout(() => setSaveSuccess(false), 4000);
+    } catch (err: any) {
+      console.error('Profile Save Error:', err);
+      setValidationError(err.message || 'Network interruption. Profile not synchronized.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // Calculate onboarding progress dynamics
   const totalSteps = CHECKLIST_ITEMS.length;
   const completedSteps = Object.values(profile.checklist).filter(Boolean).length;
   const completionPercentage = Math.round((completedSteps / totalSteps) * 100);
 
-  // SVG circular properties
   const radius = 50;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (completionPercentage / 100) * circumference;
@@ -182,7 +380,6 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4 bg-white/80 border border-[#f3d9a7] px-6 py-4 rounded-3xl backdrop-blur-md">
             <div className="relative h-24 w-24">
               <svg className="h-full w-full transform -rotate-90">
-                {/* Background Ring */}
                 <circle
                   cx="48"
                   cy="48"
@@ -192,7 +389,6 @@ export default function ProfilePage() {
                   fill="transparent"
                   className="text-slate-300"
                 />
-                {/* Active Ring */}
                 <circle
                   cx="48"
                   cy="48"
@@ -206,7 +402,6 @@ export default function ProfilePage() {
                   className="text-accent-500 transition-all duration-700 ease-in-out"
                 />
               </svg>
-              {/* Text indicator inside circle */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-lg font-black text-[#1f2937]">{completionPercentage}%</span>
                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Done</span>
@@ -229,23 +424,33 @@ export default function ProfilePage() {
 
         {/* Dynamic Trust Badges Area */}
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {/* Badge 1: GST Status */}
+          {/* Badge 1: GST Verification Status */}
           <div
-            className={`rounded-2xl border p-4 flex flex-col items-center justify-center text-center space-y-2 transition-all duration-300 ${
-              profile.gstVerified
-                ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400'
-                : 'border-[#f3d9a7] bg-white/40 text-slate-500'
+            title={profile.gstStatus === 'verified' ? 'This seller has a verified GST registration.' : ''}
+            className={`rounded-2xl border p-4 flex flex-col items-center justify-center text-center space-y-2 transition-all duration-300 relative group cursor-pointer ${
+              profile.gstStatus === 'verified'
+                ? 'border-[#FAB12F] bg-blue-50/80 text-[#FAB12F] shadow-sm font-semibold'
+                : profile.gstStatus === 'pending'
+                ? 'border-amber-400 bg-amber-50/50 text-amber-600'
+                : 'border-[#f3d9a7] bg-white text-slate-500'
             }`}
           >
-            <span className="text-2xl">{profile.gstVerified ? '🛡️' : 'ℹ️'}</span>
+            <span className="text-2xl">
+              {profile.gstStatus === 'verified' ? '🏅' : profile.gstStatus === 'pending' ? '⏳' : 'ℹ️'}
+            </span>
             <div className="space-y-0.5">
               <p className="text-xs font-extrabold uppercase tracking-wider">
-                {profile.gstVerified ? 'GST Verified' : 'GST Not Added'}
+                {profile.gstStatus === 'verified' ? '✓ GST Verified' : profile.gstStatus === 'pending' ? 'Pending Verification' : 'GST Optional'}
               </p>
               <p className="text-[10px] text-slate-500 font-medium">
-                {profile.gstVerified ? 'B2B Tax Credit' : 'Optional'}
+                {profile.gstStatus === 'verified' ? 'B2B Tax Credit' : profile.gstStatus === 'pending' ? 'Reviewing' : 'No Badge'}
               </p>
             </div>
+            {profile.gstStatus === 'verified' && (
+              <div className="absolute bottom-full mb-2 hidden group-hover:block bg-[#1f2937] text-white text-[10px] p-2 rounded-lg shadow-lg w-48 text-center z-10">
+                This seller has a verified GST registration.
+              </div>
+            )}
           </div>
 
           {/* Badge 2: MSME Certified */}
@@ -379,42 +584,52 @@ export default function ProfilePage() {
               </div>
 
               {saveSuccess && (
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 p-3 text-[11px] font-semibold uppercase tracking-wider">
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 p-3 text-[11px] font-semibold uppercase tracking-wider animate-pulse">
                   ✓ Core directory profile updated and synced successfully!
+                </div>
+              )}
+
+              {validationError && (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/5 text-red-500 p-3 text-[11px] font-semibold uppercase tracking-wider">
+                  ⚠️ {validationError}
                 </div>
               )}
 
               <div className="space-y-4">
                 {/* Business Name Field */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-600">Registered Business Name</label>
+                  <label className="text-xs font-semibold text-slate-600">Registered Business Name (Mandatory)</label>
                   <input
                     type="text"
                     value={profile.businessName}
                     onChange={(e) => handleFieldChange('businessName', e.target.value)}
-                    className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
+                    className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors font-semibold"
+                    required
                   />
                 </div>
 
                 {/* Primary Contacts */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Contact Person Name</label>
+                    <label className="text-xs font-semibold text-slate-600">Owner Name (Mandatory)</label>
                     <input
                       type="text"
                       value={profile.contactPerson}
                       onChange={(e) => handleFieldChange('contactPerson', e.target.value)}
                       className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
+                      required
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">WhatsApp Inquiry Number</label>
+                    <label className="text-xs font-semibold text-slate-600">WhatsApp Number (Mandatory)</label>
                     <input
                       type="text"
+                      placeholder="e.g. 919876543210"
                       value={profile.whatsappNumber}
                       onChange={(e) => handleFieldChange('whatsappNumber', e.target.value)}
-                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
+                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors font-mono"
+                      required
                     />
                   </div>
                 </div>
@@ -432,25 +647,70 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">GSTIN / VAT Tax Registration Code</label>
+                    <label className="text-xs font-semibold text-slate-600">GSTIN Code (Optional)</label>
                     <input
                       type="text"
+                      placeholder="e.g. 27AAAAA0000A1Z5"
                       value={profile.gstin}
-                      onChange={(e) => handleFieldChange('gstin', e.target.value)}
+                      onChange={(e) => handleFieldChange('gstin', e.target.value.toUpperCase())}
                       className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors uppercase font-mono"
                     />
                   </div>
                 </div>
 
-                {/* Warehouse Location address */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-600">Primary Physical Address / Warehouse Location</label>
-                  <textarea
-                    rows={3}
-                    value={profile.address}
-                    onChange={(e) => handleFieldChange('address', e.target.value)}
-                    className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors leading-relaxed"
-                  />
+                {/* PAN Code & State */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-600">PAN Code (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. AAAAA0000A"
+                      maxLength={10}
+                      value={profile.pan}
+                      onChange={(e) => handleFieldChange('pan', e.target.value.toUpperCase())}
+                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors uppercase font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-600">State (Mandatory)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Gujarat"
+                      value={profile.state}
+                      onChange={(e) => handleFieldChange('state', e.target.value)}
+                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Pincode & Warehouse Address */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-1 space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-600">Pincode (Mandatory)</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="382010"
+                      value={profile.pincode}
+                      onChange={(e) => handleFieldChange('pincode', e.target.value.replace(/\D/g, ''))}
+                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors font-mono"
+                      required
+                    />
+                  </div>
+
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-600">Business Address (Mandatory)</label>
+                    <input
+                      type="text"
+                      placeholder="Plot 42, GIDC Industrial Estate, Sector 2"
+                      value={profile.address}
+                      onChange={(e) => handleFieldChange('address', e.target.value)}
+                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -459,7 +719,7 @@ export default function ProfilePage() {
                   type="submit"
                   variant="primary"
                   disabled={isSaving}
-                  className="w-full justify-center rounded-2xl font-bold bg-[#FAB12F] text-slate-950 shadow-[0_12px_30px_-6px_rgba(255,149,0,0.3)]"
+                  className="w-full justify-center rounded-2xl font-bold bg-[#FAB12F] text-slate-950 shadow-[0_12px_30px_-6px_rgba(255,149,0,0.3)] hover:bg-[#FAB12F]/90 transition-colors disabled:opacity-50"
                 >
                   {isSaving ? 'Updating Directories...' : 'Save Directory Information'}
                 </Button>

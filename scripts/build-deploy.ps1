@@ -24,9 +24,9 @@ Write-Host "  marketplace.store Build & Deploy" -ForegroundColor Cyan
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# ── Step 1: Build Next.js ──────────────────────────────────────
+# Step 1: Build Next.js
 if (-not $SkipBuild) {
-  Write-Host "▶  Building Next.js seller dashboard..." -ForegroundColor Yellow
+  Write-Host "> Building Next.js seller dashboard..." -ForegroundColor Yellow
   Push-Location $NextAppDir
   try {
     npm run build
@@ -34,37 +34,37 @@ if (-not $SkipBuild) {
   } finally {
     Pop-Location
   }
-  Write-Host "✓  Next.js build complete" -ForegroundColor Green
+  Write-Host "[OK] Next.js build complete" -ForegroundColor Green
 } else {
-  Write-Host "⊘  Skipping Next.js build (--SkipBuild)" -ForegroundColor DarkGray
+  Write-Host "[SKIP] Skipping Next.js build (SkipBuild)" -ForegroundColor DarkGray
 }
 
-# ── Step 2: Sync out/ → web_app/next/ ─────────────────────────
-Write-Host "▶  Syncing build output to web_app/next/..." -ForegroundColor Yellow
+# Step 2: Sync out/ -> web_app/next/
+Write-Host "> Syncing build output to web_app/next/..." -ForegroundColor Yellow
 
 if (-not (Test-Path $NextOutDir)) {
-  throw "Build output not found at: $NextOutDir — run without -SkipBuild first."
+  throw "Build output not found at: $NextOutDir - run without -SkipBuild first."
 }
 
 if (Test-Path $WebNextDir) {
   Remove-Item -Recurse -Force $WebNextDir
 }
 Copy-Item -Recurse -Force $NextOutDir $WebNextDir
-Write-Host "✓  Synced $(Get-ChildItem $WebNextDir -Recurse -File | Measure-Object | Select-Object -ExpandProperty Count) files to web_app/next/" -ForegroundColor Green
+Write-Host "[OK] Synced $(Get-ChildItem $WebNextDir -Recurse -File | Measure-Object | Select-Object -ExpandProperty Count) files to web_app/next/" -ForegroundColor Green
 
-# ── Step 3: Deploy to Firebase ────────────────────────────────
+# Step 3: Deploy to Firebase
 if (-not $SkipDeploy) {
-  Write-Host "▶  Deploying to Firebase Hosting (project: marketplace-store-fef91)..." -ForegroundColor Yellow
+  Write-Host "> Deploying to Firebase Hosting (project: marketplace-store-fef91)..." -ForegroundColor Yellow
   Push-Location $RootDir
   try {
-    firebase deploy --only hosting --project marketplace-store-fef91
+    npx firebase deploy --only hosting --project marketplace-store-fef91
     if ($LASTEXITCODE -ne 0) { throw "Firebase deploy failed (exit $LASTEXITCODE)" }
   } finally {
     Pop-Location
   }
-  Write-Host "✓  Deploy complete → https://marketplace-store-fef91.web.app/" -ForegroundColor Green
+  Write-Host "[OK] Deploy complete -> https://marketplace-store-fef91.web.app/" -ForegroundColor Green
 } else {
-  Write-Host "⊘  Skipping deploy (-SkipDeploy)" -ForegroundColor DarkGray
+  Write-Host "[SKIP] Skipping deploy (-SkipDeploy)" -ForegroundColor DarkGray
 }
 
 Write-Host ""

@@ -14,6 +14,7 @@ import {
   upsertUserProfile,
   uploadProfileAsset,
 } from '../../lib/marketplace/firestore';
+import { getFirebaseServices } from '../../lib/firebase';
 import type {
   ProductRecord,
   SellerPlan,
@@ -298,6 +299,7 @@ const sellerThemes = ['Executive Navy', 'Amber Commerce', 'Graphite Modern'];
 
 export default function MarketplaceApp() {
   const [isDark, setIsDark] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [plan, setPlan] = useState<SellerPlan>('premium');
   const [sellerProfile, setSellerProfile] = useState<UserProfile>({
     id: 'seller-demo-01',
@@ -407,6 +409,104 @@ export default function MarketplaceApp() {
     }
   }
 
+  async function handleGenerateAIDescription() {
+    const title = productDraft.title.trim();
+    if (!title) {
+      setStatusMessage('Please enter a product title first.');
+      return;
+    }
+
+    setIsGenerating(true);
+    setStatusMessage('Generating AI Description...');
+
+    try {
+      let token = '';
+      if (typeof window !== 'undefined') {
+        token = localStorage.getItem('mp_backend_token') || '';
+      }
+      if (!token) {
+        try {
+          const services = await getFirebaseServices();
+          if (services?.auth) {
+            if (services.auth.currentUser) {
+              token = await services.auth.currentUser.getIdToken();
+            } else {
+              token = await new Promise<string>((resolve) => {
+                let resolved = false;
+                const unsubscribe = services.auth.onAuthStateChanged(async (user: any) => {
+                  unsubscribe();
+                  if (!resolved) {
+                    resolved = true;
+                    if (user) {
+                      try {
+                        const t = await user.getIdToken();
+                        resolve(t);
+                      } catch {
+                        resolve('');
+                      }
+                    } else {
+                      resolve('');
+                    }
+                  }
+                });
+                setTimeout(() => {
+                  if (!resolved) {
+                    resolved = true;
+                    unsubscribe();
+                    resolve('');
+                  }
+                }, 3500);
+              });
+            }
+          }
+        } catch (err) {
+          console.warn('Could not get id token fallback:', err);
+        }
+      }
+
+      const timestamp = Date.now().toString();
+      const nonce = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Timestamp': timestamp,
+        'X-Nonce': nonce
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+      const response = await fetch(`${API_BASE}/api/ai/analyze`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          prompt: `Generate a detailed and professional B2B wholesale product description for a product titled "${title}" in the category "${productDraft.category}". Highlighting key features, trade benefits, and certifications. Keep it around 150 words.`,
+          data: {
+            sellerName: sellerProfile.businessName,
+            category: productDraft.category
+          }
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to generate AI description.');
+      }
+
+      setProductDraft((prev) => ({
+        ...prev,
+        description: payload.answer || prev.description
+      }));
+      setStatusMessage('AI description generated successfully.');
+    } catch (err: any) {
+      console.error(err);
+      setStatusMessage(err.message || 'Error generating description.');
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
   async function saveDraftProduct() {
     if (!productDraft.title.trim()) {
       setStatusMessage('Product title is required.');
@@ -498,75 +598,31 @@ export default function MarketplaceApp() {
           </motion.header>
 
           <section className="grid gap-6 lg:grid-cols-3">
-            <article className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-              <h3 className="font-display text-lg">Seller Profile</h3>
-              <div className="mt-4 flex items-center gap-4">
-                {sellerProfile.profileImage ? (
-                  <img src={sellerProfile.profileImage} alt="Seller avatar" className="h-16 w-16 rounded-full object-cover" />
-                ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-300 text-xl font-bold text-ink">{initials(sellerProfile.businessName)}</div>
-                )}
-                <div>
-                  <p className="font-semibold">{sellerProfile.businessName}</p>
-                  <p className="text-xs text-slate-500">{sellerProfile.verified ? 'Premium Verified Badge' : 'Standard Seller Badge'}</p>
-                </div>
-              </div>
-              <label className="mt-4 block text-sm">Profile photo
-                <input className="mt-1 w-full text-xs" type="file" accept="image/*" onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleProfileImage(file, 'seller').catch(() => setStatusMessage('Unable to update seller photo.'));
-                }} />
-              </label>
-              <label className="mt-3 block text-sm">Store banner
-                <input className="mt-1 w-full text-xs" type="file" accept="image/*" onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleBannerUpload(file).catch(() => setStatusMessage('Unable to update banner.'));
-                }} />
-              </label>
-              {sellerProfile.coverImage && <img src={sellerProfile.coverImage} alt="Store banner" className="mt-3 h-24 w-full rounded-xl object-cover" />}
-              <textarea
-                className="mt-3 w-full rounded-xl border border-slate-300 bg-transparent p-3 text-sm"
-                value={sellerProfile.bio}
-                onChange={(e) => setSellerProfile((prev) => ({ ...prev, bio: e.target.value }))}
-                aria-label="Business description"
-              />
-              <button
-                className="mt-3 rounded-xl bg-ink px-4 py-2 text-sm text-white"
-                onClick={async () => {
-                  await upsertUserProfile(sellerProfile);
-                  try {
-                    localStorage.setItem('mp_user', JSON.stringify({
-                      id: sellerProfile.id,
-                      role: 'seller',
-                      businessName: sellerProfile.businessName,
-                      email: sellerProfile.email || ''
-                    }));
-                  } catch (e) {
-                    console.warn('Unable to persist mp_user to localStorage', e);
-                  }
-                  setStatusMessage('Seller profile updated.');
-                }}
-              >
-                Save Seller Profile
-              </button>
-            </article>
-
-            <article className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">
-              <h3 className="font-display text-lg">Product Management</h3>
-              <p className="text-xs text-slate-500">Unlimited listings enabled. Current plan image cap: {caps.maxImagesPerProduct} per product.</p>
+            <article className="rounded-2xl border border-[#f3d9a7] bg-white p-6 dark:border-slate-800 dark:bg-slate-900 lg:col-span-3">
+              <h3 className="font-display text-lg font-bold text-[#1f2937] dark:text-white">Product Management</h3>
+              <p className="text-xs text-slate-500 mt-1">Unlimited B2B listings enabled. Current plan image cap: {caps.maxImagesPerProduct} per product.</p>
+              
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <input className="rounded-xl border border-slate-300 bg-transparent p-3 text-sm" placeholder="Product title" value={productDraft.title} onChange={(e) => setProductDraft((prev) => ({ ...prev, title: e.target.value }))} />
                 <input className="rounded-xl border border-slate-300 bg-transparent p-3 text-sm" placeholder="Category" value={productDraft.category} onChange={(e) => setProductDraft((prev) => ({ ...prev, category: e.target.value }))} />
               </div>
+              
               <textarea className="mt-3 w-full rounded-xl border border-slate-300 bg-transparent p-3 text-sm" placeholder="Basic product description" value={productDraft.description} onChange={(e) => setProductDraft((prev) => ({ ...prev, description: e.target.value }))} />
+              
               {caps.richTextDescriptions && (
                 <textarea className="mt-3 w-full rounded-xl border border-premium/40 bg-blue-50/40 p-3 text-sm dark:bg-slate-800" placeholder="Rich text description (markdown/html)" value={productDraft.richDescription} onChange={(e) => setProductDraft((prev) => ({ ...prev, richDescription: e.target.value }))} />
               )}
+              
               {caps.aiDescriptions && (
-                <button className="mt-2 rounded-lg border border-premium px-3 py-2 text-xs" onClick={() => setProductDraft((prev) => ({ ...prev, description: aiDescription(prev.title || 'Premium Product', prev.category) }))}>
-                  Generate AI Description
+                <button
+                  className="mt-2 rounded-lg border border-premium px-3 py-2 text-xs font-semibold hover:bg-premium/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleGenerateAIDescription}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? 'Generating Description...' : 'Generate AI Description'}
                 </button>
               )}
+              
               <div className="mt-3 grid gap-3 md:grid-cols-3">
                 <input className="rounded-xl border border-slate-300 bg-transparent p-3 text-sm" placeholder="Features (comma separated)" value={productDraft.featureInput} onChange={(e) => setProductDraft((prev) => ({ ...prev, featureInput: e.target.value }))} />
                 <input className="rounded-xl border border-slate-300 bg-transparent p-3 text-sm" placeholder="Specs (key:value, comma)" value={productDraft.specInput} onChange={(e) => setProductDraft((prev) => ({ ...prev, specInput: e.target.value }))} />
@@ -588,9 +644,14 @@ export default function MarketplaceApp() {
                 </div>
               )}
 
-              <button className="mt-4 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink" onClick={saveDraftProduct}>
-                Save Product
-              </button>
+              <div className="mt-4 flex justify-start">
+                <button
+                  className="rounded-xl bg-[#FAB12F] px-5 py-3 text-sm font-bold text-slate-950 shadow-md hover:bg-amber-500 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                  onClick={saveDraftProduct}
+                >
+                  Save Product
+                </button>
+              </div>
             </article>
           </section>
 

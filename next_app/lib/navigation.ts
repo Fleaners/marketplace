@@ -30,6 +30,7 @@ export const navigationItems: NavigationItem[] = [
   { label: 'Leads', href: '/dashboard/leads', icon: '💬', showOnMobile: true },
   { label: 'Analytics', href: '/dashboard/analytics', icon: '📊' },
   { label: 'AI Insights', href: '/dashboard/ai-insights', icon: '🧠', badge: 'AI', showOnMobile: true },
+  { label: 'Advertising', href: '/dashboard/advertising', icon: '📢', showOnMobile: true },
   { label: 'Inventory', href: '/dashboard/inventory', icon: '📋' },
   { label: 'Reviews', href: '/dashboard/reviews', icon: '⭐' },
   { label: 'Settings', href: '/dashboard/settings', icon: '⚙️', showOnMobile: true },

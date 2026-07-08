@@ -89,7 +89,17 @@ app.use(cors({
     return callback(new Error('Origin not allowed by CORS policy'));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'X-Timestamp',
+    'X-Nonce',
+    'X-Request-ID',
+    'Idempotency-Key',
+    'X-Upload-Mime',
+    'X-Upload-Filename'
+  ],
   maxAge: 86400,
 }));
 

@@ -105,11 +105,12 @@
       </div>
 
       <div class="hero-panel">
-        <form id="searchHeroForm" class="search-form">
+        <form id="searchHeroForm" class="search-form" style="position: relative;">
           <label class="search-label">
             <span>Search products, businesses, categories...</span>
             <input id="globalSearch" type="search" placeholder="e.g. industrial pump, spare parts, adhesives" autocomplete="off" />
           </label>
+          <div id="searchSuggestionsDropdown" class="search-suggestions-dropdown hidden" role="listbox"></div>
           <div class="search-actions-inline">
             <button type="button" class="button buttonGhost" id="voiceSearchBtn" aria-label="Start voice search">Voice Search</button>
             <span class="muted">Image search coming soon</span>
@@ -365,7 +366,10 @@
           <p class="section-label">Seller Dashboard</p>
           <h2>Business overview for <span id="sellerName">Seller</span></h2>
         </div>
-        <button class="button buttonPrimary" type="button" id="sellerAddProductBtn">Add product</button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button class="button buttonSecondary" type="button" id="sellerHomeBtn">Go to Home</button>
+          <button class="button buttonPrimary" type="button" id="sellerAddProductBtn">Add product</button>
+        </div>
       </div>
       <div id="sellerCompletionPanel" class="panel completion-panel"></div>
       <div id="sellerInsightsCards" class="dashboard-card-grid"></div>

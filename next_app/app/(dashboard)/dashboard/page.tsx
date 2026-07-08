@@ -17,6 +17,7 @@ interface DashboardState {
   lowStockCount: number;
   topProduct: string;
   totalProducts: number;
+  gstVerified?: boolean;
 }
 
 export default function DashboardPage() {
@@ -30,7 +31,8 @@ export default function DashboardPage() {
     whatsappInquiries: 18,
     lowStockCount: 3,
     topProduct: 'Industrial Water Pump',
-    totalProducts: 8
+    totalProducts: 8,
+    gstVerified: false
   });
 
   // AI chat system state
@@ -61,9 +63,11 @@ export default function DashboardPage() {
       // Read profile
       const storedProfile = localStorage.getItem('marketplace_seller_profile');
       let profileName = 'Gaurav Enterprise';
+      let gstVerified = false;
       if (storedProfile) {
         const profile = JSON.parse(storedProfile);
         profileName = profile.businessName || 'Gaurav Enterprise';
+        gstVerified = !!profile.gstVerified;
       }
 
       // Calculate low stock dynamically
@@ -77,7 +81,8 @@ export default function DashboardPage() {
         sellerName: profileName,
         lowStockCount: lowStockItems.length,
         topProduct: topProd,
-        totalProducts: productsList.length
+        totalProducts: productsList.length,
+        gstVerified
       }));
     } catch (e) {
       console.error('Failed to load dashboard state:', e);
@@ -146,8 +151,13 @@ export default function DashboardPage() {
         <section className="rounded-[32px] bg-white border border-[#f3d9a7] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-600">Merchant Cockpit</p>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1f2937] font-display">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1f2937] font-display flex items-center flex-wrap gap-2">
               Welcome back, {state.sellerName} 👋
+              {state.gstVerified && (
+                <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border border-[#FAB12F] bg-blue-50 text-[#FAB12F] cursor-pointer" title="This seller has a verified GST registration.">
+                  🏅 GST Verified
+                </span>
+              )}
             </h1>
             <p className="text-base text-slate-600 font-bold">
               Your business reached <span className="text-[#FAB12F] font-black">+{state.buyerReachThisWeek} new buyers</span> this week.
