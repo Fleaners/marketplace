@@ -8,6 +8,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  onSnapshot,
 } from 'firebase/firestore';
 import {
   getDownloadURL,
@@ -122,4 +123,74 @@ export async function markFeaturedProducts(productIds: string[], featured: boole
   await Promise.all(
     productIds.map((id) => updateDoc(doc(db, 'products', id), { featured })),
   );
+}
+
+export function subscribeProducts(callback: (products: ProductRecord[]) => void): () => void {
+  let unsub: (() => void) | null = null;
+  let active = true;
+
+  getFirebaseServices().then((services) => {
+    if (!active) return;
+    const db = services?.db;
+    if (!db) return;
+
+    const q = query(collection(db, 'products'), limit(100));
+    unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<ProductRecord, 'id'>),
+      }));
+      callback(list);
+    }, (error) => {
+      console.warn('Real-time products subscription error:', error);
+    });
+  }).catch((err) => {
+    console.error('Failed to initialize products subscription:', err);
+  });
+
+  return () => {
+    active = false;
+    if (unsub) unsub();
+  };
+}
+
+export function subscribeUserProfile(userId: string, callback: (profile: UserProfile) => void): () => void {
+  let unsub: (() => void) | null = null;
+  let active = true;
+
+  getFirebaseServices().then((services) => {
+    if (!active) return;
+    const db = services?.db;
+    if (!db) return;
+
+    unsub = onSnapshot(doc(db, 'users', userId), (docSnap) => {
+      if (!docSnap.exists()) return;
+      const data = docSnap.data();
+      const profile: UserProfile = {
+        id: docSnap.id,
+        role: data.role || 'buyer',
+        subscriptionPlan: data.subscriptionPlan || 'standard',
+        profileImage: data.profileImage || '',
+        coverImage: data.coverImage || '',
+        verified: !!data.verified,
+        businessName: data.businessName || '',
+        bio: data.bio || '',
+        socialLinks: data.socialLinks || {},
+        shippingAddresses: Array.isArray(data.shippingAddresses) ? data.shippingAddresses : [],
+        wishlist: Array.isArray(data.wishlist) ? data.wishlist : [],
+        reviewHistory: Array.isArray(data.reviewHistory) ? data.reviewHistory : [],
+        orderTracking: Array.isArray(data.orderTracking) ? data.orderTracking : [],
+      };
+      callback(profile);
+    }, (error) => {
+      console.warn('Real-time profile subscription error:', error);
+    });
+  }).catch((err) => {
+    console.error('Failed to initialize profile subscription:', err);
+  });
+
+  return () => {
+    active = false;
+    if (unsub) unsub();
+  };
 }

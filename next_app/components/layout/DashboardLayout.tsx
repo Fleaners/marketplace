@@ -8,6 +8,8 @@ import { TopBar, type TopBarProps } from './TopBar';
 import { cn } from '@/lib/utils';
 import { getHomeNavigationHref, isSellerDashboardRoute, navigateToMarketplaceHome } from '@/lib/navigation';
 import { motion } from 'framer-motion';
+import { VersionAlert } from '../dashboard/VersionAlert';
+import { logoutUser } from '@/lib/firebase';
 
 
 export interface DashboardLayoutProps {
@@ -102,14 +104,15 @@ const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutProps>(
           collapsed={collapsed}
           onCollapse={handleSidebarCollapse}
           user={currentUser || user}
-          onLogout={onLogout}
+          onLogout={onLogout || logoutUser}
         />
+        <VersionAlert />
 
         <div className="flex-1 flex flex-col overflow-hidden bg-[#fff6e6] dark:bg-slate-950">
           <TopBar
             {...topBarProps}
             user={currentUser || user}
-            onLogout={onLogout}
+            onLogout={onLogout || logoutUser}
             theme={theme}
             onThemeChange={toggleTheme}
             onAddProduct={topBarProps?.onAddProduct || (() => router.push('/dashboard/products/new/'))}

@@ -158,9 +158,6 @@ export default function InventoryPage() {
     <DashboardLayout
       navigationItems={navigationItems}
       user={{ name: 'Gaurav Enterprise', email: 'partner@dealerconnect.in' }}
-      onLogout={() => {
-        if (typeof window !== 'undefined') window.location.href = '/';
-      }}
       topBarProps={{
         pageTitle: 'Inventory Cockpit',
         breadcrumbs: [{ label: 'Cockpit', href: '/dashboard' }, { label: 'Inventory' }],

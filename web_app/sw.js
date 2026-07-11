@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'marketplace-sw-v1';
+const CACHE_VERSION = 'marketplace-sw-v1.1.0';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
@@ -70,12 +70,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/api/')) {
+  // NetworkFirst for API and config/meta files
+  if (url.pathname.startsWith('/api/') || url.pathname === '/version.json') {
     event.respondWith(networkFirst(request, API_CACHE));
     return;
   }
 
-  if (STATIC_ASSETS.includes(url.pathname) || url.pathname.endsWith('.css') || url.pathname.endsWith('.js') || url.pathname.endsWith('.html')) {
+  // NetworkFirst for index and HTML pages to ensure updates are checked instantly
+  if (url.pathname === '/' || url.pathname.endsWith('.html')) {
+    event.respondWith(networkFirst(request, STATIC_CACHE));
+    return;
+  }
+
+  // CacheFirst for static assets (js, css, fonts, images)
+  if (STATIC_ASSETS.includes(url.pathname) || url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
   }
 });

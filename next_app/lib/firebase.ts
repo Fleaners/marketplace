@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
+import { getAuth, signOut, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
@@ -101,4 +101,38 @@ export async function getFirebaseServices(): Promise<FirebaseServices | null> {
   })();
 
   return servicesPromise;
+}
+
+export async function logoutUser(): Promise<void> {
+  try {
+    const services = await getFirebaseServices();
+    if (services?.auth) {
+      await signOut(services.auth);
+    }
+  } catch (err) {
+    console.warn('Firebase signOut failed:', err);
+  }
+
+  if (typeof window !== 'undefined') {
+    // Clear all application-related localStorage keys
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.startsWith('mp_') ||
+        key.startsWith('marketplace_') ||
+        key.startsWith('dashboard_') ||
+        key === 'APP_VERSION'
+      )) {
+        localStorage.removeItem(key);
+      }
+    }
+
+    // Clear all sessionStorage
+    try {
+      sessionStorage.clear();
+    } catch {}
+
+    // Hard redirect to clear React and memory state completely
+    window.location.href = '/';
+  }
 }

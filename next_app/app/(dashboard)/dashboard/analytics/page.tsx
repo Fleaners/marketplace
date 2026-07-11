@@ -88,9 +88,6 @@ export default function AnalyticsPage() {
     <DashboardLayout
       navigationItems={navigationItems}
       user={{ name: 'Gaurav Enterprise', email: 'partner@dealerconnect.in' }}
-      onLogout={() => {
-        if (typeof window !== 'undefined') window.location.href = '/';
-      }}
       topBarProps={{
         pageTitle: 'Business Insights',
         breadcrumbs: [{ label: 'Cockpit', href: '/dashboard' }, { label: 'Analytics' }],

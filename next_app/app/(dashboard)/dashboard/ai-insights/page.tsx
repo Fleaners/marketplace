@@ -513,9 +513,6 @@ export default function AIInsightsPage() {
     <DashboardLayout
       navigationItems={navigationItems}
       user={{ name: 'Gaurav Enterprise', email: 'partner@dealerconnect.in' }}
-      onLogout={() => {
-        if (typeof window !== 'undefined') window.location.href = '/';
-      }}
       topBarProps={{
         pageTitle: 'AI Business Intelligence',
         breadcrumbs: [{ label: 'Cockpit', href: '/dashboard' }, { label: 'AI Intelligence' }],

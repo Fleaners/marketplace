@@ -351,9 +351,6 @@ export default function ProfilePage() {
     <DashboardLayout
       navigationItems={navigationItems}
       user={{ name: profile.businessName, email: profile.email }}
-      onLogout={() => {
-        if (typeof window !== 'undefined') window.location.href = '/';
-      }}
       topBarProps={{
         pageTitle: 'Seller Profile',
         breadcrumbs: [{ label: 'Cockpit', href: '/dashboard' }, { label: 'Profile Settings' }],

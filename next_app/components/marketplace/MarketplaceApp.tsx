@@ -13,6 +13,8 @@ import {
   saveProduct,
   upsertUserProfile,
   uploadProfileAsset,
+  subscribeProducts,
+  subscribeUserProfile,
 } from '../../lib/marketplace/firestore';
 import { getFirebaseServices } from '../../lib/firebase';
 import type {
@@ -23,6 +25,7 @@ import type {
 } from '../../lib/marketplace/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { VersionAlert } from '../dashboard/VersionAlert';
 
 const demoAddresses: ShippingAddress[] = [
   {
@@ -56,10 +59,21 @@ export default function MarketplaceApp() {
   const [activeTab, setActiveTab] = useState<'home' | 'search' | 'wishlist' | 'profile' | 'more'>('home');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const [filterGstOnly, setFilterGstOnly] = useState(false);
   const [filterInStockOnly, setFilterInStockOnly] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showSellerSandbox, setShowSellerSandbox] = useState(false);
+
+  useEffect(() => {
+    setIsSearching(true);
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setIsSearching(false);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const [sellerProfile, setSellerProfile] = useState<UserProfile>({
     id: 'seller-demo-01',
@@ -134,7 +148,7 @@ export default function MarketplaceApp() {
   const caps = useMemo(() => PLAN_CAPABILITIES[plan], [plan]);
   const totalRevenue = products.reduce((sum, item) => sum + (item.analytics.revenue || 0), 0);
 
-  // Sync products with localStorage
+  // Sync products with Firestore real-time listener (fallback to localStorage initially)
   useEffect(() => {
     try {
       const stored = localStorage.getItem('marketplace_products');
@@ -221,6 +235,35 @@ export default function MarketplaceApp() {
     } catch (e) {
       console.error('Failed to sync products', e);
     }
+
+    // Set up real-time listener to keep products updated
+    const unsubscribeProducts = subscribeProducts((updatedList) => {
+      setProducts(updatedList);
+      try {
+        localStorage.setItem('marketplace_products', JSON.stringify(updatedList));
+      } catch (e) {}
+    });
+
+    // Set up profile listeners for real-time buyer & seller updates
+    const unsubscribeSeller = subscribeUserProfile(sellerProfile.id, (profile) => {
+      setSellerProfile(profile);
+      try {
+        localStorage.setItem('marketplace_seller_profile', JSON.stringify(profile));
+      } catch (e) {}
+    });
+
+    const unsubscribeBuyer = subscribeUserProfile(buyerProfile.id, (profile) => {
+      setBuyerProfile(profile);
+      try {
+        localStorage.setItem('marketplace_buyer_profile', JSON.stringify(profile));
+      } catch (e) {}
+    });
+
+    return () => {
+      unsubscribeProducts();
+      unsubscribeSeller();
+      unsubscribeBuyer();
+    };
   }, []);
 
   // Monitor scroll for back-to-top button
@@ -435,15 +478,15 @@ export default function MarketplaceApp() {
   const filteredProducts = useMemo(() => {
     return products.filter((prod) => {
       const matchesCategory = selectedCategory === 'All' || prod.categories?.includes(selectedCategory);
-      const matchesSearch = !searchQuery.trim() || 
-        prod.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        prod.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = !debouncedSearchQuery.trim() || 
+        prod.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        prod.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
       const matchesGst = !filterGstOnly || (prod as any).gst !== false;
       const matchesStock = !filterInStockOnly || ((prod as any).stock ?? 5) > 0;
 
       return matchesCategory && matchesSearch && matchesGst && matchesStock;
     });
-  }, [products, selectedCategory, searchQuery, filterGstOnly, filterInStockOnly]);
+  }, [products, selectedCategory, debouncedSearchQuery, filterGstOnly, filterInStockOnly]);
 
   const activeThemeClass = isDark ? 'dark' : '';
 
@@ -553,7 +596,19 @@ export default function MarketplaceApp() {
                     </h3>
                   </div>
 
-                  {filteredProducts.length === 0 ? (
+                  {isSearching ? (
+                    <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
+                      {[1, 2, 3].map((idx) => (
+                        <div key={idx} className="animate-pulse rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 flex flex-col justify-between h-[300px]">
+                          <div className="aspect-square rounded-2xl bg-slate-200 dark:bg-slate-850 w-full" />
+                          <div className="space-y-2 mt-3 flex-1 flex flex-col justify-end">
+                            <div className="h-4 bg-slate-200 dark:bg-slate-850 rounded w-3/4" />
+                            <div className="h-3 bg-slate-200 dark:bg-slate-850 rounded w-1/2" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
                     <div className="rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-10 text-center text-slate-500">
                       <p className="text-3xl">📦</p>
                       <p className="mt-2 text-sm font-bold">No products match your filters</p>
@@ -1048,6 +1103,7 @@ export default function MarketplaceApp() {
           })}
         </nav>
 
+        <VersionAlert />
       </div>
     </div>
   );

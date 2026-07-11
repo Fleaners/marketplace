@@ -93,13 +93,6 @@ export default function DashboardPage() {
     router.push('/dashboard/products/?new=true');
   };
 
-  const handleLogout = () => {
-    // Standard logout redirection to landing buyer view
-    if (typeof window !== 'undefined') {
-      window.location.href = '/';
-    }
-  };
-
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiMessage.trim()) return;
@@ -137,7 +130,6 @@ export default function DashboardPage() {
     <DashboardLayout
       navigationItems={navigationItems}
       user={{ name: state.sellerName, email: 'partner@dealerconnect.in' }}
-      onLogout={handleLogout}
       topBarProps={{
         pageTitle: 'Business Cockpit',
         breadcrumbs: [{ label: 'Home', href: '/' }, { label: 'Cockpit' }],

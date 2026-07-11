@@ -294,9 +294,6 @@ function ProductsCatalog() {
     <DashboardLayout
       navigationItems={navigationItems}
       user={{ name: 'Gaurav Enterprise', email: 'partner@dealerconnect.in' }}
-      onLogout={() => {
-        if (typeof window !== 'undefined') window.location.href = '/';
-      }}
       topBarProps={{
         pageTitle: 'Products Catalog',
         breadcrumbs: [{ label: 'Cockpit', href: '/dashboard' }, { label: 'Products' }],

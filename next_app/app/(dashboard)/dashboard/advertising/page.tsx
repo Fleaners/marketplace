@@ -170,9 +170,6 @@ export default function AdvertisingPage() {
     <DashboardLayout
       navigationItems={navigationItems}
       user={{ name: 'Gaurav Enterprise', email: 'partner@dealerconnect.in' }}
-      onLogout={() => {
-        if (typeof window !== 'undefined') window.location.href = '/';
-      }}
       topBarProps={{
         pageTitle: 'Advertising Hub',
         breadcrumbs: [{ label: 'Cockpit', href: '/dashboard' }, { label: 'Advertising' }],
