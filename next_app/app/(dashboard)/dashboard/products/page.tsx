@@ -419,17 +419,17 @@ function ProductsCatalog() {
               return (
                 <Card
                   key={prod.id}
-                  className={`group relative rounded-[28px] border overflow-hidden bg-white flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:border-slate-700/80 hover:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.5)] ${
+                  className={`group relative rounded-[28px] border overflow-hidden bg-white dark:bg-slate-900 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:border-slate-700/80 dark:hover:border-slate-650 hover:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.05)] ${
                     prod.archived
-                      ? 'border-[#f3d9a7] opacity-60'
+                      ? 'border-[#f3d9a7] dark:border-slate-800 opacity-60'
                       : isLowStock
-                      ? 'border-amber-500/20 hover:border-amber-500/40 shadow-[0_12px_24px_-10px_rgba(245,158,11,0.05)]'
-                      : 'border-[#f3d9a7]'
+                      ? 'border-amber-500/20 dark:border-amber-500/10 hover:border-amber-500/40 shadow-[0_12px_24px_-10px_rgba(245,158,11,0.05)]'
+                      : 'border-[#f3d9a7] dark:border-slate-850'
                   }`}
                 >
                   <div>
                     {/* Header Image area */}
-                    <div className="relative aspect-[16/10] bg-[#fff6e6] border-b border-[#f3d9a7]/60 overflow-hidden flex items-center justify-center">
+                    <div className="relative aspect-[16/10] bg-[#fff6e6] dark:bg-slate-950 border-b border-[#f3d9a7]/60 dark:border-slate-800/60 overflow-hidden flex items-center justify-center">
                       {prod.images && prod.images.length > 0 ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -443,11 +443,11 @@ function ProductsCatalog() {
 
                       {/* Floating Status Badges */}
                       <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
-                        <span className="rounded-md bg-white/85 backdrop-blur-md border border-[#f3d9a7] px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                        <span className="rounded-md bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-[#f3d9a7] dark:border-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-650 dark:text-slate-300">
                           {prod.category}
                         </span>
                         {prod.gst && (
-                          <span className="rounded-md bg-emerald-500/90 backdrop-blur-md border border-emerald-600 px-2 py-0.5 text-[10px] font-bold text-slate-950 uppercase tracking-wide">
+                          <span className="rounded-md bg-emerald-500/90 dark:bg-emerald-600/90 backdrop-blur-md border border-emerald-600 dark:border-emerald-700 px-2 py-0.5 text-[10px] font-bold text-slate-950 uppercase tracking-wide">
                             GST Benefit
                           </span>
                         )}
@@ -456,7 +456,7 @@ function ProductsCatalog() {
                       {/* stock alert badge */}
                       <div className="absolute top-3 right-3">
                         {prod.archived ? (
-                          <span className="rounded-md bg-[#fff6e6]/95 border border-[#f3d9a7] px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">
+                          <span className="rounded-md bg-[#fff6e6]/95 dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase">
                             Archived
                           </span>
                         ) : isLowStock ? (
@@ -464,7 +464,7 @@ function ProductsCatalog() {
                             Low Stock: {prod.stock}
                           </span>
                         ) : (
-                          <span className="rounded-md bg-emerald-500/10 backdrop-blur-md border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                          <span className="rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 backdrop-blur-md border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
                             Stock: {prod.stock} {prod.unit}
                           </span>
                         )}
@@ -475,34 +475,34 @@ function ProductsCatalog() {
                     <div className="p-5 space-y-3">
                       <div className="space-y-1.5">
                         <div className="flex justify-between items-start gap-2">
-                          <h3 className="text-base font-bold text-[#1f2937] line-clamp-1 group-hover:text-amber-600 transition-colors">
+                          <h3 className="text-base font-bold text-[#1f2937] dark:text-white line-clamp-1 group-hover:text-amber-600 transition-colors">
                             {prod.name}
                           </h3>
                         </div>
-                        <p className="text-xs text-slate-500 font-mono tracking-tight">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-mono tracking-tight">
                           SKU: {prod.sku}
                         </p>
                       </div>
 
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                         {prod.description}
                       </p>
 
                       {/* Specific metrics specs */}
-                      <div className="grid grid-cols-2 gap-2 bg-[#fff6e6] p-2.5 rounded-2xl border border-[#f3d9a7]/60 text-center">
+                      <div className="grid grid-cols-2 gap-2 bg-[#fff6e6] dark:bg-slate-950 p-2.5 rounded-2xl border border-[#f3d9a7]/60 dark:border-slate-800/60 text-center">
                         <div>
-                          <p className="text-[10px] text-slate-500 uppercase tracking-wider">
+                          <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
                             Min Order (MOQ)
                           </p>
-                          <p className="text-xs font-bold text-[#1f2937] mt-0.5">
+                          <p className="text-xs font-bold text-[#1f2937] dark:text-white mt-0.5">
                             {prod.moq} {prod.unit}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[10px] text-slate-500 uppercase tracking-wider">
+                          <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
                             Delivery
                           </p>
-                          <p className="text-xs font-bold text-[#1f2937] mt-0.5">
+                          <p className="text-xs font-bold text-[#1f2937] dark:text-white mt-0.5">
                             {prod.delivery}
                           </p>
                         </div>
@@ -514,7 +514,7 @@ function ProductsCatalog() {
                           {prod.tags.slice(0, 3).map((t) => (
                             <span
                               key={t}
-                              className="text-[10px] font-medium bg-[#fff6e6] border border-[#f3d9a7] px-2 py-0.5 rounded-full text-slate-500"
+                              className="text-[10px] font-medium bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-2 py-0.5 rounded-full text-slate-500 dark:text-slate-400"
                             >
                               #{t}
                             </span>
@@ -525,12 +525,12 @@ function ProductsCatalog() {
                   </div>
 
                   {/* Actions bottom tray */}
-                  <div className="p-5 border-t border-[#f3d9a7]/80 bg-[#fff0db]/50 flex items-center justify-between gap-4 rounded-b-[28px]">
+                  <div className="p-5 border-t border-[#f3d9a7]/80 dark:border-slate-850 bg-[#fff0db]/50 dark:bg-slate-950/40 flex items-center justify-between gap-4 rounded-b-[28px]">
                     <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">
                         Wholesale Price
                       </p>
-                      <p className="text-lg font-black text-[#1f2937]">
+                      <p className="text-lg font-black text-[#1f2937] dark:text-white">
                         ₹{prod.price.toLocaleString('en-IN')}{' '}
                         <span className="text-xs text-slate-500 font-medium">/ {prod.unit}</span>
                       </p>
@@ -542,7 +542,7 @@ function ProductsCatalog() {
                       <button
                         onClick={() => openEditForm(prod)}
                         title="Edit Product"
-                        className="h-9 w-9 rounded-xl bg-[#fff6e6] hover:bg-slate-800 border border-[#f3d9a7] flex items-center justify-center text-slate-600 hover:text-[#1f2937] transition-all duration-200 active:scale-95"
+                        className="h-9 w-9 rounded-xl bg-[#fff6e6] dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 border border-[#f3d9a7] dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-[#1f2937] dark:hover:text-white transition-all duration-200 active:scale-95"
                       >
                         ✏️
                       </button>
@@ -551,7 +551,7 @@ function ProductsCatalog() {
                       <button
                         onClick={() => handleDuplicateProduct(prod)}
                         title="Duplicate Listing"
-                        className="h-9 w-9 rounded-xl bg-[#fff6e6] hover:bg-slate-800 border border-[#f3d9a7] flex items-center justify-center text-slate-600 hover:text-[#1f2937] transition-all duration-200 active:scale-95"
+                        className="h-9 w-9 rounded-xl bg-[#fff6e6] dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 border border-[#f3d9a7] dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-[#1f2937] dark:hover:text-white transition-all duration-200 active:scale-95"
                       >
                         👥
                       </button>
@@ -562,8 +562,8 @@ function ProductsCatalog() {
                         title={prod.archived ? 'Activate Product' : 'Archive Product'}
                         className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all duration-200 active:scale-95 ${
                           prod.archived
-                            ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                            : 'bg-[#fff6e6] hover:bg-slate-800 border-[#f3d9a7] text-slate-600 hover:text-amber-700'
+                            ? 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400 hover:bg-amber-100'
+                            : 'bg-[#fff6e6] dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 border-[#f3d9a7] dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-amber-700'
                         }`}
                       >
                         🗄️
@@ -573,7 +573,7 @@ function ProductsCatalog() {
                       <button
                         onClick={() => handleDeleteTrigger(prod.id)}
                         title="Delete Permanently"
-                        className="h-9 w-9 rounded-xl bg-[#fff6e6] hover:bg-rose-50 border border-[#f3d9a7] hover:border-rose-200 flex items-center justify-center text-slate-500 hover:text-rose-700 transition-all duration-200 active:scale-95"
+                        className="h-9 w-9 rounded-xl bg-[#fff6e6] dark:bg-slate-950 hover:bg-rose-50 dark:hover:bg-rose-950/20 border border-[#f3d9a7] dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-800/40 flex items-center justify-center text-slate-500 hover:text-rose-700 transition-all duration-200 active:scale-95"
                       >
                         🗑️
                       </button>
@@ -591,15 +591,15 @@ function ProductsCatalog() {
             {/* Backdrop background blur */}
             <div
               onClick={() => setIsFormOpen(false)}
-              className="absolute inset-0 bg-white/70 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
+              className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
             />
 
             {/* Slide-in Form Container */}
-            <div className="relative w-full max-w-2xl h-full bg-white border-l border-[#f3d9a7] flex flex-col shadow-2xl z-10 transition-transform duration-300 ease-out transform animate-slide-in">
+            <div className="relative w-full max-w-2xl h-full bg-white dark:bg-slate-900 border-l border-[#f3d9a7] dark:border-slate-800 flex flex-col shadow-2xl z-10 transition-transform duration-300 ease-out transform animate-slide-in">
               {/* Form Header */}
-              <div className="p-6 border-b border-[#f3d9a7] flex items-center justify-between bg-white/90 backdrop-blur-md sticky top-0 z-20">
+              <div className="p-6 border-b border-[#f3d9a7] dark:border-slate-800 flex items-center justify-between bg-white/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-20">
                 <div>
-                  <h2 className="text-xl font-bold text-[#1f2937]">
+                  <h2 className="text-xl font-bold text-[#1f2937] dark:text-white">
                     {editingProduct ? 'Edit Product Listing' : 'Add New B2B Listing'}
                   </h2>
                   <p className="text-xs text-slate-500 mt-1">

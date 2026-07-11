@@ -88,8 +88,21 @@ export default function AIInsightsPage() {
         'Predicted 35% seasonal demand spike for Electrical supplies over next 14 days.',
         'Safety inventory threshold trigger: restock PVC pipes within 5 days.'
       ]
+    },
+    {
+      name: 'NVIDIA GLM-5.2 Agent',
+      role: 'General Business Advisor & Cross-Lingual Expert',
+      status: 'idle',
+      lastRun: 'Just now',
+      color: 'from-teal-500 to-emerald-500',
+      logs: [
+        'Initialized Z.ai GLM-5.2 reasoning connection...',
+        'Ready to process general commerce advisories and cross-lingual negotiations.',
+        'Active status verified on NVIDIA NIM endpoints.'
+      ]
     }
   ]);
+
 
   // 2. Chat States
   const [chatSelectedAgent, setChatSelectedAgent] = useState<string>('All-Agent Orchestrator');
@@ -457,7 +470,8 @@ export default function AIInsightsPage() {
         headers,
         body: JSON.stringify({
           prompt: userText,
-          data: businessContext
+          data: businessContext,
+          agentName: chatSelectedAgent
         })
       });
 
@@ -511,16 +525,16 @@ export default function AIInsightsPage() {
       <div className="space-y-6">
         
         {/* Page Header */}
-        <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border border-[#f3d9a7] p-6 rounded-[32px]">
+        <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border border-[#f3d9a7] dark:border-slate-800 p-6 rounded-[32px] shadow-lg">
           <div className="space-y-1">
             <span className="text-xs font-bold text-accent-500 uppercase tracking-widest">Multi-Agent Suite</span>
-            <h1 className="text-2xl font-bold text-[#1f2937]">Autonomous Commerce Advisor</h1>
-            <p className="text-xs text-slate-500">
+            <h1 className="text-2xl font-black text-white">Autonomous Commerce Advisor</h1>
+            <p className="text-xs text-slate-400">
               Continuous background learning active. Models are synchronized with your inventory catalog and public tax codes.
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-xs font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Agent Orchestrator Live
@@ -532,43 +546,43 @@ export default function AIInsightsPage() {
         </section>
 
         {/* Dynamic Navigation Tabs */}
-        <div className="flex overflow-x-auto gap-2 p-1 bg-[#fff6e6] border border-[#f3d9a7] rounded-2xl">
+        <div className="flex overflow-x-auto gap-2 p-1 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 rounded-2xl">
           <button
             onClick={() => setActiveTab('cockpit')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-              activeTab === 'cockpit' ? 'bg-[#FAB12F] text-slate-950 shadow' : 'text-slate-500 hover:text-[#1f2937] hover:bg-[#fff6e6]/40'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              activeTab === 'cockpit' ? 'bg-[#FAB12F] text-slate-950 shadow border border-accent-600/10' : 'text-slate-550 dark:text-slate-400 hover:text-[#1f2937] dark:hover:text-white hover:bg-[#fff6e6]/40 dark:hover:bg-slate-900/40'
             }`}
           >
             📊 Orchestrator Cockpit
           </button>
           <button
             onClick={() => setActiveTab('chat')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-              activeTab === 'chat' ? 'bg-[#FAB12F] text-slate-950 shadow' : 'text-slate-500 hover:text-[#1f2937] hover:bg-[#fff6e6]/40'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              activeTab === 'chat' ? 'bg-[#FAB12F] text-slate-950 shadow border border-accent-600/10' : 'text-slate-550 dark:text-slate-400 hover:text-[#1f2937] dark:hover:text-white hover:bg-[#fff6e6]/40 dark:hover:bg-slate-900/40'
             }`}
           >
             💬 Interactive Agent Chat
           </button>
           <button
             onClick={() => setActiveTab('inventory')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-              activeTab === 'inventory' ? 'bg-[#FAB12F] text-slate-950 shadow' : 'text-slate-500 hover:text-[#1f2937] hover:bg-[#fff6e6]/40'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              activeTab === 'inventory' ? 'bg-[#FAB12F] text-slate-950 shadow border border-accent-600/10' : 'text-slate-550 dark:text-slate-400 hover:text-[#1f2937] dark:hover:text-white hover:bg-[#fff6e6]/40 dark:hover:bg-slate-900/40'
             }`}
           >
             📦 Safety Stock & LSTM
           </button>
           <button
             onClick={() => setActiveTab('gst')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-              activeTab === 'gst' ? 'bg-[#FAB12F] text-slate-950 shadow' : 'text-slate-500 hover:text-[#1f2937] hover:bg-[#fff6e6]/40'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              activeTab === 'gst' ? 'bg-[#FAB12F] text-slate-950 shadow border border-accent-600/10' : 'text-slate-555 dark:text-slate-400 hover:text-[#1f2937] dark:hover:text-white hover:bg-[#fff6e6]/40 dark:hover:bg-slate-900/40'
             }`}
           >
             🧾 GST Invoice & Advisor
           </button>
           <button
             onClick={() => setActiveTab('marketing')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-              activeTab === 'marketing' ? 'bg-[#FAB12F] text-slate-950 shadow' : 'text-slate-500 hover:text-[#1f2937] hover:bg-[#fff6e6]/40'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              activeTab === 'marketing' ? 'bg-[#FAB12F] text-slate-950 shadow border border-accent-600/10' : 'text-slate-555 dark:text-slate-400 hover:text-[#1f2937] dark:hover:text-white hover:bg-[#fff6e6]/40 dark:hover:bg-slate-900/40'
             }`}
           >
             📢 Digital Marketing Hub
@@ -583,41 +597,41 @@ export default function AIInsightsPage() {
             <div className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 {agents.map((agent, i) => (
-                  <Card key={i} className="bg-white border border-[#f3d9a7] p-5 rounded-3xl space-y-4">
+                  <Card key={i} className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-5 rounded-3xl space-y-4 shadow-sm">
                     <div className="flex justify-between items-start">
                       <div className={`p-2 rounded-xl bg-gradient-to-r ${agent.color} text-slate-950 font-bold text-lg`}>
-                        {i === 0 ? '📈' : i === 1 ? '🏛️' : i === 2 ? '📣' : '⚙️'}
+                        {i === 0 ? '📈' : i === 1 ? '🏛️' : i === 2 ? '📣' : i === 3 ? '⚙️' : '⚡'}
                       </div>
                       <Badge className={`text-[10px] uppercase font-bold py-0.5 px-2 ${
                         agent.status === 'training'
-                          ? 'bg-amber-50 border border-amber-200 text-amber-700 animate-pulse'
-                          : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                          ? 'bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-400 animate-pulse'
+                          : 'bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400'
                       }`}>
                         {agent.status === 'training' ? 'learning' : 'active'}
                       </Badge>
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-[#1f2937] leading-tight">{agent.name}</h4>
-                      <p className="text-[11px] text-slate-500 mt-1">{agent.role}</p>
+                      <h4 className="text-sm font-bold text-[#1f2937] dark:text-white leading-tight">{agent.name}</h4>
+                      <p className="text-[11px] text-slate-505 dark:text-slate-400 mt-1 leading-normal">{agent.role}</p>
                     </div>
-                    <div className="pt-3 border-t border-[#f3d9a7]/60 flex justify-between items-center text-[10px] text-slate-500 font-medium">
+                    <div className="pt-3 border-t border-[#f3d9a7]/60 dark:border-slate-800/60 flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                       <span>Refitted {agent.lastRun}</span>
-                      <span className="text-slate-600">Continuous ✓</span>
+                      <span className="text-slate-600 dark:text-slate-350">Continuous ✓</span>
                     </div>
                   </Card>
                 ))}
               </div>
 
               {/* Real-time System Loop Console */}
-              <Card className="bg-white border border-[#f3d9a7] p-6 rounded-3xl space-y-4">
+              <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-6 rounded-3xl space-y-4 shadow-sm">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="text-base font-bold text-[#1f2937]">4-Structure Autonomous Loop</h3>
-                    <p className="text-xs text-slate-500">Visualizing real-time Discover-Learn-Test-Improve sequences</p>
+                    <h3 className="text-base font-bold text-[#1f2937] dark:text-white">4-Structure Autonomous Loop</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Visualizing real-time Discover-Learn-Test-Improve sequences</p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#FAB12F] animate-ping" />
-                    <span className="text-xs text-amber-600 font-bold">State: {loopState}</span>
+                    <span className="text-xs text-amber-600 dark:text-amber-400 font-bold">State: {loopState}</span>
                   </div>
                 </div>
 
@@ -628,8 +642,8 @@ export default function AIInsightsPage() {
                       key={step}
                       className={`py-3 rounded-xl border transition-all ${
                         loopState === step
-                          ? 'bg-[#FAB12F]/10 border-accent-500/40 text-amber-600 shadow-[0_0_15px_rgba(255,149,0,0.15)] scale-[1.02]'
-                          : 'bg-[#fff6e6] border-[#f3d9a7] text-slate-500'
+                          ? 'bg-[#FAB12F]/10 dark:bg-[#FAB12F]/5 border-accent-500/40 dark:border-[#FAB12F]/20 text-amber-600 shadow-[0_0_15px_rgba(255,149,0,0.15)] scale-[1.02]'
+                          : 'bg-[#fff6e6] dark:bg-slate-950 border-[#f3d9a7] dark:border-slate-800 text-slate-550 dark:text-slate-400'
                       }`}
                     >
                       <div className="text-base mb-1">
@@ -641,7 +655,7 @@ export default function AIInsightsPage() {
                 </div>
 
                 {/* Simulated Logs Terminal */}
-                <div className="bg-[#fff6e6] border border-[#f3d9a7] p-4 rounded-2xl font-mono text-[11px] text-emerald-400/90 space-y-1.5 max-h-[180px] overflow-y-auto">
+                <div className="bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 p-4 rounded-2xl font-mono text-[11px] text-emerald-600 dark:text-emerald-400 space-y-1.5 max-h-[180px] overflow-y-auto">
                   {loopLog.length === 0 ? (
                     <div className="text-slate-500 italic">Initializing autonomous multi-agent training pipelines...</div>
                   ) : (
@@ -655,16 +669,16 @@ export default function AIInsightsPage() {
             <div className="space-y-6">
               
               {/* Premium Circular/Card Progress Growth Score */}
-              <Card className="bg-white border border-[#f3d9a7] p-6 rounded-3xl text-center space-y-6 flex flex-col justify-between items-center">
+              <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-6 rounded-3xl text-center space-y-6 flex flex-col justify-between items-center shadow-sm">
                 <div className="w-full text-left">
-                  <h3 className="text-sm font-bold text-[#1f2937] uppercase tracking-wider text-slate-500">AI Growth Score</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Optimized against category, inventory, and margin indexes</p>
+                  <h3 className="text-sm font-bold text-[#1f2937] dark:text-white uppercase tracking-wider text-slate-500">AI Growth Score</h3>
+                  <p className="text-xs text-slate-505 dark:text-slate-400 mt-0.5">Optimized against category, inventory, and margin indexes</p>
                 </div>
 
                 {/* Dynamic circular display */}
                 <div className="relative w-36 h-36 flex items-center justify-center">
                   <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="72" cy="72" r="60" stroke="#0f172a" strokeWidth="12" fill="transparent" />
+                    <circle cx="72" cy="72" r="60" stroke="#f1f5f9" strokeWidth="12" fill="transparent" className="dark:stroke-slate-950" />
                     <circle
                       cx="72"
                       cy="72"
@@ -685,16 +699,16 @@ export default function AIInsightsPage() {
                     </defs>
                   </svg>
                   <div className="absolute flex flex-col items-center">
-                    <span className="text-4xl font-extrabold text-[#1f2937] tracking-tight">{growthScore}</span>
+                    <span className="text-4xl font-extrabold text-[#1f2937] dark:text-white tracking-tight">{growthScore}</span>
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">/100 points</span>
                   </div>
                 </div>
 
-                <div className="w-full bg-[#fff6e6] border border-[#f3d9a7] rounded-2xl p-4 text-left">
-                  <p className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                <div className="w-full bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 rounded-2xl p-4 text-left">
+                  <p className="text-xs text-emerald-600 dark:text-emerald-450 font-bold flex items-center gap-1">
                     <span>📈</span> +4% growth factor calculated this cycle.
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-normal">
+                  <p className="text-[11px] text-slate-505 dark:text-slate-400 mt-1 leading-normal">
                     Adding valid HSN slabs and deploying targeted Facebook and Google Search ads can elevate your performance index to 92.
                   </p>
                 </div>
@@ -702,30 +716,30 @@ export default function AIInsightsPage() {
 
               {/* Metrics Grid */}
               <div className="grid grid-cols-3 gap-3">
-                <Card className="bg-white border border-[#f3d9a7] p-3.5 rounded-2xl text-center space-y-1">
-                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Performance</p>
-                  <p className="text-sm font-extrabold text-[#1f2937]">84%</p>
+                <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
+                  <p className="text-[9px] text-slate-500 dark:text-slate-405 font-bold uppercase tracking-wider">Performance</p>
+                  <p className="text-sm font-extrabold text-[#1f2937] dark:text-white">84%</p>
                 </Card>
-                <Card className="bg-white border border-[#f3d9a7] p-3.5 rounded-2xl text-center space-y-1">
-                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">SEO Score</p>
-                  <p className="text-sm font-extrabold text-[#1f2937]">92%</p>
+                <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
+                  <p className="text-[9px] text-slate-500 dark:text-slate-405 font-bold uppercase tracking-wider">SEO Score</p>
+                  <p className="text-sm font-extrabold text-[#1f2937] dark:text-white">92%</p>
                 </Card>
-                <Card className="bg-white border border-[#f3d9a7] p-3.5 rounded-2xl text-center space-y-1">
-                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Inv Health</p>
-                  <p className="text-sm font-extrabold text-emerald-600">95%</p>
+                <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
+                  <p className="text-[9px] text-slate-500 dark:text-slate-405 font-bold uppercase tracking-wider">Inv Health</p>
+                  <p className="text-sm font-extrabold text-emerald-650 dark:text-emerald-400">95%</p>
                 </Card>
               </div>
 
               {/* Opportunity Stream */}
-              <Card className="bg-white border border-[#f3d9a7] p-6 rounded-3xl space-y-4">
-                <h3 className="text-base font-bold text-[#1f2937]">Recommended Opportunities</h3>
+              <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-6 rounded-3xl space-y-4 shadow-sm">
+                <h3 className="text-base font-bold text-[#1f2937] dark:text-white">Recommended Opportunities</h3>
                 
                 <div className="space-y-3.5">
                   <div className="flex gap-3.5 p-3 rounded-2xl bg-blue-500/5 border border-blue-500/10">
                     <span className="text-xl">📊</span>
                     <div>
-                      <h4 className="text-xs font-bold text-[#1f2937]">High Category Yield Alert</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
+                      <h4 className="text-xs font-bold text-[#1f2937] dark:text-white">High Category Yield Alert</h4>
+                      <p className="text-[11px] text-slate-655 dark:text-slate-400 mt-0.5">
                         Electrical supplies inquiry velocities surged +28%. Increase inventory coverage for "Copper Grounding Wire" now.
                       </p>
                     </div>
@@ -734,8 +748,8 @@ export default function AIInsightsPage() {
                   <div className="flex gap-3.5 p-3 rounded-2xl bg-amber-500/5 border border-amber-500/10">
                     <span className="text-xl">⚠️</span>
                     <div>
-                      <h4 className="text-xs font-bold text-[#1f2937]">Inventory Running Below MOQ</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
+                      <h4 className="text-xs font-bold text-[#1f2937] dark:text-white">Inventory Running Below MOQ</h4>
+                      <p className="text-[11px] text-slate-655 dark:text-slate-400 mt-0.5">
                         "Copper Core Grounding Wire" is 1 unit below MOQ limit. Replenish within 5 days to secure upcoming RFQs.
                       </p>
                     </div>
@@ -744,8 +758,8 @@ export default function AIInsightsPage() {
                   <div className="flex gap-3.5 p-3 rounded-2xl bg-pink-500/5 border border-pink-500/10">
                     <span className="text-xl">📢</span>
                     <div>
-                      <h4 className="text-xs font-bold text-[#1f2937]">Suggested Promotional Campaign</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
+                      <h4 className="text-xs font-bold text-[#1f2937] dark:text-white">Suggested Promotional Campaign</h4>
+                      <p className="text-[11px] text-slate-655 dark:text-slate-400 mt-0.5">
                         Launch a Facebook Ads Campaign targeted to builders in South India. Recommended budget ₹12,000; expected reach 3,000 businesses.
                       </p>
                     </div>
@@ -762,42 +776,43 @@ export default function AIInsightsPage() {
           <div className="grid gap-6 lg:grid-cols-[1fr_2.5fr]">
             
             {/* Agent Selector */}
-            <Card className="bg-white border border-[#f3d9a7] p-5 rounded-3xl space-y-3">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select Agent Persona</h3>
+            <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-5 rounded-3xl space-y-3 shadow-sm">
+              <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Select Agent Persona</h3>
               {[
                 { name: 'All-Agent Orchestrator', desc: 'Unified network supervisor', emoji: '🤖' },
                 { name: 'Commerce Intelligence Agent', desc: 'Category growth & trends expert', emoji: '📈' },
                 { name: 'GST Intelligence Agent', desc: 'HSN, billing & threshold advisor', emoji: '🏛️' },
                 { name: 'Digital Marketing Agent', desc: 'Copywriter & performance advisor', emoji: '📣' },
-                { name: 'Inventory Optimization Agent', desc: 'Lead time & replenishment forecaster', emoji: '⚙️' }
+                { name: 'Inventory Optimization Agent', desc: 'Lead time & replenishment forecaster', emoji: '⚙️' },
+                { name: 'NVIDIA GLM-5.2 Agent', desc: 'General business & cross-lingual advisor', emoji: '⚡' }
               ].map((persona) => (
                 <button
                   key={persona.name}
                   onClick={() => setChatSelectedAgent(persona.name)}
                   className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-start gap-3 ${
                     chatSelectedAgent === persona.name
-                      ? 'bg-[#FAB12F]/10 border-accent-500/30 text-[#1f2937]'
-                      : 'bg-[#fff6e6]/50 border-[#f3d9a7] text-slate-500 hover:text-[#1f2937] hover:border-[#f3d9a7]'
+                      ? 'bg-[#FAB12F]/15 dark:bg-slate-950 border-accent-500/30 text-[#1f2937] dark:text-white shadow-sm ring-1 ring-accent-500/20'
+                      : 'bg-[#fff6e6]/50 dark:bg-slate-950/20 border-[#f3d9a7] dark:border-slate-850 text-slate-600 dark:text-slate-400 hover:text-[#1f2937] dark:hover:text-white'
                   }`}
                 >
                   <span className="text-lg">{persona.emoji}</span>
                   <div>
-                    <h4 className="text-xs font-bold leading-none">{persona.name}</h4>
-                    <p className="text-[10px] text-slate-500 mt-1 leading-normal">{persona.desc}</p>
+                    <h4 className="text-xs font-black leading-none">{persona.name}</h4>
+                    <p className="text-[10px] text-slate-505 dark:text-slate-450 mt-1 leading-normal">{persona.desc}</p>
                   </div>
                 </button>
               ))}
             </Card>
 
             {/* Chat Log Viewport */}
-            <Card className="bg-white border border-[#f3d9a7] rounded-3xl flex flex-col h-[520px] overflow-hidden">
+            <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 rounded-3xl flex flex-col h-[520px] overflow-hidden shadow-sm">
               {/* Chat Header */}
-              <div className="bg-[#fff6e6] border-b border-[#f3d9a7] px-6 py-4 flex items-center justify-between">
+              <div className="bg-[#fff6e6] dark:bg-slate-950 border-b border-[#f3d9a7] dark:border-slate-800 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <span className="text-lg">💬</span>
                   <div>
-                    <h3 className="text-xs font-bold text-[#1f2937] leading-tight">{chatSelectedAgent}</h3>
-                    <p className="text-[10px] text-emerald-400 font-semibold mt-0.5 flex items-center gap-1">
+                    <h3 className="text-xs font-bold text-[#1f2937] dark:text-white leading-tight">{chatSelectedAgent}</h3>
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Ready to consult
                     </p>
@@ -827,14 +842,14 @@ export default function AIInsightsPage() {
                       chat.sender === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'
                     }`}
                   >
-                    <span className="text-[10px] font-bold text-slate-500 mb-1">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
                       {chat.agentName} • {chat.time}
                     </span>
                     <div
                       className={`p-4 rounded-2xl text-xs font-semibold leading-relaxed border ${
                         chat.sender === 'user'
-                          ? 'bg-[#222222] text-white border-[#222222] rounded-tr-none'
-                          : 'bg-[#fff6e6] text-slate-700 border-[#f3d9a7] rounded-tl-none'
+                          ? 'bg-[#222222] dark:bg-slate-800 text-white border-[#222222] dark:border-slate-700 rounded-tr-none shadow-sm'
+                          : 'bg-[#fff6e6] dark:bg-slate-950 text-slate-700 dark:text-slate-205 border-[#f3d9a7] dark:border-slate-850 rounded-tl-none shadow-xs'
                       }`}
                     >
                       {chat.text}
@@ -892,11 +907,11 @@ export default function AIInsightsPage() {
 
                     {/* Inline correction textarea */}
                     {editingMessageIdx === idx && (
-                      <div className="w-full mt-2 space-y-2 bg-[#FFFBF0] border border-[#f3d9a7] p-3 rounded-2xl">
+                      <div className="w-full mt-2 space-y-2 bg-[#FFFBF0] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 p-3 rounded-2xl">
                         <textarea
                           value={editingMessageText}
                           onChange={(e) => setEditingMessageText(e.target.value)}
-                          className="w-full bg-white border border-[#f3d9a7] p-2 rounded-xl text-xs font-semibold leading-relaxed text-[#222222] focus:outline-none focus:ring-1 focus:ring-[#FF9F1C] min-h-[60px]"
+                          className="w-full bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-2 rounded-xl text-xs font-semibold leading-relaxed text-[#222222] dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-[#FF9F1C] min-h-[60px]"
                         />
                         <div className="flex gap-2 justify-end">
                           <Button
@@ -940,7 +955,7 @@ export default function AIInsightsPage() {
                     <span className="text-[10px] font-bold text-slate-500 mb-1">
                       {chatSelectedAgent} • Thinking...
                     </span>
-                    <div className="p-4 rounded-2xl text-xs font-semibold leading-relaxed border bg-[#fff6e6] text-slate-400 border-[#f3d9a7] rounded-tl-none flex items-center gap-1.5">
+                    <div className="p-4 rounded-2xl text-xs font-semibold leading-relaxed border bg-[#fff6e6] dark:bg-slate-950 text-slate-400 border-[#f3d9a7] dark:border-slate-800 rounded-tl-none flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-bounce" />
                       <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-bounce [animation-delay:0.2s]" />
                       <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-bounce [animation-delay:0.4s]" />
@@ -950,8 +965,8 @@ export default function AIInsightsPage() {
               </div>
 
               {/* Suggested Prompts Badges */}
-              <div className="px-6 py-2 border-t border-[#f3d9a7]/60 bg-[#fff6e6]/20 flex flex-wrap gap-2">
-                <span className="text-[10px] text-slate-500 font-bold self-center mr-1">Suggested:</span>
+              <div className="px-6 py-2 border-t border-[#f3d9a7]/60 dark:border-slate-800/60 bg-[#fff6e6]/20 dark:bg-slate-950/20 flex flex-wrap gap-2">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold self-center mr-1">Suggested:</span>
                 {[
                   'How to calculate GST for my catalog?',
                   'Write Facebook & Google Ads copy',
@@ -965,7 +980,7 @@ export default function AIInsightsPage() {
                     onClick={() => {
                       setChatMessage(promptText);
                     }}
-                    className="text-[10px] bg-[#fff6e6] hover:bg-[#FAB12F]/20 text-[#ea580c] font-bold py-1 px-2.5 rounded-full border border-[#f3d9a7] transition-colors disabled:opacity-50"
+                    className="text-[10px] bg-[#fff6e6] dark:bg-slate-950 hover:bg-[#FAB12F]/20 text-[#ea580c] font-bold py-1 px-2.5 rounded-full border border-[#f3d9a7] dark:border-slate-800 transition-colors disabled:opacity-50"
                   >
                     {promptText}
                   </button>
@@ -973,15 +988,16 @@ export default function AIInsightsPage() {
               </div>
 
               {/* Chat Input form */}
-              <form onSubmit={handleSendChatMessage} className="p-4 bg-[#fff6e6]/50 border-t border-[#f3d9a7] flex gap-2">
-                <Input
+              <form onSubmit={handleSendChatMessage} className="p-4 bg-[#fff6e6]/50 dark:bg-slate-950 border-t border-[#f3d9a7] dark:border-slate-800 flex gap-2">
+                <input
+                  type="text"
                   placeholder={chatLoading ? 'Agent is thinking...' : `Ask the ${chatSelectedAgent}...`}
                   value={chatMessage}
                   disabled={chatLoading}
                   onChange={(e) => setChatMessage(e.target.value)}
-                  className="flex-1 rounded-xl text-xs bg-white border-[#f3d9a7] disabled:opacity-70"
+                  className="flex-1 rounded-xl text-xs bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 px-4 py-2.5 text-[#1f2937] dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-accent-500 disabled:opacity-70 font-semibold"
                 />
-                <Button type="submit" variant="primary" disabled={chatLoading} className="rounded-xl text-xs px-5">
+                <Button type="submit" variant="primary" disabled={chatLoading} className="rounded-xl text-xs px-5 text-slate-955 font-bold bg-[#FAB12F]">
                   {chatLoading ? 'Thinking...' : 'Send Consult'}
                 </Button>
               </form>
@@ -996,44 +1012,44 @@ export default function AIInsightsPage() {
             
             {/* Top Forecasting Summary cards */}
             <div className="grid gap-4 sm:grid-cols-3">
-              <Card className="bg-white border border-[#f3d9a7] p-5 rounded-3xl flex items-center gap-4">
+              <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-5 rounded-3xl flex items-center gap-4 shadow-sm">
                 <span className="p-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-2xl">⚠️</span>
                 <div>
-                  <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Critical Restock Warnings</h4>
-                  <p className="text-xl font-black text-[#1f2937] mt-1">1 Listing Below MOQ</p>
+                  <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Critical Restock Warnings</h4>
+                  <p className="text-xl font-black text-[#1f2937] dark:text-white mt-1">1 Listing Below MOQ</p>
                 </div>
               </Card>
 
-              <Card className="bg-white border border-[#f3d9a7] p-5 rounded-3xl flex items-center gap-4">
+              <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-5 rounded-3xl flex items-center gap-4 shadow-sm">
                 <span className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-2xl">⚡</span>
                 <div>
-                  <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Estimated Demand Spike</h4>
-                  <p className="text-xl font-black text-[#1f2937] mt-1">+35% Seasonal Surge</p>
+                  <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Estimated Demand Spike</h4>
+                  <p className="text-xl font-black text-[#1f2937] dark:text-white mt-1">+35% Seasonal Surge</p>
                 </div>
               </Card>
 
-              <Card className="bg-white border border-[#f3d9a7] p-5 rounded-3xl flex items-center gap-4">
+              <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-5 rounded-3xl flex items-center gap-4 shadow-sm">
                 <span className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-2xl">🛡️</span>
                 <div>
-                  <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Global Inventory Health</h4>
-                  <p className="text-xl font-black text-[#1f2937] mt-1">84/100 (Secure)</p>
+                  <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Global Inventory Health</h4>
+                  <p className="text-xl font-black text-[#1f2937] dark:text-white mt-1">84/100 (Secure)</p>
                 </div>
               </Card>
             </div>
 
             {/* LSTM Hyperparameters Configuration Card */}
-            <Card className="bg-white border border-[#f3d9a7] p-6 rounded-3xl space-y-4">
+            <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-6 rounded-3xl space-y-4 shadow-sm">
               <div>
-                <h3 className="text-sm font-bold text-[#1f2937] uppercase tracking-wider text-slate-500">LSTM Neural Network Parameter Configuration</h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">Adjust model hyperparameters to dynamically update inventory security levels and demand margins</p>
+                <h3 className="text-sm font-bold text-[#1f2937] dark:text-white uppercase tracking-wider text-slate-500">LSTM Neural Network Parameter Configuration</h3>
+                <p className="text-[11px] text-slate-505 dark:text-slate-400 mt-0.5">Adjust model hyperparameters to dynamically update inventory security levels and demand margins</p>
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
                 {/* Smoothing Factor Alpha Slider */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-500">Smoothing Factor (Alpha)</span>
-                    <span className="text-amber-600 font-bold">{smoothingAlpha.toFixed(2)}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Smoothing Factor (Alpha)</span>
+                    <span className="text-amber-600 dark:text-amber-500 font-bold">{smoothingAlpha.toFixed(2)}</span>
                   </div>
                   <input
                     type="range"
@@ -1051,16 +1067,16 @@ export default function AIInsightsPage() {
                         featureArea: 'forecasting-lstm'
                       });
                     }}
-                    className="w-full h-1.5 bg-[#fff6e6] rounded-lg appearance-none cursor-pointer accent-[#FF9F1C]"
+                    className="w-full h-1.5 bg-[#fff6e6] dark:bg-slate-950 rounded-lg appearance-none cursor-pointer accent-[#FF9F1C]"
                   />
-                  <p className="text-[10px] text-slate-500 leading-normal">Higher values prioritize recent demand fluctuations. Lower values calculate smoothed long-term averages.</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">Higher values prioritize recent demand fluctuations. Lower values calculate smoothed long-term averages.</p>
                 </div>
 
                 {/* Temporal Lead W Slider */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-500">Temporal Shipping Lead buffer (W)</span>
-                    <span className="text-amber-600 font-bold">{temporalLeadW.toFixed(2)}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Temporal Shipping Lead buffer (W)</span>
+                    <span className="text-amber-600 dark:text-amber-500 font-bold">{temporalLeadW.toFixed(2)}</span>
                   </div>
                   <input
                     type="range"
@@ -1078,24 +1094,24 @@ export default function AIInsightsPage() {
                         featureArea: 'forecasting-lstm'
                       });
                     }}
-                    className="w-full h-1.5 bg-[#fff6e6] rounded-lg appearance-none cursor-pointer accent-[#FF9F1C]"
+                    className="w-full h-1.5 bg-[#fff6e6] dark:bg-slate-950 rounded-lg appearance-none cursor-pointer accent-[#FF9F1C]"
                   />
-                  <p className="text-[10px] text-slate-500 leading-normal">Safety lead-time shipping factor. Adjusts margin to secure stocks during vendor transit latencies.</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">Safety lead-time shipping factor. Adjusts margin to secure stocks during vendor transit latencies.</p>
                 </div>
               </div>
             </Card>
 
             {/* Inventory table with forecasting mathematics */}
-            <Card className="bg-white border border-[#f3d9a7] p-6 rounded-3xl space-y-4">
+            <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-6 rounded-3xl space-y-4 shadow-sm">
               <div>
-                <h3 className="text-base font-bold text-[#1f2937]">LSTM Demand Forecasting & Lead Velocity Sheet</h3>
-                <p className="text-xs text-slate-500">Deterministic modeling integrating current stocks, sales trends, and lead shipping latencies</p>
+                <h3 className="text-base font-bold text-[#1f2937] dark:text-white">LSTM Demand Forecasting & Lead Velocity Sheet</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Deterministic modeling integrating current stocks, sales trends, and lead shipping latencies</p>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-[#f3d9a7] pb-3 text-slate-500 font-bold uppercase tracking-wider">
+                    <tr className="border-b border-[#f3d9a7] dark:border-slate-800 pb-3 text-slate-505 dark:text-slate-400 font-bold uppercase tracking-wider">
                       <th className="pb-3 text-sm">Product Name</th>
                       <th className="pb-3 text-center text-sm">Stock Level</th>
                       <th className="pb-3 text-center text-sm">Safety MOQ</th>
@@ -1105,7 +1121,7 @@ export default function AIInsightsPage() {
                       <th className="pb-3 text-right text-sm">Status / Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#f3d9a7]/60 font-semibold text-[#1f2937]">
+                  <tbody className="divide-y divide-[#f3d9a7]/60 dark:divide-slate-800/40 font-semibold text-[#1f2937] dark:text-slate-100">
                     {products.map((p) => {
                       const isLow = p.stock <= p.moq;
                       
@@ -1117,30 +1133,30 @@ export default function AIInsightsPage() {
                       );
 
                       return (
-                        <tr key={p.id} className="group hover:bg-[#fff0db]/50">
-                          <td className="py-4 text-slate-700">
-                            <div className="font-bold text-sm text-slate-700 group-hover:text-amber-600 transition-colors">
+                        <tr key={p.id} className="group hover:bg-[#fff0db]/50 dark:hover:bg-slate-800/35 transition-colors">
+                          <td className="py-4 text-slate-700 dark:text-slate-200">
+                            <div className="font-extrabold text-sm text-slate-700 dark:text-slate-200 group-hover:text-amber-600 transition-colors">
                               {p.name}
                             </div>
-                            <span className="text-[10px] text-slate-500 font-mono mt-0.5 block">SKU: {p.sku} | Cat: {p.category}</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-450 font-mono mt-0.5 block">SKU: {p.sku} | Cat: {p.category}</span>
                           </td>
                           <td className="py-4 text-center">
-                            <span className={`text-sm font-bold ${isLow ? 'text-rose-500' : 'text-slate-600'}`}>
+                            <span className={`text-sm font-bold ${isLow ? 'text-rose-500' : 'text-slate-655 dark:text-slate-350'}`}>
                               {p.stock} Units
                             </span>
                           </td>
-                          <td className="py-4 text-center text-slate-500">{p.moq} Units</td>
-                          <td className="py-4 text-center text-slate-500">3-4 days</td>
-                          <td className="py-4 text-center text-amber-600 font-bold">
+                          <td className="py-4 text-center text-slate-500 dark:text-slate-400">{p.moq} Units</td>
+                          <td className="py-4 text-center text-slate-500 dark:text-slate-400">3-4 days</td>
+                          <td className="py-4 text-center text-amber-605 dark:text-amber-500 font-extrabold">
                             {isLow ? '🚨 Surge +35%' : '📈 Stable'}
                           </td>
                           <td className="py-4 text-center">
                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                               calculatedHealth < 50
-                                ? 'bg-rose-500/10 border border-rose-500/20 text-rose-700'
+                                ? 'bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400'
                                 : calculatedHealth < 80
-                                ? 'bg-amber-500/10 border border-amber-500/20 text-amber-700'
-                                : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-700'
+                                ? 'bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400'
+                                : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
                             }`}>
                               {calculatedHealth}%
                             </span>
@@ -1151,12 +1167,12 @@ export default function AIInsightsPage() {
                                 variant="primary"
                                 size="sm"
                                 onClick={() => alert(`Replenishment order initiated for ${p.name}`)}
-                                className="rounded-xl text-[10px] py-1 bg-red-600 border-red-600 hover:bg-red-500 shadow-[0_4px_15px_-4px_rgba(220,38,38,0.3)]"
+                                className="rounded-xl text-[10px] py-1 bg-red-650 border-red-650 hover:bg-red-500 shadow-[0_4px_15px_-4px_rgba(220,38,38,0.3)] text-white font-bold"
                               >
                                 Restock Urgent
                               </Button>
                             ) : (
-                              <span className="text-slate-500 text-[11px] font-medium">🛡️ Safe margin</span>
+                              <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold">🛡️ Safe margin</span>
                             )}
                           </td>
                         </tr>
@@ -1175,45 +1191,45 @@ export default function AIInsightsPage() {
           <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr]">
             
             {/* Invoice parameters */}
-            <Card className="bg-white border border-[#f3d9a7] p-6 rounded-3xl space-y-4">
+            <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-6 rounded-3xl space-y-4 shadow-sm">
               <div>
-                <h3 className="text-base font-bold text-[#1f2937]">B2B Invoicing Console (Advisor)</h3>
-                <p className="text-xs text-slate-500">Optionally calculate compliant GST/Non-GST structures</p>
+                <h3 className="text-base font-bold text-[#1f2937] dark:text-white">B2B Invoicing Console (Advisor)</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Optionally calculate compliant GST/Non-GST structures</p>
               </div>
 
               <div className="space-y-4 text-xs font-semibold">
                 
                 {/* Product Selection */}
                 <div className="space-y-1.5">
-                  <label className="text-slate-500">Select Billing Product</label>
+                  <label className="text-slate-550 dark:text-slate-400">Select Billing Product</label>
                   <select
-                    className="w-full bg-[#fff6e6] border border-[#f3d9a7] text-[#1f2937] rounded-xl px-3 py-2 text-xs outline-none"
+                    className="w-full bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 text-[#1f2937] dark:text-slate-100 rounded-xl px-3 py-2 text-xs outline-none font-bold"
                     value={gstInvoiceForm.productId}
                     onChange={(e) => setGstInvoiceForm(prev => ({ ...prev, productId: e.target.value }))}
                   >
                     {products.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} (₹{p.price.toLocaleString('en-IN')})</option>
+                      <option key={p.id} value={p.id} className="dark:bg-slate-950">{p.name} (₹{p.price.toLocaleString('en-IN')})</option>
                     ))}
                   </select>
                 </div>
 
                 {/* Quantity Input */}
                 <div className="space-y-1.5">
-                  <label className="text-slate-500">Quantity</label>
-                  <Input
+                  <label className="text-slate-550 dark:text-slate-400">Quantity</label>
+                  <input
                     type="number"
                     min={1}
                     value={gstInvoiceForm.quantity}
                     onChange={(e) => setGstInvoiceForm(prev => ({ ...prev, quantity: Number(e.target.value) }))}
-                    className="bg-[#fff6e6] border-[#f3d9a7] text-xs rounded-xl"
+                    className="w-full rounded-xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 px-3 py-2 text-xs text-[#1f2937] dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-accent-500 font-bold"
                   />
                 </div>
 
                 {/* Optional GST Toggle */}
-                <div className="flex justify-between items-center bg-[#fff6e6] p-3 rounded-2xl border border-[#f3d9a7]">
+                <div className="flex justify-between items-center bg-[#fff6e6] dark:bg-slate-950 p-3 rounded-2xl border border-[#f3d9a7] dark:border-slate-800">
                   <div>
-                    <h4 className="text-xs font-bold text-[#1f2937]">Enable GST Allocation</h4>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Toggle to verify tax compliance structures</p>
+                    <h4 className="text-xs font-bold text-[#1f2937] dark:text-white">Enable GST Allocation</h4>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Toggle to verify tax compliance structures</p>
                   </div>
                   <Toggle
                     checked={gstInvoiceForm.gstApplicable}
@@ -1225,12 +1241,12 @@ export default function AIInsightsPage() {
                   <>
                     {/* Buyer GSTIN */}
                     <div className="space-y-1.5">
-                      <label className="text-slate-500">Buyer GSTIN Identification</label>
-                      <Input
+                      <label className="text-slate-550 dark:text-slate-400">Buyer GSTIN Identification</label>
+                      <input
                         placeholder="e.g. 27AAAAA1111A1Z1"
                         value={gstInvoiceForm.buyerGSTIN}
                         onChange={(e) => setGstInvoiceForm(prev => ({ ...prev, buyerGSTIN: e.target.value.toUpperCase() }))}
-                        className="bg-[#fff6e6] border-[#f3d9a7] text-xs rounded-xl font-mono uppercase"
+                        className="w-full rounded-xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 px-3 py-2 text-xs text-[#1f2937] dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-accent-500 font-mono uppercase"
                       />
                       {gstInvoiceForm.buyerGSTIN.length < 15 && (
                         <p className="text-[9px] text-amber-500">GSTIN requires exactly 15 alphanumeric characters.</p>
@@ -1239,17 +1255,17 @@ export default function AIInsightsPage() {
 
                     {/* Tax Slab Selection */}
                     <div className="space-y-1.5">
-                      <label className="text-slate-500">Tax Slab Percent</label>
+                      <label className="text-slate-555 dark:text-slate-400">Tax Slab Percent</label>
                       <div className="flex gap-2">
                         {[5, 12, 18, 28].map(slab => (
                           <button
                             key={slab}
                             type="button"
                             onClick={() => setGstInvoiceForm(prev => ({ ...prev, gstSlab: slab }))}
-                            className={`flex-1 py-1.5 rounded-xl border text-xs font-bold ${
+                            className={`flex-1 py-1.5 rounded-xl border text-xs font-bold transition-colors ${
                               gstInvoiceForm.gstSlab === slab
-                                ? 'bg-[#FAB12F]/15 border-accent-500 text-amber-600'
-                                : 'bg-[#fff6e6] border-[#f3d9a7] text-slate-500 hover:text-[#1f2937]'
+                                ? 'bg-[#FAB12F]/15 border-accent-500 text-amber-600 dark:text-amber-400'
+                                : 'bg-[#fff6e6] dark:bg-slate-950 border-[#f3d9a7] dark:border-slate-800 text-slate-500 hover:text-[#1f2937] dark:hover:text-white'
                             }`}
                           >
                             {slab}%
@@ -1260,15 +1276,15 @@ export default function AIInsightsPage() {
 
                     {/* State Type */}
                     <div className="space-y-1.5">
-                      <label className="text-slate-500">Geographic Transaction Code</label>
+                      <label className="text-slate-555 dark:text-slate-400">Geographic Transaction Code</label>
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => setGstInvoiceForm(prev => ({ ...prev, stateType: 'intra' }))}
-                          className={`flex-1 py-1.5 rounded-xl border text-[11px] font-bold ${
+                          className={`flex-1 py-1.5 rounded-xl border text-[11px] font-bold transition-colors ${
                             gstInvoiceForm.stateType === 'intra'
-                              ? 'bg-[#FAB12F]/15 border-accent-500 text-amber-600'
-                              : 'bg-[#fff6e6] border-[#f3d9a7] text-slate-500'
+                              ? 'bg-[#FAB12F]/15 border-accent-500 text-amber-600 dark:text-amber-400'
+                              : 'bg-[#fff6e6] dark:bg-slate-950 border-[#f3d9a7] dark:border-slate-800 text-slate-500 dark:text-slate-400'
                           }`}
                         >
                           Intra-State (CGST + SGST)
@@ -1276,10 +1292,10 @@ export default function AIInsightsPage() {
                         <button
                           type="button"
                           onClick={() => setGstInvoiceForm(prev => ({ ...prev, stateType: 'inter' }))}
-                          className={`flex-1 py-1.5 rounded-xl border text-[11px] font-bold ${
+                          className={`flex-1 py-1.5 rounded-xl border text-[11px] font-bold transition-colors ${
                             gstInvoiceForm.stateType === 'inter'
-                              ? 'bg-[#FAB12F]/15 border-accent-500 text-amber-600'
-                              : 'bg-[#fff6e6] border-[#f3d9a7] text-slate-500'
+                              ? 'bg-[#FAB12F]/15 border-accent-500 text-amber-600 dark:text-amber-400'
+                              : 'bg-[#fff6e6] dark:bg-slate-950 border-[#f3d9a7] dark:border-slate-800 text-slate-500 dark:text-slate-400'
                           }`}
                         >
                           Inter-State (IGST Only)
@@ -1295,25 +1311,25 @@ export default function AIInsightsPage() {
             {/* Invoicing preview and printing sheet */}
             <div className="space-y-4">
               {invoiceResult && (
-                <Card className="bg-white border border-[#f3d9a7] p-6 rounded-[32px] space-y-6 relative overflow-hidden font-mono text-[11px]">
+                <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-6 rounded-[32px] space-y-6 relative overflow-hidden font-mono text-[11px] shadow-sm">
                   
                   {/* Ledger Header */}
-                  <div className="flex justify-between items-start border-b border-dashed border-[#f3d9a7] pb-5">
+                  <div className="flex justify-between items-start border-b border-dashed border-[#f3d9a7] dark:border-slate-800 pb-5">
                     <div>
-                      <h4 className="text-[#1f2937] font-extrabold text-sm uppercase">Tax Invoice Proposal</h4>
-                      <p className="text-slate-500 mt-1 font-sans">GAURAV ENTERPRISES LTD</p>
-                      <p className="text-slate-500 font-sans">GSTIN: 27GGGGG9999G1Z5 (Mocked)</p>
+                      <h4 className="text-[#1f2937] dark:text-white font-extrabold text-sm uppercase">Tax Invoice Proposal</h4>
+                      <p className="text-slate-505 dark:text-slate-400 mt-1 font-sans">GAURAV ENTERPRISES LTD</p>
+                      <p className="text-slate-505 dark:text-slate-400 font-sans">GSTIN: 27GGGGG9999G1Z5 (Mocked)</p>
                     </div>
-                    <div className="text-right text-[10px] text-slate-500">
+                    <div className="text-right text-[10px] text-slate-500 dark:text-slate-400">
                       <p>INVOICE NO: GE-PRO-1044</p>
                       <p className="mt-0.5">DATE: {new Date().toISOString().slice(0, 10)}</p>
                     </div>
                   </div>
 
                   {/* Bill Details */}
-                  <div className="space-y-1 font-sans text-slate-500">
+                  <div className="space-y-1 font-sans text-slate-500 dark:text-slate-400">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Bill To:</p>
-                    <p className="text-[#1f2937] font-bold">{gstInvoiceForm.buyerName}</p>
+                    <p className="text-[#1f2937] dark:text-white font-extrabold">{gstInvoiceForm.buyerName}</p>
                     {gstInvoiceForm.gstApplicable && (
                       <p className="font-mono text-[10px]">Buyer GSTIN: {gstInvoiceForm.buyerGSTIN || 'MISSING'}</p>
                     )}
@@ -1321,15 +1337,15 @@ export default function AIInsightsPage() {
 
                   {/* Invoice Line items */}
                   <div className="space-y-2 font-mono">
-                    <div className="grid grid-cols-[2.5fr_1fr_1fr_1.5fr] text-slate-500 font-bold border-b border-[#f3d9a7] pb-2 uppercase text-[10px]">
+                    <div className="grid grid-cols-[2.5fr_1fr_1fr_1.5fr] text-slate-505 dark:text-slate-400 font-bold border-b border-[#f3d9a7] dark:border-slate-800 pb-2 uppercase text-[10px]">
                       <span>Item / Sku</span>
                       <span className="text-center">Qty</span>
                       <span className="text-center">Rate</span>
                       <span className="text-right">Total</span>
                     </div>
 
-                    <div className="grid grid-cols-[2.5fr_1fr_1fr_1.5fr] text-slate-600 py-1 font-medium border-b border-[#f3d9a7]/40">
-                      <span className="truncate pr-2 font-sans font-bold text-[#1f2937]">{invoiceResult.productName}</span>
+                    <div className="grid grid-cols-[2.5fr_1fr_1fr_1.5fr] text-slate-655 dark:text-slate-300 py-1 font-medium border-b border-[#f3d9a7]/40 dark:border-slate-800/40">
+                      <span className="truncate pr-2 font-sans font-bold text-[#1f2937] dark:text-white">{invoiceResult.productName}</span>
                       <span className="text-center">{gstInvoiceForm.quantity}</span>
                       <span className="text-center">₹{invoiceResult.rate.toLocaleString('en-IN')}</span>
                       <span className="text-right">₹{invoiceResult.subtotal.toLocaleString('en-IN')}</span>
@@ -1337,10 +1353,10 @@ export default function AIInsightsPage() {
                   </div>
 
                   {/* Calculations breakdown */}
-                  <div className="space-y-1.5 border-b border-dashed border-[#f3d9a7] pb-4 text-slate-500">
+                  <div className="space-y-1.5 border-b border-dashed border-[#f3d9a7] dark:border-slate-800 pb-4 text-slate-505 dark:text-slate-450">
                     <div className="flex justify-between">
                       <span>Subtotal Rate:</span>
-                      <span className="text-[#1f2937]">₹{invoiceResult.subtotal.toLocaleString('en-IN')}</span>
+                      <span className="text-[#1f2937] dark:text-white">₹{invoiceResult.subtotal.toLocaleString('en-IN')}</span>
                     </div>
                     {gstInvoiceForm.gstApplicable ? (
                       <>
@@ -1348,39 +1364,39 @@ export default function AIInsightsPage() {
                           <>
                             <div className="flex justify-between">
                               <span>CGST ({gstInvoiceForm.gstSlab / 2}%):</span>
-                              <span className="text-[#1f2937]">₹{invoiceResult.cgst.toLocaleString('en-IN')}</span>
+                              <span className="text-[#1f2937] dark:text-white">₹{invoiceResult.cgst.toLocaleString('en-IN')}</span>
                             </div>
                             <div className="flex justify-between">
                               <span>SGST ({gstInvoiceForm.gstSlab / 2}%):</span>
-                              <span className="text-[#1f2937]">₹{invoiceResult.sgst.toLocaleString('en-IN')}</span>
+                              <span className="text-[#1f2937] dark:text-white">₹{invoiceResult.sgst.toLocaleString('en-IN')}</span>
                             </div>
                           </>
                         ) : (
                           <div className="flex justify-between">
                             <span>IGST ({gstInvoiceForm.gstSlab}%):</span>
-                            <span className="text-[#1f2937]">₹{invoiceResult.igst.toLocaleString('en-IN')}</span>
+                            <span className="text-[#1f2937] dark:text-white">₹{invoiceResult.igst.toLocaleString('en-IN')}</span>
                           </div>
                         )}
-                        <div className="flex justify-between text-[11px] font-bold text-amber-600 border-t border-[#f3d9a7]/60 pt-1.5">
+                        <div className="flex justify-between text-[11px] font-bold text-amber-600 dark:text-amber-500 border-t border-[#f3d9a7]/60 dark:border-slate-800/60 pt-1.5">
                           <span>Total Alloc. Taxes:</span>
                           <span>₹{invoiceResult.taxValue.toLocaleString('en-IN')}</span>
                         </div>
                       </>
                     ) : (
-                      <div className="text-[10px] text-slate-500 italic font-sans">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 italic font-sans">
                         No taxes allocated. Non-GST compliant trade transaction.
                       </div>
                     )}
                   </div>
 
                   {/* Net Payable amount */}
-                  <div className="flex justify-between items-center text-sm font-extrabold text-[#1f2937] bg-[#fff6e6] p-4 border border-[#f3d9a7] rounded-2xl">
-                    <span className="uppercase text-[11px] tracking-wider text-slate-500">Total Net Amount:</span>
-                    <span className="text-lg text-emerald-400 font-mono font-black">₹{invoiceResult.total.toLocaleString('en-IN')}</span>
+                  <div className="flex justify-between items-center text-sm font-extrabold text-[#1f2937] dark:text-white bg-[#fff6e6] dark:bg-slate-950 p-4 border border-[#f3d9a7] dark:border-slate-800 rounded-2xl">
+                    <span className="uppercase text-[11px] tracking-wider text-slate-500 dark:text-slate-400">Total Net Amount:</span>
+                    <span className="text-lg text-emerald-500 dark:text-emerald-400 font-mono font-black">₹{invoiceResult.total.toLocaleString('en-IN')}</span>
                   </div>
 
                   {/* Advisor Notice */}
-                  <div className="bg-blue-500/5 border border-blue-500/10 p-3 rounded-2xl font-sans text-[10px] text-blue-400 leading-normal">
+                  <div className="bg-blue-500/5 border border-blue-500/10 p-3 rounded-2xl font-sans text-[10px] text-blue-400 dark:text-blue-300 leading-normal">
                     💡 <strong>Advisor Audit:</strong>{' '}
                     {invoiceResult.isGstCompliant
                       ? 'Compliant with Indian B2B invoicing standard rules. Validated structure successfully.'
@@ -1398,42 +1414,43 @@ export default function AIInsightsPage() {
           <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr]">
             
             {/* Input planner */}
-            <Card className="bg-white border border-[#f3d9a7] p-6 rounded-3xl space-y-4">
+            <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-6 rounded-3xl space-y-4 shadow-sm">
               <div>
-                <h3 className="text-base font-bold text-[#1f2937]">Digital Lead Campaign Optimizer</h3>
-                <p className="text-xs text-slate-500">Select channels and budgets to calculate projected B2B trade reach</p>
+                <h3 className="text-base font-bold text-[#1f2937] dark:text-white">Digital Lead Campaign Optimizer</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Select channels and budgets to calculate projected B2B trade reach</p>
               </div>
 
               <div className="space-y-4 text-xs font-semibold">
                 
                 {/* Campaign Name */}
                 <div className="space-y-1.5">
-                  <label className="text-slate-500">Campaign Campaign Name</label>
-                  <Input
+                  <label className="text-slate-550 dark:text-slate-400">Campaign Campaign Name</label>
+                  <input
+                    type="text"
                     value={marketingForm.campaignName}
                     onChange={(e) => setMarketingForm(prev => ({ ...prev, campaignName: e.target.value }))}
-                    className="bg-[#fff6e6] border-[#f3d9a7] text-xs rounded-xl"
+                    className="w-full rounded-xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 px-3 py-2 text-xs text-[#1f2937] dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-accent-500 font-bold"
                   />
                 </div>
 
                 {/* Target Region */}
                 <div className="space-y-1.5">
-                  <label className="text-slate-500">Geographic Targeting Audience</label>
+                  <label className="text-slate-555 dark:text-slate-400">Geographic Targeting Audience</label>
                   <select
-                    className="w-full bg-[#fff6e6] border border-[#f3d9a7] text-[#1f2937] rounded-xl px-3 py-2 text-xs outline-none font-bold"
+                    className="w-full bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 text-[#1f2937] dark:text-slate-100 rounded-xl px-3 py-2 text-xs outline-none font-bold"
                     value={marketingForm.targetRegion}
                     onChange={(e) => setMarketingForm(prev => ({ ...prev, targetRegion: e.target.value }))}
                   >
-                    <option>Maharashtra & South India</option>
-                    <option>Delhi NCR & Punjab</option>
-                    <option>Gujarat & West Coast</option>
-                    <option>All India Trade Hubs</option>
+                    <option className="dark:bg-slate-950">Maharashtra & South India</option>
+                    <option className="dark:bg-slate-950">Delhi NCR & Punjab</option>
+                    <option className="dark:bg-slate-950">Gujarat & West Coast</option>
+                    <option className="dark:bg-slate-950">All India Trade Hubs</option>
                   </select>
                 </div>
 
                 {/* Campaign Channel */}
                 <div className="space-y-1.5">
-                  <label className="text-slate-500">Marketing Promotion Type</label>
+                  <label className="text-slate-555 dark:text-slate-400">Marketing Promotion Type</label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { id: 'Facebook Ads', label: 'Facebook', icon: '🔵' },
@@ -1452,8 +1469,8 @@ export default function AIInsightsPage() {
                         onClick={() => setMarketingForm(prev => ({ ...prev, campaignType: platform.id }))}
                         className={`py-2 px-1 rounded-xl border text-[10px] leading-tight font-bold flex flex-col items-center justify-center gap-1 transition-all ${
                           marketingForm.campaignType === platform.id
-                            ? 'bg-[#FAB12F]/20 border-[#FAB12F] text-amber-800 shadow-sm scale-[1.03]'
-                            : 'bg-white border-[#f3d9a7] text-slate-600 hover:border-[#FAB12F] hover:bg-[#fff6e6]/30'
+                            ? 'bg-[#FAB12F]/20 border-[#FAB12F] text-amber-800 dark:text-[#FAB12F] shadow-sm scale-[1.03]'
+                            : 'bg-white dark:bg-slate-950 border-[#f3d9a7] dark:border-slate-850 text-slate-600 dark:text-slate-405 hover:border-[#FAB12F] hover:bg-[#fff6e6]/30'
                         }`}
                       >
                         <span className="text-base">{platform.icon}</span>
@@ -1466,8 +1483,8 @@ export default function AIInsightsPage() {
                 {/* Budget Slider */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-xs font-semibold">
-                    <label className="text-slate-500">Campaign Promotion Budget (INR)</label>
-                    <span className="text-amber-600 font-bold text-sm">₹{marketingForm.budget.toLocaleString('en-IN')}</span>
+                    <label className="text-slate-550 dark:text-slate-400">Campaign Promotion Budget (INR)</label>
+                    <span className="text-amber-600 dark:text-amber-500 font-bold text-sm">₹{marketingForm.budget.toLocaleString('en-IN')}</span>
                   </div>
                   <input
                     type="range"
@@ -1476,9 +1493,9 @@ export default function AIInsightsPage() {
                     step={1000}
                     value={marketingForm.budget}
                     onChange={(e) => setMarketingForm(prev => ({ ...prev, budget: Number(e.target.value) }))}
-                    className="w-full h-1 bg-[#fff6e6] rounded-lg appearance-none cursor-pointer accent-[#FAB12F] border border-[#f3d9a7]"
+                    className="w-full h-1 bg-[#fff6e6] dark:bg-slate-950 rounded-lg appearance-none cursor-pointer accent-[#FAB12F] border border-[#f3d9a7] dark:border-slate-800"
                   />
-                  <div className="flex justify-between text-[10px] text-slate-500">
+                  <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-450">
                     <span>Min: ₹3,000</span>
                     <span>Max: ₹1,00,000</span>
                   </div>
@@ -1493,23 +1510,23 @@ export default function AIInsightsPage() {
                 
                 {/* Stats cards */}
                 <div className="grid grid-cols-2 gap-4">
-                  <Card className="bg-white border border-[#f3d9a7] p-4 rounded-2xl flex flex-col justify-between min-h-[90px]">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Estimated Reach</span>
-                    <span className="text-xl font-black text-[#1f2937] mt-1">~{marketingOutput.reach.toLocaleString()} Businesses</span>
+                  <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-4 rounded-2xl flex flex-col justify-between min-h-[90px] shadow-sm">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Estimated Reach</span>
+                    <span className="text-xl font-black text-[#1f2937] dark:text-white mt-1">~{marketingOutput.reach.toLocaleString()} Businesses</span>
                   </Card>
                   
-                  <Card className="bg-white border border-[#f3d9a7] p-4 rounded-2xl flex flex-col justify-between min-h-[90px]">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Forecasted Leads</span>
-                    <span className="text-xl font-black text-emerald-400 mt-1">~{marketingOutput.leads} Trade Leads</span>
+                  <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-4 rounded-2xl flex flex-col justify-between min-h-[90px] shadow-sm">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Forecasted Leads</span>
+                    <span className="text-xl font-black text-emerald-500 mt-1">~{marketingOutput.leads} Trade Leads</span>
                   </Card>
                 </div>
 
                 {/* Copywrited Template Panel */}
-                <Card className="bg-white border border-[#f3d9a7] p-6 rounded-3xl space-y-4">
+                <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-6 rounded-3xl space-y-4 shadow-sm">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h4 className="text-xs font-bold text-[#1f2937] uppercase tracking-wider text-slate-500">Generated Ad Template</h4>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Copy meta snippet to launch your campaigns directly</p>
+                      <h4 className="text-xs font-bold text-[#1f2937] dark:text-white uppercase tracking-wider text-slate-500">Generated Ad Template</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-450 mt-0.5">Copy meta snippet to launch your campaigns directly</p>
                     </div>
                     <Button
                       variant="secondary"
@@ -1525,7 +1542,7 @@ export default function AIInsightsPage() {
                   </div>
 
                   <textarea
-                    className="w-full bg-[#fff6e6] border border-[#f3d9a7] p-4 rounded-2xl text-xs font-bold font-sans leading-relaxed text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#FF9F1C] min-h-[100px] resize-y"
+                    className="w-full bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 p-4 rounded-2xl text-xs font-bold font-sans leading-relaxed text-slate-750 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-[#FF9F1C] min-h-[100px] resize-y"
                     value={customTemplate}
                     onChange={(e) => setCustomTemplate(e.target.value)}
                     onBlur={() => {
@@ -1541,7 +1558,7 @@ export default function AIInsightsPage() {
                     }}
                   />
 
-                  <div className="bg-[#FAB12F]/5 border border-accent-500/10 p-3.5 rounded-2xl text-[11px] text-amber-600 leading-normal">
+                  <div className="bg-[#FAB12F]/5 dark:bg-[#FAB12F]/10 border border-accent-500/10 p-3.5 rounded-2xl text-[11px] text-amber-600 dark:text-amber-500 leading-normal">
                     📢 <strong>Digital Advisor Performance Score:</strong>{' '}
                     Expected Click-Through-Rate: <span className="font-bold">{marketingOutput.ctr}</span>. Marketing models evaluate higher B2B response ratios for targeted Google and Meta ads optimized for lead generation forms.
                   </div>

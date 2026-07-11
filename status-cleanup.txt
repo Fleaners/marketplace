@@ -1,2 +1,0 @@
-﻿?? publish-redesign.bat
-?? status-cleanup.txt

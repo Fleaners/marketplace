@@ -164,7 +164,7 @@ ${listText}
   if (config) {
     try {
       const { apiKey } = config;
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
       const body = {
         contents: [
@@ -188,6 +188,7 @@ ${listText}
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
         },
         body: JSON.stringify(body),
       });

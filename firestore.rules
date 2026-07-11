@@ -85,7 +85,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn() || isAdmin();
+      allow read: if isSelf(userId) || isAdmin();
       allow create, update: if (isSelf(userId) || isAdmin()) &&
         (!('subscriptionPlan' in request.resource.data) || validSubscriptionPlan(request.resource.data.subscriptionPlan));
       allow delete: if isSelf(userId) || isAdmin();
@@ -179,7 +179,18 @@ service cloud.firestore {
     }
 
     match /rfqs/{rfqId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid ||
+        resource.data.sellerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && isOwner('buyerId');
+      allow update: if isSignedIn() && (
+        docOwner('buyerId') ||
+        docOwner('sellerId') ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (docOwner('buyerId') || isAdmin());
     }
 
     match /sellers/{sellerId} {
@@ -203,11 +214,28 @@ service cloud.firestore {
     }
 
     match /messages/{messageId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn() && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.receiverId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && isOwner('senderId');
+      allow update: if isSignedIn() && (
+        docOwner('senderId') ||
+        docOwner('receiverId') ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (docOwner('senderId') || isAdmin());
     }
 
     match /analytics_events/{eventId} {
       allow create: if isSignedIn();
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /ai_training_feedback/{feedbackId} {
+      allow create: if isSignedIn() && isOwner('userId');
       allow read: if isAdmin();
       allow update, delete: if false;
     }

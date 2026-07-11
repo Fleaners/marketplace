@@ -15,7 +15,8 @@ const JWT_SECRET = resolveJwtSecret();
  */
 export function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
-  
+  const isDev = (process.env.NODE_ENV || 'development') === 'development';
+
   const mockUser = {
     id: 'seller-demo-01',
     businessId: 'seller-demo-01',
@@ -28,28 +29,41 @@ export function verifyToken(req, res, next) {
   };
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    req.user = mockUser;
-    return next();
+    if (isDev) {
+      req.user = mockUser;
+      return next();
+    }
+    return res.status(401).json({ error: 'Authentication required.' });
   }
 
   const token = authHeader.slice(7);
-  if (token === 'mock-token' || token === 'undefined' || !token) {
+  if (!token || token === 'undefined') {
+    if (isDev) {
+      req.user = mockUser;
+      return next();
+    }
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
+
+  // In dev mode with mock-token, allow through
+  if (token === 'mock-token' && isDev) {
     req.user = mockUser;
     return next();
   }
 
   if (!JWT_SECRET) {
-    req.user = mockUser;
-    return next();
+    if (isDev) {
+      req.user = mockUser;
+      return next();
+    }
+    return res.status(500).json({ error: 'Server authentication configuration error.' });
   }
 
   try {
     req.user = jwtClient.verify(token, JWT_SECRET);
     next();
   } catch (error) {
-    // If token verification fails (e.g. signature mismatch or expired), fallback to mock user instead of returning 401
-    req.user = mockUser;
-    next();
+    return res.status(401).json({ error: 'Invalid or expired authentication token.' });
   }
 }
 

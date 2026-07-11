@@ -257,160 +257,225 @@ export default function InventoryPage() {
             </select>
           </div>
         </Card>
+        {/* SPREADSHEET TABLE GRID CARD (DESKTOP) & CARD LIST (MOBILE) */}
+        <div className="space-y-4">
+          
+          {/* Mobile Card List view */}
+          <div className="block md:hidden space-y-4">
+            {filteredProducts.length === 0 ? (
+              <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center text-slate-500">
+                No active inventory products match your criteria.
+              </Card>
+            ) : (
+              filteredProducts.map((prod) => {
+                const editState = pendingEdits[prod.id];
+                const activePrice = editState ? editState.price : prod.price;
+                const activeStock = editState ? editState.stock : prod.stock;
+                const isEdited = !!editState;
 
-        {/* SPREADSHEET TABLE GRID CARD */}
-        <Card className="rounded-3xl border border-[#f3d9a7] bg-white overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-[#fff6e6] border-b border-[#f3d9a7] text-xs font-bold uppercase tracking-widest text-slate-500">
-                <tr>
-                  <th className="py-4 px-6">Product Details</th>
-                  <th className="py-4 px-6">SKU / Code</th>
-                  <th className="py-4 px-6 text-center">Current Status</th>
-                  <th className="py-4 px-6 text-right">Wholesale Price (₹)</th>
-                  <th className="py-4 px-6 text-right">Inventory Stock Level</th>
-                  <th className="py-4 px-6 text-center">GST Apply</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#f3d9a7] font-medium">
-                {filteredProducts.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-12 text-slate-500 font-medium">
-                      No active inventory products match your criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredProducts.map((prod) => {
-                    const editState = pendingEdits[prod.id];
-                    const activePrice = editState ? editState.price : prod.price;
-                    const activeStock = editState ? editState.stock : prod.stock;
-                    
-                    const isEdited = !!editState;
+                let statusLabel = 'Healthy';
+                let statusColor = 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40';
+                
+                if (activeStock === 0) {
+                  statusLabel = 'Out of Stock';
+                  statusColor = 'bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/40';
+                } else if (activeStock <= prod.moq) {
+                  statusLabel = 'Low Stock';
+                  statusColor = 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/40';
+                }
 
-                    // Calculate stock indicators
-                    let statusLabel = 'Healthy';
-                    let statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                    
-                    if (activeStock === 0) {
-                      statusLabel = 'Out of Stock';
-                      statusColor = 'bg-rose-50 text-rose-700 border-rose-200';
-                    } else if (activeStock <= prod.moq) {
-                      statusLabel = 'Low Stock';
-                      statusColor = 'bg-amber-50 text-amber-700 border-amber-200';
-                    }
+                return (
+                  <Card 
+                    key={prod.id} 
+                    className={`p-5 border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4 shadow-sm ${
+                      isEdited ? 'ring-1 ring-[#FAB12F]/40' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 overflow-hidden flex items-center justify-center text-xl">
+                        {prod.images && prod.images.length > 0 ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={prod.images[0]} alt={prod.name} className="h-full w-full object-cover" />
+                        ) : (
+                          '📦'
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-black text-slate-850 dark:text-white truncate">{prod.name}</h4>
+                        <p className="text-[10px] text-slate-500 mt-0.5">{prod.category} • SKU: {prod.sku}</p>
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${statusColor}`}>
+                        {statusLabel}
+                      </span>
+                    </div>
 
-                    return (
-                      <tr
-                        key={prod.id}
-                        className={`transition-colors group hover:bg-[#fff0db]/50 ${
-                          isEdited ? 'bg-[#FAB12F]/5' : ''
-                        }`}
-                      >
-                        {/* 1. Product Name & Thumb */}
-                        <td className="py-4 px-6 flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-[#fff6e6] border border-[#f3d9a7] overflow-hidden flex items-center justify-center text-lg shadow-sm">
-                            {prod.images && prod.images.length > 0 ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={prod.images[0]} alt={prod.name} className="h-full w-full object-cover" />
-                            ) : (
-                              '📦'
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold text-[#1f2937] group-hover:text-amber-600 transition-colors">
-                              {prod.name}
-                            </p>
-                            <p className="text-[11px] text-slate-500 mt-0.5">{prod.category}</p>
-                          </div>
-                        </td>
+                    {/* Editors */}
+                    <div className="grid gap-3 grid-cols-2 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Wholesale Price</label>
+                        <div className="flex items-center gap-1 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7]/65 dark:border-slate-800 rounded-xl px-3 py-2 shadow-inner">
+                          <span className="text-xs text-slate-500 font-bold">₹</span>
+                          <input
+                            type="number"
+                            value={activePrice}
+                            onChange={(e) => handleCellChange(prod.id, 'price', e.target.value)}
+                            className="w-full bg-transparent text-right text-xs font-black text-slate-800 dark:text-slate-100 focus:outline-none placeholder:text-slate-600"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Stock Quantity</label>
+                        <div className="flex items-center gap-1 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7]/65 dark:border-slate-800 rounded-xl px-3 py-2 shadow-inner">
+                          <input
+                            type="number"
+                            value={activeStock}
+                            onChange={(e) => handleCellChange(prod.id, 'stock', e.target.value)}
+                            className="w-full bg-transparent text-right text-xs font-black text-slate-800 dark:text-slate-100 focus:outline-none placeholder:text-slate-650"
+                          />
+                          <span className="text-[10px] text-slate-500 font-bold">{prod.unit}</span>
+                        </div>
+                      </div>
+                    </div>
 
-                        {/* 2. SKU Code */}
-                        <td className="py-4 px-6 font-mono text-xs text-slate-500">
-                          {prod.sku}
-                        </td>
-
-                        {/* 3. Live Indicator Status */}
-                        <td className="py-4 px-6 text-center">
-                          <span
-                            className={`inline-flex px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wider ${statusColor}`}
-                          >
-                            {statusLabel}
-                          </span>
-                        </td>
-
-                        {/* 4. Wholesale Price Cell */}
-                        <td className="py-4 px-6 text-right">
-                          <div className="inline-flex items-center gap-1.5 bg-[#fff6e6] border border-[#f3d9a7]/60 rounded-xl px-3 py-1.5 focus-within:border-accent-500 focus-within:bg-[#fff6e6] transition-all shadow-inner">
-                            <span className="text-xs text-slate-500 font-bold">₹</span>
-                            <input
-                              type="number"
-                              value={activePrice}
-                              onChange={(e) => handleCellChange(prod.id, 'price', e.target.value)}
-                              className="w-20 bg-transparent text-right text-sm font-bold text-[#1f2937] focus:outline-none placeholder:text-slate-600 font-sans"
-                            />
-                          </div>
-                          {isEdited && editState.price !== prod.price && (
-                            <p className="text-[10px] text-amber-600 font-bold mt-1 block">
-                              Was: ₹{prod.price}
-                            </p>
-                          )}
-                        </td>
-
-                        {/* 5. Inventory Stock level Cell */}
-                        <td className="py-4 px-6 text-right">
-                          <div className="inline-flex items-center gap-1.5 bg-[#fff6e6] border border-[#f3d9a7]/60 rounded-xl px-3 py-1.5 focus-within:border-accent-500 focus-within:bg-[#fff6e6] transition-all shadow-inner">
-                            <input
-                              type="number"
-                              value={activeStock}
-                              onChange={(e) => handleCellChange(prod.id, 'stock', e.target.value)}
-                              className="w-16 bg-transparent text-right text-sm font-bold text-[#1f2937] focus:outline-none placeholder:text-slate-600 font-sans"
-                            />
-                            <span className="text-[11px] text-slate-500 font-semibold lowercase">
-                              {prod.unit}
-                            </span>
-                          </div>
-                          {isEdited && editState.stock !== prod.stock && (
-                            <p className="text-[10px] text-amber-600 font-bold mt-1 block">
-                              Was: {prod.stock}
-                            </p>
-                          )}
-                        </td>
-
-                        {/* 6. GST compliance label */}
-                        <td className="py-4 px-6 text-center text-xs font-semibold">
-                          {prod.gst ? (
-                            <span className="text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/15">
-                              Yes (18%)
-                            </span>
-                          ) : (
-                            <span className="text-slate-500">Exempt</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                    <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500">
+                      <span>GST (18%): {prod.gst ? '✓ Applicable' : 'Exempt'}</span>
+                      {isEdited && (
+                        <span className="text-amber-600 font-bold animate-pulse">Unsaved Changes</span>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })
+            )}
           </div>
-        </Card>
+
+          {/* Desktop Table view */}
+          <Card className="hidden md:block rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead className="bg-[#fff6e6] dark:bg-slate-950/60 border-b border-[#f3d9a7] dark:border-slate-800 text-xs font-bold uppercase tracking-widest text-slate-500">
+                  <tr>
+                    <th className="py-4 px-6">Product Details</th>
+                    <th className="py-4 px-6">SKU / Code</th>
+                    <th className="py-4 px-6 text-center">Current Status</th>
+                    <th className="py-4 px-6 text-right">Wholesale Price (₹)</th>
+                    <th className="py-4 px-6 text-right">Inventory Stock Level</th>
+                    <th className="py-4 px-6 text-center">GST Apply</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f3d9a7] dark:divide-slate-800 font-medium">
+                  {filteredProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-12 text-slate-500 font-medium">
+                        No active inventory products match your criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredProducts.map((prod) => {
+                      const editState = pendingEdits[prod.id];
+                      const activePrice = editState ? editState.price : prod.price;
+                      const activeStock = editState ? editState.stock : prod.stock;
+                      const isEdited = !!editState;
+
+                      let statusLabel = 'Healthy';
+                      let statusColor = 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40';
+                      
+                      if (activeStock === 0) {
+                        statusLabel = 'Out of Stock';
+                        statusColor = 'bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/40';
+                      } else if (activeStock <= prod.moq) {
+                        statusLabel = 'Low Stock';
+                        statusColor = 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/40';
+                      }
+
+                      return (
+                        <tr
+                          key={prod.id}
+                          className={`transition-colors group hover:bg-[#fff0db]/50 dark:hover:bg-slate-800/30 ${
+                            isEdited ? 'bg-[#FAB12F]/5' : ''
+                          }`}
+                        >
+                          <td className="py-4 px-6 flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 overflow-hidden flex items-center justify-center text-lg shadow-sm">
+                              {prod.images && prod.images.length > 0 ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={prod.images[0]} alt={prod.name} className="h-full w-full object-cover" />
+                              ) : (
+                                '📦'
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-[#1f2937] dark:text-white group-hover:text-amber-600 transition-colors">
+                                {prod.name}
+                              </p>
+                              <p className="text-[11px] text-slate-500 mt-0.5">{prod.category}</p>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 font-mono text-xs text-slate-500">
+                            {prod.sku}
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wider ${statusColor}`}>
+                              {statusLabel}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <div className="inline-flex items-center gap-1.5 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7]/60 dark:border-slate-800 rounded-xl px-3 py-1.5 focus-within:border-accent-500 transition-all shadow-inner">
+                              <span className="text-xs text-slate-500 font-bold">₹</span>
+                              <input
+                                type="number"
+                                value={activePrice}
+                                onChange={(e) => handleCellChange(prod.id, 'price', e.target.value)}
+                                className="w-20 bg-transparent text-right text-sm font-bold text-[#1f2937] dark:text-slate-100 focus:outline-none placeholder:text-slate-650"
+                              />
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <div className="inline-flex items-center gap-1.5 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7]/60 dark:border-slate-800 rounded-xl px-3 py-1.5 focus-within:border-accent-500 transition-all shadow-inner">
+                              <input
+                                type="number"
+                                value={activeStock}
+                                onChange={(e) => handleCellChange(prod.id, 'stock', e.target.value)}
+                                className="w-16 bg-transparent text-right text-sm font-bold text-[#1f2937] dark:text-slate-100 focus:outline-none placeholder:text-slate-650"
+                              />
+                              <span className="text-[11px] text-slate-500 font-semibold">{prod.unit}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-center text-xs font-semibold">
+                            {prod.gst ? (
+                              <span className="text-emerald-500 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/15">
+                                Yes (18%)
+                              </span>
+                            ) : (
+                              <span className="text-slate-500">Exempt</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
 
         {/* Offline bulk tips and guidelines */}
         <section className="grid gap-6 md:grid-cols-2">
-          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-2">
-            <h3 className="text-sm font-bold text-[#1f2937] uppercase tracking-wider">
+          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-2">
+            <h3 className="text-sm font-bold text-[#1f2937] dark:text-white uppercase tracking-wider">
               💡 Keyboard Productivity tip
             </h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Use your keyboard's <kbd className="px-1.5 py-0.5 rounded border border-[#f3d9a7] bg-[#fff6e6] text-slate-600 font-mono text-[10px]">Tab</kbd> key to instantly switch focus between columns and price fields. Hit the "Save All Changes" CTA to record your updates in bulk and update analytics in real-time.
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+              Use your keyboard's <kbd className="px-1.5 py-0.5 rounded border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 text-slate-650 dark:text-slate-300 font-mono text-[10px]">Tab</kbd> key to instantly switch focus between columns and price fields. Hit the "Save All Changes" CTA to record your updates in bulk and update analytics in real-time.
             </p>
           </Card>
 
-          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-2">
-            <h3 className="text-sm font-bold text-[#1f2937] uppercase tracking-wider">
+          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-2">
+            <h3 className="text-sm font-bold text-[#1f2937] dark:text-white uppercase tracking-wider">
               📦 Warehouse Safety Stock policy
             </h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
               The dashboard triggers active alert emails and high priority dashboard icons when stock drops beneath your product's configured Minimum Order Quantity (MOQ). This keeps your supply chain highly reliable.
             </p>
           </Card>

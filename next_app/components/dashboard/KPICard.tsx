@@ -29,6 +29,7 @@ const KPICard = React.forwardRef<HTMLDivElement, KPICardProps>(
       onClick,
       loading = false,
       className,
+      children,
     },
     ref
   ) => {
@@ -108,6 +109,12 @@ const KPICard = React.forwardRef<HTMLDivElement, KPICardProps>(
             <span className="text-body-sm text-neutral-500 dark:text-neutral-400">
               {trend.direction === 'up' ? 'increase' : trend.direction === 'down' ? 'decrease' : 'neutral'}
             </span>
+          </div>
+        )}
+
+        {children && (
+          <div className="mt-auto pt-2">
+            {children}
           </div>
         )}
       </Card>

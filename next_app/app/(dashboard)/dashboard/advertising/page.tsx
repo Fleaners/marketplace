@@ -184,22 +184,22 @@ export default function AdvertisingPage() {
         {/* Title row */}
         <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1f2937]">📢 Advertising & Campaigns Center</h1>
-            <p className="text-sm text-slate-500">
+            <h1 className="text-3xl font-black text-[#1f2937] dark:text-white tracking-tight">📢 Advertising & Campaigns Center</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Securely connect B2B search, local directory maps, and social marketplace advertising channels.
             </p>
           </div>
 
           {/* Module Tabs */}
-          <div className="flex gap-1 bg-[#fff6e6] border border-[#f3d9a7] p-1 rounded-2xl">
+          <div className="flex gap-1 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 p-1 rounded-2xl">
             {(['channels', 'campaigns', 'seo'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
                   activeTab === tab
-                    ? 'bg-[#FAB12F] text-slate-950 shadow'
-                    : 'text-slate-500 hover:text-[#1f2937]'
+                    ? 'bg-[#FAB12F] text-slate-950 shadow border border-accent-600/10'
+                    : 'text-slate-550 dark:text-slate-400 hover:text-[#1f2937] dark:hover:text-white'
                 }`}
               >
                 {tab === 'channels' ? 'Channels' : tab === 'campaigns' ? 'Campaign Metrics' : 'SEO & Keywords'}
@@ -215,7 +215,7 @@ export default function AdvertisingPage() {
               {connections.map((conn) => (
                 <Card
                   key={conn.id}
-                  className="rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all min-h-[200px]"
+                  className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all min-h-[200px]"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -223,8 +223,8 @@ export default function AdvertisingPage() {
                       <span
                         className={`inline-flex items-center text-2xs font-extrabold px-2.5 py-0.5 rounded-full border ${
                           conn.connected
-                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                            : 'bg-slate-50 text-slate-500 border-slate-200'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-405 border-emerald-205 dark:border-emerald-800/40'
+                            : 'bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-405 border-slate-205 dark:border-slate-800/40'
                         }`}
                       >
                         {conn.connected ? '● CONNECTED' : '● DISCONNECTED'}
@@ -232,13 +232,13 @@ export default function AdvertisingPage() {
                     </div>
 
                     <div>
-                      <h3 className="text-base font-extrabold text-slate-800">{conn.name}</h3>
-                      <p className="text-2xs font-bold text-slate-400 uppercase tracking-wider">{conn.channelType}</p>
+                      <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100">{conn.name}</h3>
+                      <p className="text-2xs font-bold text-slate-400 dark:text-slate-450 uppercase tracking-wider">{conn.channelType}</p>
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between gap-4">
-                    <span className="text-2xs font-bold text-slate-500">
+                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between gap-4">
+                    <span className="text-2xs font-bold text-slate-500 dark:text-slate-400">
                       Sync: <span className="font-extrabold">{conn.lastSync}</span>
                     </span>
 
@@ -248,7 +248,7 @@ export default function AdvertisingPage() {
                           variant="secondary"
                           size="sm"
                           onClick={() => triggerConnect(conn.id)}
-                          className="rounded-xl px-2 py-1 text-2xs font-bold border-[#f3d9a7] hover:bg-[#fff0db]"
+                          className="rounded-xl px-2 py-1 text-2xs font-bold border-[#f3d9a7] dark:border-slate-800 hover:bg-[#fff0db] dark:hover:bg-slate-850"
                         >
                           Reconnect
                         </Button>
@@ -266,7 +266,7 @@ export default function AdvertisingPage() {
                         variant="primary"
                         size="sm"
                         onClick={() => triggerConnect(conn.id)}
-                        className="rounded-xl px-3 py-1 text-2xs font-black bg-[#FAB12F] hover:bg-[#e09e1b] text-slate-900 border border-[#f3d9a7]"
+                        className="rounded-xl px-3 py-1 text-2xs font-black bg-[#FAB12F] hover:bg-[#e09e1b] text-slate-900 border border-[#f3d9a7]/30"
                       >
                         Connect Channel
                       </Button>
@@ -282,16 +282,16 @@ export default function AdvertisingPage() {
         {activeTab === 'campaigns' && (
           <div className="space-y-6">
             {activeConnectionsCount === 0 ? (
-              <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-8 text-center space-y-4">
+              <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center space-y-4">
                 <div className="text-4xl">🔌</div>
-                <h3 className="text-lg font-bold text-slate-800">No Advertising Channels Connected</h3>
-                <p className="text-sm text-slate-500 max-w-md mx-auto">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">No Advertising Channels Connected</h3>
+                <p className="text-sm text-slate-505 dark:text-slate-400 max-w-md mx-auto">
                   Connect your business profiles (Google Ads, Meta Shop, or WhatsApp Campaigns) under the Channels tab to sync campaign data.
                 </p>
                 <Button
                   variant="primary"
                   onClick={() => setActiveTab('channels')}
-                  className="rounded-xl bg-[#FAB12F] text-slate-900 font-extrabold"
+                  className="rounded-xl bg-[#FAB12F] text-slate-950 font-extrabold"
                 >
                   Go to Channels
                 </Button>
@@ -301,19 +301,19 @@ export default function AdvertisingPage() {
                 
                 {/* Campaigns KPI Header */}
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm">
-                    <p className="text-2xs font-extrabold uppercase tracking-wider text-slate-400">Total Ad Budget Active</p>
-                    <strong className="text-2xl font-black text-slate-800">₹{dynamicBudget.toLocaleString('en-IN')} /mo</strong>
-                    <p className="text-3xs text-slate-400 mt-1">Spread across {activeConnectionsCount} connected channel(s)</p>
+                  <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+                    <p className="text-2xs font-extrabold uppercase tracking-wider text-slate-405 dark:text-slate-400">Total Ad Budget Active</p>
+                    <strong className="text-2xl font-black text-slate-800 dark:text-white">₹{dynamicBudget.toLocaleString('en-IN')} /mo</strong>
+                    <p className="text-3xs text-slate-400 dark:text-slate-500 mt-1">Spread across {activeConnectionsCount} connected channel(s)</p>
                   </Card>
-                  <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm">
-                    <p className="text-2xs font-extrabold uppercase tracking-wider text-slate-400">Impressions (Est.)</p>
-                    <strong className="text-2xl font-black text-slate-800">42,500</strong>
+                  <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+                    <p className="text-2xs font-extrabold uppercase tracking-wider text-slate-405 dark:text-slate-400">Impressions (Est.)</p>
+                    <strong className="text-2xl font-black text-slate-800 dark:text-white">42,500</strong>
                     <p className="text-3xs text-emerald-500 font-bold mt-1">📈 +18% search click-through rate</p>
                   </Card>
-                  <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm">
-                    <p className="text-2xs font-extrabold uppercase tracking-wider text-slate-400">Ad Click-Throughs</p>
-                    <strong className="text-2xl font-black text-slate-800">1,240</strong>
+                  <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+                    <p className="text-2xs font-extrabold uppercase tracking-wider text-slate-405 dark:text-slate-400">Ad Click-Throughs</p>
+                    <strong className="text-2xl font-black text-slate-800 dark:text-white">1,240</strong>
                     <p className="text-3xs text-emerald-500 font-bold mt-1">📈 Avg. B2B Cost-Per-Click: ₹12.50</p>
                   </Card>
                 </div>
@@ -322,19 +322,19 @@ export default function AdvertisingPage() {
                 <div className="grid gap-6 md:grid-cols-2">
                   
                   {/* Budget Recommendations */}
-                  <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm space-y-4">
-                    <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                  <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
+                    <h3 className="text-base font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
                       💡 Smart Budget Advisory
                     </h3>
                     <div className="space-y-3">
-                      <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/50">
-                        <h4 className="text-xs font-bold text-amber-800">Optimized Recommended Budget</h4>
-                        <p className="text-xl font-black text-slate-900 mt-1">₹{Math.round(dynamicBudget * 1.2).toLocaleString('en-IN')} /mo</p>
-                        <p className="text-3xs text-slate-500 mt-1">Increasing spending by 20% on Google Ads is estimated to double impressions for high-margin catalog items.</p>
+                      <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-slate-950 border border-amber-205 dark:border-slate-850">
+                        <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500">Optimized Recommended Budget</h4>
+                        <p className="text-xl font-black text-slate-900 dark:text-white mt-1">₹{Math.round(dynamicBudget * 1.2).toLocaleString('en-IN')} /mo</p>
+                        <p className="text-3xs text-slate-505 dark:text-slate-400 mt-1">Increasing spending by 20% on Google Ads is estimated to double impressions for high-margin catalog items.</p>
                       </div>
                       <div className="space-y-2">
-                        <h4 className="text-2xs font-extrabold text-slate-400 uppercase tracking-wider">Top Performing Bid Targets</h4>
-                        <ul className="text-xs text-slate-600 space-y-1.5">
+                        <h4 className="text-2xs font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Top Performing Bid Targets</h4>
+                        <ul className="text-xs text-slate-655 dark:text-slate-350 space-y-1.5">
                           {products.slice(0, 3).map((p) => (
                             <li key={p.id} className="flex justify-between font-medium">
                               <span>🎯 {p.name}</span>
@@ -347,36 +347,36 @@ export default function AdvertisingPage() {
                   </Card>
 
                   {/* Traffic Channels Summary */}
-                  <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm space-y-4">
-                    <h3 className="text-base font-extrabold text-slate-800">📊 Estimated Traffic Share</h3>
+                  <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
+                    <h3 className="text-base font-extrabold text-slate-800 dark:text-white">📊 Estimated Traffic Share</h3>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium">Google Search & Ads</span>
-                        <div className="w-1/2 bg-slate-100 h-2 rounded-full overflow-hidden">
-                          <div className="bg-blue-500 h-full rounded-full" style={{ width: '45%' }} />
+                        <span className="font-semibold text-slate-700 dark:text-slate-205">Google Search & Ads</span>
+                        <div className="w-1/2 bg-slate-100 dark:bg-slate-950 h-2 rounded-full overflow-hidden">
+                          <div className="bg-blue-505 h-full rounded-full" style={{ width: '45%' }} />
                         </div>
-                        <span className="font-extrabold text-slate-700">45%</span>
+                        <span className="font-extrabold text-slate-700 dark:text-slate-200">45%</span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium">Meta / Instagram Shops</span>
-                        <div className="w-1/2 bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <span className="font-semibold text-slate-700 dark:text-slate-205">Meta / Instagram Shops</span>
+                        <div className="w-1/2 bg-slate-100 dark:bg-slate-950 h-2 rounded-full overflow-hidden">
                           <div className="bg-pink-500 h-full rounded-full" style={{ width: '30%' }} />
                         </div>
-                        <span className="font-extrabold text-slate-700">30%</span>
+                        <span className="font-extrabold text-slate-700 dark:text-slate-200">30%</span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium">WhatsApp Broadcasts</span>
-                        <div className="w-1/2 bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <span className="font-semibold text-slate-700 dark:text-slate-205">WhatsApp Broadcasts</span>
+                        <div className="w-1/2 bg-slate-100 dark:bg-slate-950 h-2 rounded-full overflow-hidden">
                           <div className="bg-emerald-500 h-full rounded-full" style={{ width: '20%' }} />
                         </div>
-                        <span className="font-extrabold text-slate-700">20%</span>
+                        <span className="font-extrabold text-slate-700 dark:text-slate-200">20%</span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium">Other Direct Directory Hits</span>
-                        <div className="w-1/2 bg-slate-100 h-2 rounded-full overflow-hidden">
-                          <div className="bg-amber-500 h-full rounded-full" style={{ width: '5%' }} />
+                        <span className="font-semibold text-slate-700 dark:text-slate-205">Other Direct Hits</span>
+                        <div className="w-1/2 bg-slate-100 dark:bg-slate-950 h-2 rounded-full overflow-hidden">
+                          <div className="bg-amber-505 h-full rounded-full" style={{ width: '5%' }} />
                         </div>
-                        <span className="font-extrabold text-slate-700">5%</span>
+                        <span className="font-extrabold text-slate-700 dark:text-slate-200">5%</span>
                       </div>
                     </div>
                   </Card>
@@ -392,16 +392,16 @@ export default function AdvertisingPage() {
           <div className="grid gap-6 md:grid-cols-2">
             
             {/* Keywords */}
-            <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm space-y-4">
+            <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
               <div>
-                <h3 className="text-base font-extrabold text-slate-800">🔑 Auto-Suggested SEO Keywords</h3>
-                <p className="text-3xs text-slate-400 mt-0.5">High-intent search queries generated directly from your catalog list.</p>
+                <h3 className="text-base font-extrabold text-slate-800 dark:text-white">🔑 Auto-Suggested SEO Keywords</h3>
+                <p className="text-3xs text-slate-400 dark:text-slate-450 mt-0.5">High-intent search queries generated directly from your catalog list.</p>
               </div>
               <div className="flex flex-wrap gap-2 pt-2">
                 {generatedKeywords.map((kw, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-xl bg-amber-50 text-amber-700 border border-amber-100/50 hover:bg-amber-100 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                    className="inline-flex items-center text-xs font-bold px-3 py-1 rounded-xl bg-amber-50 dark:bg-slate-950 text-amber-700 dark:text-amber-400 border border-amber-100/50 dark:border-slate-800 hover:bg-amber-100 dark:hover:bg-slate-850 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
                   >
                     🔍 {kw}
                   </span>
@@ -410,25 +410,25 @@ export default function AdvertisingPage() {
             </Card>
 
             {/* Catalog SEO Score */}
-            <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm space-y-4">
+            <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
               <div>
-                <h3 className="text-base font-extrabold text-slate-800">📈 SEO Index Analysis</h3>
-                <p className="text-3xs text-slate-400 mt-0.5">Automated title and HSN compliance checks score.</p>
+                <h3 className="text-base font-extrabold text-slate-800 dark:text-white">📈 SEO Index Analysis</h3>
+                <p className="text-3xs text-slate-400 dark:text-slate-450 mt-0.5">Automated title and HSN compliance checks score.</p>
               </div>
               
               <div className="flex items-center gap-6">
-                <div className="relative h-20 w-20 rounded-full border-4 border-emerald-500 flex items-center justify-center bg-emerald-50/50">
-                  <span className="text-lg font-black text-emerald-600">88%</span>
+                <div className="relative h-20 w-20 rounded-full border-4 border-emerald-500 flex items-center justify-center bg-emerald-50/50 dark:bg-emerald-950/20">
+                  <span className="text-lg font-black text-emerald-600 dark:text-emerald-450">88%</span>
                 </div>
                 <div className="flex-1 space-y-1 text-xs">
-                  <p className="font-bold text-slate-700">SEO Quality Score: <span className="text-emerald-500">EXCELLENT</span></p>
-                  <p className="text-slate-500">Your products have highly search-optimized descriptive text. Add volume-tiered wholesale pricing to increase index rankings by up to 15%.</p>
+                  <p className="font-extrabold text-slate-750 dark:text-slate-200">SEO Quality Score: <span className="text-emerald-500">EXCELLENT</span></p>
+                  <p className="text-slate-505 dark:text-slate-400">Your products have highly search-optimized descriptive text. Add volume-tiered wholesale pricing to increase index rankings by up to 15%.</p>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-100 space-y-2">
-                <h4 className="text-2xs font-extrabold text-slate-400 uppercase tracking-wider">Automated Recommendations</h4>
-                <ul className="text-xs text-slate-600 space-y-1.5">
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 space-y-2">
+                <h4 className="text-2xs font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Automated Recommendations</h4>
+                <ul className="text-xs text-slate-655 dark:text-slate-350 space-y-1.5">
                   <li className="flex items-start gap-2">
                     <span className="text-emerald-500">✓</span>
                     <span>All products include specific size or specification dimensions.</span>
@@ -438,7 +438,7 @@ export default function AdvertisingPage() {
                     <span>GST number is present in profile (displays Trust Badges).</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-amber-500">⚠️</span>
+                    <span className="text-amber-550">⚠️</span>
                     <span>Ensure target WhatsApp broadcast templates mention your delivery timelines.</span>
                   </li>
                 </ul>
@@ -452,24 +452,24 @@ export default function AdvertisingPage() {
 
       {/* OAuth Progress Overlay Modal */}
       {connectingId !== null && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="max-w-md w-full rounded-3xl border border-[#f3d9a7] bg-white p-8 space-y-6 shadow-2xl animate-fade-in">
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="max-w-md w-full rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-8 space-y-6 shadow-2xl animate-fade-in">
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FAB12F]" />
               <div>
-                <h3 className="text-lg font-extrabold text-slate-800">Secure Channel Handshake</h3>
-                <p className="text-xs text-slate-500 mt-1">Connecting account token scopes securely</p>
+                <h3 className="text-lg font-extrabold text-slate-800 dark:text-white">Secure Channel Handshake</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Connecting account token scopes securely</p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-100 dark:bg-slate-955 h-2.5 rounded-full overflow-hidden">
                 <div
                   className="bg-[#FAB12F] h-full rounded-full transition-all duration-300"
                   style={{ width: `${authProgress}%` }}
                 />
               </div>
-              <p className="text-2xs font-bold text-center text-slate-600 animate-pulse">{authStep}</p>
+              <p className="text-2xs font-bold text-center text-slate-600 dark:text-slate-350 animate-pulse">{authStep}</p>
             </div>
           </Card>
         </div>

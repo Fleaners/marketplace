@@ -148,18 +148,18 @@ export default function DashboardPage() {
       <div className="space-y-6">
         
         {/* Welcome Header */}
-        <section className="rounded-[32px] bg-white border border-[#f3d9a7] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
+        <section className="rounded-[32px] bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-600">Merchant Cockpit</p>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1f2937] font-display flex items-center flex-wrap gap-2">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1f2937] dark:text-white font-display flex items-center flex-wrap gap-2">
               Welcome back, {state.sellerName} 👋
               {state.gstVerified && (
-                <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border border-[#FAB12F] bg-blue-50 text-[#FAB12F] cursor-pointer" title="This seller has a verified GST registration.">
+                <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border border-[#FAB12F] bg-blue-50 dark:bg-blue-950/40 text-[#FAB12F] cursor-pointer" title="This seller has a verified GST registration.">
                   🏅 GST Verified
                 </span>
               )}
             </h1>
-            <p className="text-base text-slate-600 font-bold">
+            <p className="text-base text-slate-650 dark:text-slate-300 font-bold">
               Your business reached <span className="text-[#FAB12F] font-black">+{state.buyerReachThisWeek} new buyers</span> this week.
             </p>
           </div>
@@ -173,7 +173,7 @@ export default function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
               }
-              className="rounded-2xl bg-[#FAB12F] hover:bg-[#e09e1b] text-slate-900 font-extrabold border border-[#f3d9a7] shadow-[0_12px_30px_-6px_rgba(250,177,47,0.35)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+              className="rounded-2xl bg-[#FAB12F] hover:bg-[#e09e1b] text-slate-900 font-extrabold border border-[#f3d9a7] dark:border-slate-800 shadow-[0_12px_30px_-6px_rgba(250,177,47,0.35)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
               data-testid="add-product-btn"
             >
               Add Product
@@ -188,7 +188,7 @@ export default function DashboardPage() {
             title="People Interested"
             value={`+${state.viewsCount}`}
             icon="👀"
-            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
+            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
           >
             <p className="mt-2 text-xs text-slate-500 font-bold">Product detail page views</p>
           </KPICard>
@@ -197,7 +197,7 @@ export default function DashboardPage() {
             title="WhatsApp Inquiries"
             value={`${state.whatsappInquiries}`}
             icon="💬"
-            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
+            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
           >
             <p className="mt-2 text-xs text-emerald-600 font-extrabold flex items-center gap-1">
               <span>●</span> Direct buyer contacts initiated
@@ -210,8 +210,8 @@ export default function DashboardPage() {
             icon="⚠️"
             className={`min-h-[140px] rounded-3xl border p-6 flex flex-col justify-between transition-all hover:shadow-md ${
               state.lowStockCount > 0 
-                ? 'border-amber-500/30 bg-amber-50/50 text-amber-800' 
-                : 'border-[#f3d9a7] bg-white text-[#1f2937]'
+                ? 'border-amber-500/30 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300' 
+                : 'border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 text-[#1f2937] dark:text-slate-100'
             }`}
           >
             <p className={`mt-2 text-xs font-bold ${state.lowStockCount > 0 ? 'text-amber-700/80' : 'text-slate-500'}`}>
@@ -223,7 +223,7 @@ export default function DashboardPage() {
             title="Top Product"
             value={state.topProduct}
             icon="🏆"
-            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
+            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
           >
             <p className="mt-2 text-xs text-slate-500 font-bold truncate">Generated most interest</p>
           </KPICard>
@@ -235,7 +235,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Business Control Center</p>
-              <h2 className="text-xl font-extrabold text-[#1f2937] mt-1 font-display">Operational Modules</h2>
+              <h2 className="text-xl font-extrabold text-[#1f2937] dark:text-white mt-1 font-display">Operational Modules</h2>
             </div>
             <span className="text-xs text-amber-600 font-bold flex items-center gap-1">
               <span>●</span> Fully Synchronized
@@ -246,7 +246,7 @@ export default function DashboardPage() {
             
             {/* Orders Cockpit Card */}
             <Card 
-              className="rounded-3xl border border-[#f3d9a7] bg-white p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
+              className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 dark:hover:bg-slate-800/40 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
               onClick={() => router.push('/dashboard/orders')}
             >
               <div className="space-y-3">
@@ -259,7 +259,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-[#1f2937] group-hover:text-[#e09e1b] transition-colors">
+                  <h3 className="text-sm font-extrabold text-[#1f2937] dark:text-white group-hover:text-[#e09e1b] transition-colors">
                     Orders Cockpit
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2 font-medium">
@@ -274,7 +274,7 @@ export default function DashboardPage() {
 
             {/* WhatsApp Leads Card */}
             <Card 
-              className="rounded-3xl border border-[#f3d9a7] bg-white p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
+              className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 dark:hover:bg-slate-800/40 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
               onClick={() => router.push('/dashboard/leads')}
             >
               <div className="space-y-3">
@@ -287,7 +287,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-[#1f2937] group-hover:text-[#e09e1b] transition-colors">
+                  <h3 className="text-sm font-extrabold text-[#1f2937] dark:text-white group-hover:text-[#e09e1b] transition-colors">
                     WhatsApp Leads
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2 font-medium">
@@ -302,7 +302,7 @@ export default function DashboardPage() {
 
             {/* Buyer Reviews Card */}
             <Card 
-              className="rounded-3xl border border-[#f3d9a7] bg-white p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
+              className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 dark:hover:bg-slate-800/40 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
               onClick={() => router.push('/dashboard/reviews')}
             >
               <div className="space-y-3">
@@ -315,7 +315,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-[#1f2937] group-hover:text-[#e09e1b] transition-colors">
+                  <h3 className="text-sm font-extrabold text-[#1f2937] dark:text-white group-hover:text-[#e09e1b] transition-colors">
                     Buyer Reviews
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2 font-medium">
@@ -330,7 +330,7 @@ export default function DashboardPage() {
 
             {/* Settings Profile Card */}
             <Card 
-              className="rounded-3xl border border-[#f3d9a7] bg-white p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
+              className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 hover:border-[#FAB12F] hover:bg-[#fff0db]/30 dark:hover:bg-slate-800/40 transition-all duration-300 group cursor-pointer flex flex-col justify-between min-h-[170px] shadow-[0_8px_24px_rgba(0,0,0,0.02)]"
               onClick={() => router.push('/dashboard/settings')}
             >
               <div className="space-y-3">
@@ -343,7 +343,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-[#1f2937] group-hover:text-[#e09e1b] transition-colors">
+                  <h3 className="text-sm font-extrabold text-[#1f2937] dark:text-white group-hover:text-[#e09e1b] transition-colors">
                     Business Settings
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2 font-medium">
@@ -363,14 +363,14 @@ export default function DashboardPage() {
         <section className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
           
           {/* Active Inquiries Card */}
-          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-4 flex flex-col justify-between shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
+          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4 flex flex-col justify-between shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
             <div>
-              <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
+              <div className="flex items-center justify-between border-b border-neutral-150 dark:border-slate-800 pb-4">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Live Inquiries</p>
-                  <h3 className="mt-1 text-xl font-bold text-[#1f2937]">Direct WhatsApp Contacts</h3>
+                  <h3 className="mt-1 text-xl font-bold text-[#1f2937] dark:text-white">Direct WhatsApp Contacts</h3>
                 </div>
-                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600 flex items-center gap-1.5 border border-emerald-500/20">
+                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 border border-emerald-500/20">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -379,13 +379,13 @@ export default function DashboardPage() {
                 </span>
               </div>
 
-              <div className="divide-y divide-neutral-100 mt-4">
+              <div className="divide-y divide-neutral-100 dark:divide-slate-800/40 mt-4">
                 {recentInquiries.map((inq, idx) => (
-                  <div key={idx} className="flex items-start justify-between py-4 gap-4 hover:bg-[#fff0db]/20 px-2 rounded-2xl transition-colors">
+                  <div key={idx} className="flex items-start justify-between py-4 gap-4 hover:bg-[#fff0db]/20 dark:hover:bg-slate-800/40 px-2 rounded-2xl transition-colors">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-[#1f2937]">{inq.buyer}</h4>
-                        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">{inq.location}</span>
+                        <h4 className="text-sm font-bold text-[#1f2937] dark:text-white">{inq.buyer}</h4>
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-400 px-2 py-0.5 rounded-full font-bold">{inq.location}</span>
                       </div>
                       <p className="text-xs text-slate-500 line-clamp-1 italic">"{inq.message}"</p>
                     </div>
@@ -407,10 +407,10 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            <div className="pt-4 border-t border-neutral-100">
+            <div className="pt-4 border-t border-neutral-150 dark:border-slate-800">
               <Button 
                 variant="secondary" 
-                className="w-full justify-center rounded-2xl border-[#f3d9a7] bg-[#fff6e6] text-[#1f2937] hover:bg-[#fff0db] font-bold"
+                className="w-full justify-center rounded-2xl border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 text-[#1f2937] dark:text-slate-100 hover:bg-[#fff0db] font-bold"
                 onClick={() => router.push('/dashboard/profile')}
               >
                 Configure WhatsApp Settings
@@ -419,14 +419,14 @@ export default function DashboardPage() {
           </Card>
 
           {/* AI Assistant Chat Box */}
-          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 flex flex-col h-[400px] justify-between shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
+          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-col h-[400px] justify-between shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
             <div>
-              <div className="flex items-center gap-2.5 border-b border-neutral-100 pb-4">
+              <div className="flex items-center gap-2.5 border-b border-neutral-150 dark:border-slate-800 pb-4">
                 <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#FAB12F] to-[#f59e0b] flex items-center justify-center text-sm shadow-sm font-bold">
                   🤖
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#1f2937]">AI Business Advisor</h3>
+                  <h3 className="text-sm font-bold text-[#1f2937] dark:text-white">AI Business Advisor</h3>
                   <p className="text-[11px] text-slate-500 font-bold">Real-time marketplace insights</p>
                 </div>
               </div>
@@ -442,7 +442,7 @@ export default function DashboardPage() {
                   <div className={`max-w-[85%] rounded-[20px] px-4 py-2.5 text-xs font-bold leading-relaxed shadow-sm ${
                     chat.sender === 'user' 
                       ? 'bg-[#FAB12F] text-slate-950 rounded-br-none' 
-                      : 'bg-[#fff6e6] text-[#1f2937] rounded-bl-none border border-[#f3d9a7]'
+                      : 'bg-[#fff6e6] dark:bg-slate-950 text-[#1f2937] dark:text-slate-100 rounded-bl-none border border-[#f3d9a7] dark:border-slate-800'
                   }`}>
                     {chat.text}
                   </div>
@@ -451,17 +451,17 @@ export default function DashboardPage() {
             </div>
 
             {/* Input Form */}
-            <form onSubmit={handleSendMessage} className="flex gap-2 border-t border-neutral-100 pt-3">
+            <form onSubmit={handleSendMessage} className="flex gap-2 border-t border-neutral-150 dark:border-slate-800 pt-3">
               <input
                 type="text"
                 placeholder="Ask about inventory, GST benefits..."
                 value={aiMessage}
                 onChange={(e) => setAiMessage(e.target.value)}
-                className="flex-1 rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-2.5 text-xs text-[#1f2937] focus:outline-none focus:border-[#FAB12F] focus:ring-[#FAB12F]/10 transition-colors placeholder:text-slate-400 font-bold"
+                className="flex-1 rounded-2xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-4 py-2.5 text-xs text-[#1f2937] dark:text-slate-100 focus:outline-none focus:border-[#FAB12F] focus:ring-[#FAB12F]/10 transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-600 font-bold"
               />
               <button 
                 type="submit"
-                className="h-10 w-10 rounded-2xl bg-[#fff6e6] hover:bg-[#fff0db] border border-[#f3d9a7] flex items-center justify-center text-[#1f2937] font-bold transition-all duration-200 hover:scale-105"
+                className="h-10 w-10 rounded-2xl bg-[#fff6e6] dark:bg-slate-950 hover:bg-[#fff0db] dark:hover:bg-slate-800/45 border border-[#f3d9a7] dark:border-slate-800 flex items-center justify-center text-[#1f2937] dark:text-slate-100 font-bold transition-all duration-200 hover:scale-105"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />

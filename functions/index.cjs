@@ -84,7 +84,12 @@ function deriveProjectIdFromHost(hostname) {
 app.use(cors({
   origin(origin, callback) {
     if (!origin) return callback(null, true);
-    if (!allowedOrigins.length) return callback(null, true);
+    if (allowedOrigins.length === 0) {
+      // Fail closed in production: reject cross-origin if unconfigured
+      const isDev = (process.env.NODE_ENV || 'development') === 'development';
+      if (isDev) return callback(null, true);
+      return callback(new Error('CORS not configured. Set CORS_ORIGINS environment variable.'));
+    }
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Origin not allowed by CORS policy'));
   },

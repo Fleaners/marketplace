@@ -186,6 +186,7 @@ npm run dev
 - **[backend/package.json](backend/package.json)** - Dependencies
 - **[backend/sql/schema.sql](backend/sql/schema.sql)** - Database schema
 - **Repository**: https://github.com/Fleaners/marketplace
+- **Project Board**: https://github.com/Fleaners/marketplace/projects
 
 ---
 

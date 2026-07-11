@@ -363,21 +363,21 @@ export default function ProfilePage() {
       <div className="space-y-6">
         
         {/* Onboarding Progress Segment */}
-        <section className="rounded-[32px] bg-gradient-to-r from-[#FAB12F]/10 via-[#fff0db] to-[#fff6e6] border border-[#f3d9a7] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+        <section className="rounded-[32px] bg-gradient-to-r from-[#FAB12F]/10 via-[#fff0db] to-[#fff6e6] dark:from-slate-900 dark:via-indigo-950/20 dark:to-slate-950 border border-[#f3d9a7] dark:border-slate-800 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
           <div className="space-y-3 text-center md:text-left flex-1">
             <span className="rounded-full bg-[#FAB12F]/10 px-3.5 py-1 text-xs font-bold text-amber-600 border border-accent-500/15">
               🚀 Setup Checklist
             </span>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1f2937]">
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[#1f2937] dark:text-white">
               Complete Onboarding Milestones
             </h2>
-            <p className="text-sm text-slate-600 max-w-xl leading-relaxed">
+            <p className="text-sm text-slate-650 dark:text-slate-400 max-w-xl leading-relaxed">
               Verify your physical warehouse address, input optional tax GSTIN info, and activate Buyer Protection to unlock premium search visibility and trade features.
             </p>
           </div>
 
           {/* Responsive SVG Circular Progress Circle */}
-          <div className="flex items-center gap-4 bg-white/80 border border-[#f3d9a7] px-6 py-4 rounded-3xl backdrop-blur-md">
+          <div className="flex items-center gap-4 bg-white/80 dark:bg-slate-900/80 border border-[#f3d9a7] dark:border-slate-800 px-6 py-4 rounded-3xl backdrop-blur-md shadow-sm">
             <div className="relative h-24 w-24">
               <svg className="h-full w-full transform -rotate-90">
                 <circle
@@ -387,7 +387,7 @@ export default function ProfilePage() {
                   strokeWidth="8"
                   stroke="currentColor"
                   fill="transparent"
-                  className="text-slate-300"
+                  className="text-slate-200 dark:text-slate-800"
                 />
                 <circle
                   cx="48"
@@ -399,11 +399,11 @@ export default function ProfilePage() {
                   strokeLinecap="round"
                   stroke="currentColor"
                   fill="transparent"
-                  className="text-accent-500 transition-all duration-700 ease-in-out"
+                  className="text-accent-550 dark:text-[#FAB12F] transition-all duration-700 ease-in-out"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-lg font-black text-[#1f2937]">{completionPercentage}%</span>
+                <span className="text-lg font-black text-[#1f2937] dark:text-white">{completionPercentage}%</span>
                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Done</span>
               </div>
             </div>
@@ -412,7 +412,7 @@ export default function ProfilePage() {
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
                 Cockpit Score
               </p>
-              <p className="text-base font-extrabold text-[#1f2937] mt-0.5">
+              <p className="text-base font-extrabold text-[#1f2937] dark:text-white mt-0.5">
                 {completedSteps} of {totalSteps} verified
               </p>
               <p className="text-xs font-medium text-amber-600 mt-1">
@@ -423,16 +423,16 @@ export default function ProfilePage() {
         </section>
 
         {/* Dynamic Trust Badges Area */}
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <section className="grid gap-4 grid-cols-2 lg:grid-cols-5">
           {/* Badge 1: GST Verification Status */}
           <div
             title={profile.gstStatus === 'verified' ? 'This seller has a verified GST registration.' : ''}
             className={`rounded-2xl border p-4 flex flex-col items-center justify-center text-center space-y-2 transition-all duration-300 relative group cursor-pointer ${
               profile.gstStatus === 'verified'
-                ? 'border-[#FAB12F] bg-blue-50/80 text-[#FAB12F] shadow-sm font-semibold'
+                ? 'border-[#FAB12F] bg-blue-50/80 dark:bg-blue-955/20 text-[#FAB12F] shadow-sm font-semibold'
                 : profile.gstStatus === 'pending'
-                ? 'border-amber-400 bg-amber-50/50 text-amber-600'
-                : 'border-[#f3d9a7] bg-white text-slate-500'
+                ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-955/10 text-amber-600'
+                : 'border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500'
             }`}
           >
             <span className="text-2xl">
@@ -442,12 +442,12 @@ export default function ProfilePage() {
               <p className="text-xs font-extrabold uppercase tracking-wider">
                 {profile.gstStatus === 'verified' ? '✓ GST Verified' : profile.gstStatus === 'pending' ? 'Pending Verification' : 'GST Optional'}
               </p>
-              <p className="text-[10px] text-slate-500 font-medium">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                 {profile.gstStatus === 'verified' ? 'B2B Tax Credit' : profile.gstStatus === 'pending' ? 'Reviewing' : 'No Badge'}
               </p>
             </div>
             {profile.gstStatus === 'verified' && (
-              <div className="absolute bottom-full mb-2 hidden group-hover:block bg-[#1f2937] text-white text-[10px] p-2 rounded-lg shadow-lg w-48 text-center z-10">
+              <div className="absolute bottom-full mb-2 hidden group-hover:block bg-[#1f2937] dark:bg-slate-950 text-white text-[10px] p-2 rounded-lg shadow-lg w-48 text-center z-10">
                 This seller has a verified GST registration.
               </div>
             )}
@@ -457,14 +457,14 @@ export default function ProfilePage() {
           <div
             className={`rounded-2xl border p-4 flex flex-col items-center justify-center text-center space-y-2 transition-all duration-300 ${
               profile.msmeRegistered
-                ? 'border-blue-500/20 bg-blue-500/5 text-blue-400'
-                : 'border-[#f3d9a7] bg-white text-slate-500'
+                ? 'border-blue-500/20 bg-blue-500/5 dark:bg-blue-950/20 text-blue-400'
+                : 'border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500'
             }`}
           >
             <span className="text-2xl">{profile.msmeRegistered ? '🏭' : '⏳'}</span>
             <div className="space-y-0.5">
               <p className="text-xs font-extrabold uppercase tracking-wider">MSME Status</p>
-              <p className="text-[10px] text-slate-500 font-medium">National Directory</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">National Directory</p>
             </div>
           </div>
 
@@ -472,14 +472,14 @@ export default function ProfilePage() {
           <div
             className={`rounded-2xl border p-4 flex flex-col items-center justify-center text-center space-y-2 transition-all duration-300 ${
               profile.verifiedSupplier
-                ? 'border-accent-500/20 bg-[#FAB12F]/5 text-amber-600'
-                : 'border-[#f3d9a7] bg-white text-slate-500'
+                ? 'border-accent-500/20 bg-[#FAB12F]/5 dark:bg-[#FAB12F]/10 text-amber-600'
+                : 'border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500'
             }`}
           >
             <span className="text-2xl">✨</span>
             <div className="space-y-0.5">
               <p className="text-xs font-extrabold uppercase tracking-wider">Premium Badge</p>
-              <p className="text-[10px] text-slate-500 font-medium">Top Rank Search</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Top Rank Search</p>
             </div>
           </div>
 
@@ -487,14 +487,14 @@ export default function ProfilePage() {
           <div
             className={`rounded-2xl border p-4 flex flex-col items-center justify-center text-center space-y-2 transition-all duration-300 ${
               profile.buyerProtectionActive
-                ? 'border-purple-500/20 bg-purple-500/5 text-purple-400'
-                : 'border-[#f3d9a7] bg-white text-slate-500'
+                ? 'border-purple-500/20 bg-purple-500/5 dark:bg-purple-950/20 text-purple-400'
+                : 'border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500'
             }`}
           >
             <span className="text-2xl">{profile.buyerProtectionActive ? '🤝' : '🔒'}</span>
             <div className="space-y-0.5">
               <p className="text-xs font-extrabold uppercase tracking-wider">Buyer Protection</p>
-              <p className="text-[10px] text-slate-500 font-medium">Escrow Trust Shield</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Escrow Trust Shield</p>
             </div>
           </div>
 
@@ -502,14 +502,14 @@ export default function ProfilePage() {
           <div
             className={`rounded-2xl border p-4 flex flex-col items-center justify-center text-center space-y-2 transition-all duration-300 ${
               profile.whatsappConnected
-                ? 'border-teal-500/20 bg-teal-500/5 text-teal-400'
-                : 'border-[#f3d9a7] bg-white text-slate-500'
+                ? 'border-teal-500/20 bg-teal-500/5 dark:bg-teal-950/20 text-teal-400'
+                : 'border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500'
             }`}
           >
             <span className="text-2xl">{profile.whatsappConnected ? '💬' : '🔌'}</span>
             <div className="space-y-0.5">
               <p className="text-xs font-extrabold uppercase tracking-wider">WhatsApp Link</p>
-              <p className="text-[10px] text-slate-500 font-medium">Direct Click-to-Chat</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Direct Click-to-Chat</p>
             </div>
           </div>
         </section>
@@ -518,32 +518,32 @@ export default function ProfilePage() {
         <section className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
           
           {/* Setup Checklist Progress */}
-          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-4">
+          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Setup Progress
               </p>
-              <h3 className="mt-1 text-xl font-bold text-[#1f2937]">Interactive Onboarding</h3>
+              <h3 className="mt-1 text-xl font-bold text-[#1f2937] dark:text-white">Interactive Onboarding</h3>
               <p className="text-xs text-slate-500 mt-1">
                 Toggle completed steps below to instantly calculate your cockpit grade score and synchronize badges.
               </p>
             </div>
 
-            <div className="divide-y divide-[#f3d9a7] overflow-y-auto max-h-[500px] scrollbar-thin scrollbar-thumb-slate-900 pr-1">
+            <div className="divide-y divide-[#f3d9a7] dark:divide-slate-800 overflow-y-auto max-h-[500px] scrollbar-thin scrollbar-thumb-slate-900 pr-1">
               {CHECKLIST_ITEMS.map((item) => {
                 const isChecked = !!profile.checklist[item.id];
                 return (
                   <div
                     key={item.id}
                     onClick={() => handleChecklistItemToggle(item.id)}
-                    className="flex items-start gap-3 py-3.5 cursor-pointer hover:bg-[#fff0db]/50 px-2 rounded-2xl transition-colors group"
+                    className="flex items-start gap-3 py-3.5 cursor-pointer hover:bg-[#fff0db]/50 dark:hover:bg-slate-800/40 px-2 rounded-2xl transition-colors group"
                   >
                     <div className="pt-0.5">
                       <div
                         className={`h-5 w-5 rounded-md border flex items-center justify-center transition-all ${
                           isChecked
-                            ? 'bg-[#FAB12F] border-accent-500 text-slate-950 scale-105'
-                            : 'border-[#f3d9a7] bg-[#fff6e6] group-hover:border-slate-700'
+                            ? 'bg-[#FAB12F] border-accent-500 text-slate-955 scale-105'
+                            : 'border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 group-hover:border-slate-700 dark:group-hover:border-slate-600'
                         }`}
                       >
                         {isChecked && (
@@ -557,12 +557,12 @@ export default function ProfilePage() {
                     <div className="space-y-1">
                       <h4
                         className={`text-xs font-bold leading-tight transition-colors ${
-                          isChecked ? 'text-slate-500 line-through' : 'text-[#1f2937] group-hover:text-amber-600'
+                          isChecked ? 'text-slate-500 line-through' : 'text-[#1f2937] dark:text-white group-hover:text-amber-600'
                         }`}
                       >
                         {item.label}
                       </h4>
-                      <p className="text-[10px] leading-relaxed text-slate-500">{item.description}</p>
+                      <p className="text-[10px] leading-relaxed text-slate-505 dark:text-slate-400">{item.description}</p>
                     </div>
                   </div>
                 );
@@ -571,13 +571,13 @@ export default function ProfilePage() {
           </Card>
 
           {/* Physical Information profile Editor */}
-          <Card className="rounded-3xl border border-[#f3d9a7] bg-white p-6 flex flex-col justify-between">
+          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-col justify-between">
             <form onSubmit={handleSaveCTA} className="space-y-6">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                   Business Cockpit Setup
                 </p>
-                <h3 className="mt-1 text-xl font-bold text-[#1f2937]">Merchant Core Directory</h3>
+                <h3 className="mt-1 text-xl font-bold text-[#1f2937] dark:text-white">Merchant Core Directory</h3>
                 <p className="text-xs text-slate-500 mt-1">
                   Configure verification parameters visible to trade partners on DealerConnect.
                 </p>
@@ -598,12 +598,12 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 {/* Business Name Field */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-600">Registered Business Name (Mandatory)</label>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Registered Business Name (Mandatory)</label>
                   <input
                     type="text"
                     value={profile.businessName}
                     onChange={(e) => handleFieldChange('businessName', e.target.value)}
-                    className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors font-semibold"
+                    className="w-full rounded-2xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-105 focus:outline-none focus:border-accent-500 transition-colors font-semibold"
                     required
                   />
                 </div>
@@ -611,24 +611,24 @@ export default function ProfilePage() {
                 {/* Primary Contacts */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Owner Name (Mandatory)</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Owner Name (Mandatory)</label>
                     <input
                       type="text"
                       value={profile.contactPerson}
                       onChange={(e) => handleFieldChange('contactPerson', e.target.value)}
-                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
+                      className="w-full rounded-2xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-105 focus:outline-none focus:border-accent-500 transition-colors"
                       required
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">WhatsApp Number (Mandatory)</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">WhatsApp Number (Mandatory)</label>
                     <input
                       type="text"
                       placeholder="e.g. 919876543210"
                       value={profile.whatsappNumber}
                       onChange={(e) => handleFieldChange('whatsappNumber', e.target.value)}
-                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors font-mono"
+                      className="w-full rounded-2xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-105 focus:outline-none focus:border-accent-500 transition-colors font-mono"
                       required
                     />
                   </div>
@@ -637,23 +637,23 @@ export default function ProfilePage() {
                 {/* Email Address & GSTIN Code */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Business E-mail Address</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Business E-mail Address</label>
                     <input
                       type="email"
                       value={profile.email}
                       onChange={(e) => handleFieldChange('email', e.target.value)}
-                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
+                      className="w-full rounded-2xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-105 focus:outline-none focus:border-accent-500 transition-colors"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">GSTIN Code (Optional)</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">GSTIN Code (Optional)</label>
                     <input
                       type="text"
                       placeholder="e.g. 27AAAAA0000A1Z5"
                       value={profile.gstin}
                       onChange={(e) => handleFieldChange('gstin', e.target.value.toUpperCase())}
-                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors uppercase font-mono"
+                      className="w-full rounded-2xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-105 focus:outline-none focus:border-accent-500 transition-colors uppercase font-mono"
                     />
                   </div>
                 </div>
@@ -661,25 +661,25 @@ export default function ProfilePage() {
                 {/* PAN Code & State */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">PAN Code (Optional)</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">PAN Code (Optional)</label>
                     <input
                       type="text"
                       placeholder="e.g. AAAAA0000A"
                       maxLength={10}
                       value={profile.pan}
                       onChange={(e) => handleFieldChange('pan', e.target.value.toUpperCase())}
-                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors uppercase font-mono"
+                      className="w-full rounded-2xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-105 focus:outline-none focus:border-accent-500 transition-colors uppercase font-mono"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">State (Mandatory)</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">State (Mandatory)</label>
                     <input
                       type="text"
                       placeholder="e.g. Gujarat"
                       value={profile.state}
                       onChange={(e) => handleFieldChange('state', e.target.value)}
-                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
+                      className="w-full rounded-2xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-105 focus:outline-none focus:border-accent-500 transition-colors"
                       required
                     />
                   </div>
@@ -688,33 +688,33 @@ export default function ProfilePage() {
                 {/* Pincode & Warehouse Address */}
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-1 space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Pincode (Mandatory)</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Pincode (Mandatory)</label>
                     <input
                       type="text"
                       maxLength={6}
                       placeholder="382010"
                       value={profile.pincode}
                       onChange={(e) => handleFieldChange('pincode', e.target.value.replace(/\D/g, ''))}
-                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors font-mono"
+                      className="w-full rounded-2xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-105 focus:outline-none focus:border-accent-500 transition-colors font-mono"
                       required
                     />
                   </div>
 
                   <div className="col-span-2 space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Business Address (Mandatory)</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Business Address (Mandatory)</label>
                     <input
                       type="text"
                       placeholder="Plot 42, GIDC Industrial Estate, Sector 2"
                       value={profile.address}
                       onChange={(e) => handleFieldChange('address', e.target.value)}
-                      className="w-full rounded-2xl bg-[#fff6e6] border border-[#f3d9a7] px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors"
+                      className="w-full rounded-2xl bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-105 focus:outline-none focus:border-accent-500 transition-colors"
                       required
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-[#f3d9a7]/60">
+              <div className="pt-4 border-t border-[#f3d9a7]/60 dark:border-slate-800/60">
                 <Button
                   type="submit"
                   variant="primary"

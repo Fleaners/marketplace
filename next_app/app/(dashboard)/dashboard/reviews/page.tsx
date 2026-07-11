@@ -97,10 +97,10 @@ export default function ReviewsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-black text-[#1f2937] dark:text-white tracking-tight">
               Buyer Reviews & Testimonials
             </h1>
-            <p className="text-slate-500 text-sm mt-1">
+            <p className="text-slate-505 dark:text-slate-400 text-sm mt-1">
               Verify supplier credentials, review direct testimonials, and maintain premium trust ratings.
             </p>
           </div>
@@ -108,30 +108,30 @@ export default function ReviewsPage() {
 
         {/* Aggregate Ratings Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="md:col-span-1 rounded-3xl border border-[#f3d9a7] bg-white p-6 flex flex-col items-center justify-center text-center space-y-2">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Aggregate Score</p>
-            <p className="text-5xl font-black text-[#1f2937]">4.8</p>
-            <div className="text-amber-400 text-lg font-bold">{getStars(5)}</div>
-            <p className="text-xs text-slate-500 font-medium">Based on 14 B2B ratings</p>
+          <Card className="md:col-span-1 rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-col items-center justify-center text-center space-y-2">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Aggregate Score</p>
+            <p className="text-5xl font-black text-[#1f2937] dark:text-white">4.8</p>
+            <div className="text-amber-405 text-lg font-bold">{getStars(5)}</div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Based on 14 B2B ratings</p>
           </Card>
 
-          <Card className="md:col-span-3 rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-4 flex flex-col justify-center">
-            <h3 className="text-sm font-bold text-[#1f2937] uppercase tracking-wider">Supplier Trust Credentials</h3>
+          <Card className="md:col-span-3 rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4 flex flex-col justify-center">
+            <h3 className="text-sm font-bold text-[#1f2937] dark:text-white uppercase tracking-wider">Supplier Trust Credentials</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-medium">
-              <div className="p-3.5 rounded-2xl border border-[#f3d9a7] bg-[#fff6e6] text-center space-y-1">
+              <div className="p-3.5 rounded-2xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 text-center space-y-1">
                 <span className="text-xl">🏆</span>
-                <p className="text-slate-700 font-bold">100% Response Rate</p>
-                <p className="text-slate-500 text-[10px]">Average reply within 1 hour</p>
+                <p className="text-slate-700 dark:text-slate-205 font-bold">100% Response Rate</p>
+                <p className="text-slate-500 dark:text-slate-400 text-[10px]">Average reply within 1 hour</p>
               </div>
-              <div className="p-3.5 rounded-2xl border border-[#f3d9a7] bg-[#fff6e6] text-center space-y-1">
+              <div className="p-3.5 rounded-2xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 text-center space-y-1">
                 <span className="text-xl">🏅</span>
-                <p className="text-slate-700 font-bold">GST Verified Seller</p>
-                <p className="text-slate-500 text-[10px]">Verified corporate profile</p>
+                <p className="text-slate-700 dark:text-slate-205 font-bold">GST Verified Seller</p>
+                <p className="text-slate-500 dark:text-slate-400 text-[10px]">Verified corporate profile</p>
               </div>
-              <div className="p-3.5 rounded-2xl border border-[#f3d9a7] bg-[#fff6e6] text-center space-y-1">
+              <div className="p-3.5 rounded-2xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 text-center space-y-1">
                 <span className="text-xl">🤝</span>
-                <p className="text-slate-700 font-bold">90%+ Positive Feedback</p>
-                <p className="text-slate-500 text-[10px]">Elite merchant milestone</p>
+                <p className="text-slate-700 dark:text-slate-205 font-bold">90%+ Positive Feedback</p>
+                <p className="text-slate-500 dark:text-slate-400 text-[10px]">Elite merchant milestone</p>
               </div>
             </div>
           </Card>
@@ -139,26 +139,26 @@ export default function ReviewsPage() {
 
         {/* Reviews Feed */}
         <div className="space-y-4">
-          <h3 className="text-lg font-bold text-[#1f2937]">Buyer Testimonials Feed</h3>
+          <h3 className="text-lg font-bold text-[#1f2937] dark:text-white">Buyer Testimonials Feed</h3>
 
           {reviews.length === 0 ? (
-            <div className="text-center py-16 text-slate-500 bg-white rounded-3xl border border-[#f3d9a7]">
+            <div className="text-center py-16 text-slate-500 bg-white dark:bg-slate-900 rounded-3xl border border-[#f3d9a7] dark:border-slate-800">
               <p className="text-2xl">⭐</p>
               <p className="text-xs font-semibold mt-2">No buyer reviews registered yet.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {reviews.map((rev) => (
-                <Card key={rev.id} className="rounded-3xl border border-[#f3d9a7] bg-white p-6 space-y-4">
+                <Card key={rev.id} className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4 shadow-sm">
                   {/* Testimonial Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 border-b border-[#f3d9a7] pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 border-b border-[#f3d9a7] dark:border-slate-800 pb-3">
                     <div>
-                      <div className="font-bold text-[#1f2937] text-base">{rev.reviewerName}</div>
-                      <div className="text-xs text-slate-500 font-medium">{rev.reviewerCompany}</div>
+                      <div className="font-bold text-[#1f2937] dark:text-white text-base">{rev.reviewerName}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">{rev.reviewerCompany}</div>
                     </div>
                     <div className="text-right sm:text-right">
                       <div className="text-amber-400 text-sm font-bold">{getStars(rev.rating)}</div>
-                      <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
                         {new Date(rev.date).toLocaleDateString('en-IN', {
                           day: 'numeric',
                           month: 'long',
@@ -170,17 +170,17 @@ export default function ReviewsPage() {
 
                   {/* Feedback Content */}
                   <div className="space-y-1.5">
-                    <span className="inline-flex rounded-full bg-[#fff6e6] px-2.5 py-0.5 text-[9px] font-bold text-slate-500 uppercase tracking-widest border border-[#f3d9a7]">
+                    <span className="inline-flex rounded-full bg-[#fff6e6] dark:bg-slate-950 px-2.5 py-0.5 text-[9px] font-bold text-slate-505 dark:text-slate-400 uppercase tracking-widest border border-[#f3d9a7] dark:border-slate-800">
                       Product: {rev.productName}
                     </span>
-                    <p className="text-slate-600 text-sm leading-relaxed">{rev.text}</p>
+                    <p className="text-slate-650 dark:text-slate-300 text-sm leading-relaxed">{rev.text}</p>
                   </div>
 
                   {/* Existing Reply */}
                   {rev.reply && (
-                    <div className="p-4 rounded-2xl border border-[#f3d9a7] bg-[#fff6e6] border-l-2 border-l-accent-500 space-y-1">
+                    <div className="p-4 rounded-2xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 border-l-2 border-l-accent-500 space-y-1">
                       <p className="text-xs font-bold text-amber-600 uppercase tracking-widest">Supplier Response ✓</p>
-                      <p className="text-slate-600 text-xs leading-relaxed italic">"{rev.reply}"</p>
+                      <p className="text-slate-650 dark:text-slate-350 text-xs leading-relaxed italic">"{rev.reply}"</p>
                     </div>
                   )}
 
@@ -188,14 +188,14 @@ export default function ReviewsPage() {
                   {!rev.reply && (
                     <div>
                       {activeReplyId === rev.id ? (
-                        <div className="p-4 rounded-2xl border border-dashed border-[#f3d9a7] bg-[#fff0db]/50 space-y-3">
-                          <p className="text-xs font-bold text-[#1f2937] uppercase tracking-widest">Compose Response</p>
+                        <div className="p-4 rounded-2xl border border-dashed border-[#f3d9a7] dark:border-slate-800 bg-[#fff0db]/50 dark:bg-slate-950/20 space-y-3 animate-fade-in">
+                          <p className="text-xs font-bold text-[#1f2937] dark:text-white uppercase tracking-widest">Compose Response</p>
                           <textarea
                             rows={3}
                             placeholder="Type response as verified merchant..."
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
-                            className="w-full rounded-xl border border-[#f3d9a7] bg-[#fff6e6] px-3 py-2 text-xs text-[#1f2937] focus:outline-none focus:ring-1 focus:ring-accent-500 resize-none"
+                            className="w-full rounded-xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 px-3 py-2 text-xs text-[#1f2937] dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-accent-500 resize-none font-semibold"
                           />
                           <div className="flex justify-end gap-2">
                             <Button
@@ -210,7 +210,7 @@ export default function ReviewsPage() {
                             </Button>
                             <Button
                               onClick={() => handlePostReply(rev.id)}
-                              className="px-4 py-1.5 text-xs rounded-xl bg-[#FAB12F] text-[#1f2937]"
+                              className="px-4 py-1.5 text-xs rounded-xl bg-[#FAB12F] text-slate-950 font-bold"
                             >
                               Post Response
                             </Button>
@@ -222,7 +222,7 @@ export default function ReviewsPage() {
                             setActiveReplyId(rev.id);
                             setReplyText('');
                           }}
-                          className="text-xs font-semibold text-amber-600 hover:text-accent-300 transition-colors flex items-center gap-1"
+                          className="text-xs font-bold text-amber-600 hover:text-accent-300 transition-colors flex items-center gap-1"
                         >
                           💬 Reply as Supplier
                         </button>

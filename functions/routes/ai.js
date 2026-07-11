@@ -3,8 +3,17 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { verifyToken } from '../middleware/auth.js';
 import { askGemini } from '../services/geminiAgent.js';
 import { rejectUnknownBodyFields, optionalString } from '../middleware/validation.js';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+const aiRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many AI requests. Please try again shortly.' }
+});
 
 function getDb() {
   return getFirestore();
@@ -39,11 +48,12 @@ You must reject any questions outside the retail domain (e.g., programming help,
 If the question is unrelated to Indian retail, business, commerce, inventory, digital marketing, or GST, you MUST begin your response with "REJECTED:" and explain that you can only help with Indian retail business matters.
 Limit your responses to approximately 300–500 words unless explicitly requested. Do not return code or scripts.`;
 
+router.use(aiRateLimiter);
 router.use(verifyToken);
 
 router.post(
   '/analyze',
-  rejectUnknownBodyFields(['data', 'prompt']),
+  rejectUnknownBodyFields(['data', 'prompt', 'action', 'params']),
   optionalString('prompt', { max: 4000 }),
   async (req, res, next) => {
     try {
@@ -52,7 +62,39 @@ router.post(
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const { data, prompt } = req.body;
+      let { data, prompt, action, params } = req.body;
+
+      // Ownership validation: check if request data matches authenticated business ID
+      if (data && data.sellerName && req.user?.shopName) {
+        const expectedShopName = String(req.user.shopName).trim().toLowerCase();
+        const incomingShopName = String(data.sellerName).trim().toLowerCase();
+        if (incomingShopName && incomingShopName !== expectedShopName) {
+          console.warn(
+            JSON.stringify({
+              level: 'WARN',
+              event: 'BUSINESS_CONTEXT_OWNERSHIP_VIOLATION',
+              userId: req.user.id,
+              businessId,
+              expectedShopName,
+              incomingShopName,
+              timestamp: new Date().toISOString()
+            })
+          );
+          return res.status(403).json({ error: 'Access denied: Business context mismatch.' });
+        }
+      }
+
+      // Secure prompt template resolution (templates are kept backend-only)
+      if (action === 'generate_description') {
+        const title = String(params?.title || '').trim();
+        const category = String(params?.category || '').trim();
+        if (!title) {
+          return res.status(400).json({ error: 'Product title is required.' });
+        }
+        prompt = `Generate a detailed and professional B2B wholesale product description for a product titled "${title}" in the category "${category}". Highlighting key features, trade benefits, and certifications. Keep it around 150 words.`;
+      }
+
+      const resolvedPrompt = prompt || 'Analyze this marketplace business data and provide growth tips.';
       const safeData = data && typeof data === 'object' ? data : {};
       const serializedData = JSON.stringify(safeData, null, 2);
 
@@ -61,7 +103,7 @@ router.post(
       }
 
       // Generate a cache key
-      const cacheKey = `${businessId}:${prompt}:${JSON.stringify(safeData)}`;
+      const cacheKey = `${businessId}:${resolvedPrompt}:${JSON.stringify(safeData)}`;
       cleanExpiredCache();
       if (aiResponseCache.has(cacheKey)) {
         const cached = aiResponseCache.get(cacheKey);
@@ -71,9 +113,19 @@ router.post(
       }
 
       // Input validation / prompt injection protection
-      const lowerPrompt = (prompt || '').toLowerCase();
+      const lowerPrompt = resolvedPrompt.toLowerCase();
       const forbiddenKeywords = ['system instruction', 'ignore previous instructions', 'override', 'jailbreak', 'forget everything'];
       if (forbiddenKeywords.some(keyword => lowerPrompt.includes(keyword))) {
+        console.warn(
+          JSON.stringify({
+            level: 'WARN',
+            event: 'PROMPT_INJECTION_BLOCKED',
+            userId: req.user.id,
+            businessId,
+            promptLength: resolvedPrompt.length,
+            timestamp: new Date().toISOString()
+          })
+        );
         return res.status(400).json({ error: 'Invalid input parameters detected.' });
       }
 
@@ -83,7 +135,7 @@ Business Context:
 ${serializedData}
 
 User Question:
-${prompt || 'Analyze this marketplace business data and provide growth tips.'}
+${resolvedPrompt}
       `.trim();
 
       const result = await askGemini(finalPrompt, SYSTEM_INSTRUCTION);

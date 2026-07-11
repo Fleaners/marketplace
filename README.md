@@ -10,7 +10,8 @@ This workspace contains the DealerConnect full-stack starter for a mobile-first 
 
 ## 🚀 Quick Start - Get Everything Running Online
 
-### ✅ Frontend Status
+### ✅ Project & Frontend Status
+- **Project Board**: 📋 [GitHub Projects](https://github.com/Fleaners/marketplace/projects)
 - **Web App**: 🟢 **LIVE** at https://fleaners.github.io/marketplace/
 - Deployed to GitHub Pages
 - Shows demo content when backend unavailable, live data when connected

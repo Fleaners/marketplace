@@ -59,6 +59,9 @@ export interface ProductRecord {
   analytics: ProductAnalytics;
   featured: boolean;
   updatedAt: string;
+  price?: number;
+  whatsapp?: string;
+  moq?: number;
 }
 
 export interface ShippingAddress {
@@ -69,6 +72,7 @@ export interface ShippingAddress {
   state: string;
   zip: string;
   country: string;
+  isDefault?: boolean;
 }
 
 export interface BuyerReview {

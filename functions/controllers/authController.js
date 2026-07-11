@@ -26,7 +26,7 @@ const JWT_SECRET = process.env.JWT_SECRET || authConfig.jwt_secret || '';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || authConfig.google_client_id || '';
 const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || '15m';
 const REFRESH_TOKEN_TTL_MS = Number(process.env.REFRESH_TOKEN_TTL_MS || 7 * 24 * 60 * 60 * 1000);
-const OTP_DEBUG_MODE = process.env.OTP_DEBUG_MODE !== 'false';
+const OTP_DEBUG_MODE = process.env.OTP_DEBUG_MODE === 'true';
 const USE_FIREBASE_PHONE_AUTH = process.env.USE_FIREBASE_PHONE_AUTH !== 'false';
 const SMTP_HOST = process.env.SMTP_HOST || smtpConfig.host || '';
 const SMTP_PORT = Number(process.env.SMTP_PORT || smtpConfig.port || 587);

@@ -7,6 +7,8 @@ import { Sidebar, type NavigationItem } from './Sidebar';
 import { TopBar, type TopBarProps } from './TopBar';
 import { cn } from '@/lib/utils';
 import { getHomeNavigationHref, isSellerDashboardRoute, navigateToMarketplaceHome } from '@/lib/navigation';
+import { motion } from 'framer-motion';
+
 
 export interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -94,7 +96,7 @@ const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutProps>(
     }
 
     return (
-      <div ref={ref} className="flex min-h-screen bg-[#fff6e6] text-[#1f2937] flex-col lg:flex-row pb-20 lg:pb-0 font-sans">
+      <div ref={ref} className="flex min-h-screen bg-[#fff6e6] text-[#1f2937] dark:bg-slate-950 dark:text-slate-100 flex-col lg:flex-row pb-20 lg:pb-0 font-sans">
         <Sidebar
           items={navigationItems}
           collapsed={collapsed}
@@ -103,7 +105,7 @@ const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutProps>(
           onLogout={onLogout}
         />
 
-        <div className="flex-1 flex flex-col overflow-hidden bg-[#fff6e6]">
+        <div className="flex-1 flex flex-col overflow-hidden bg-[#fff6e6] dark:bg-slate-950">
           <TopBar
             {...topBarProps}
             user={currentUser || user}
@@ -113,82 +115,109 @@ const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutProps>(
             onAddProduct={topBarProps?.onAddProduct || (() => router.push('/dashboard/products/new/'))}
           />
 
-          <main id="dashboard-main" className="flex-1 overflow-y-auto bg-[#fff6e6] px-4 pb-10 pt-6 text-[#1f2937] sm:px-6 lg:px-8">
+          <main id="dashboard-main" className="flex-1 overflow-y-auto bg-[#fff6e6] dark:bg-slate-950 px-4 pb-10 pt-6 text-[#1f2937] dark:text-slate-100 sm:px-6 lg:px-8">
             {children}
           </main>
         </div>
 
         {/* Mobile Bottom Navigation Bar */}
         <nav 
-          className="fixed bottom-0 inset-x-0 z-50 lg:hidden flex items-center justify-around border-t border-[#f3d9a7] bg-white/95 backdrop-blur-xl px-2 py-2.5 shadow-[0_-16px_36px_rgba(0,0,0,0.06)]"
+          className="fixed bottom-0 inset-x-0 z-50 lg:hidden flex items-center justify-around border-t border-[#f3d9a7] bg-white/90 backdrop-blur-xl px-2 pt-2.5 pb-[calc(env(safe-area-inset-bottom)+0.6rem)] shadow-[0_-8px_30px_rgba(0,0,0,0.05)] rounded-t-[20px]"
           aria-label="Mobile Navigation"
         >
-          {navigationItems.filter(item => item.showOnMobile).map((item) => {
-            const isLogout = item.href === '/logout';
-            const isHomeItem = item.label === 'Home' && item.href === '/';
-            const isDashboardItem = item.label === 'Seller Dashboard' && item.href === '/dashboard';
-            const resolvedHref = isHomeItem ? getHomeNavigationHref() : item.href;
-            const isActive = !isLogout && !isHomeItem && !isDashboardItem && (pathname === item.href || pathname.startsWith(item.href + '/'));
-            const isDashboardContextActive = !isLogout && isDashboardItem && isSellerDashboardRoute(pathname);
-            const activeState = isActive || isDashboardContextActive;
+          {[
+            { label: 'Home', href: '/', icon: '🏠' },
+            { label: 'Products', href: '/dashboard/products', icon: '📦' },
+            { label: 'Add Product', href: '/dashboard/products?new=true', icon: '➕' },
+            { label: 'Dashboard', href: '/dashboard', icon: '📊' },
+            { label: 'Profile', href: '/dashboard/profile', icon: '👤' }
+          ].map((item) => {
+            const checkActive = (href: string) => {
+              if (href === '/') return pathname === '/';
+              if (href.includes('?new=true')) {
+                if (typeof window !== 'undefined') {
+                  return pathname === '/dashboard/products' && window.location.search.includes('new=true');
+                }
+                return false;
+              }
+              if (href === '/dashboard/products') {
+                if (typeof window !== 'undefined') {
+                  return pathname === '/dashboard/products' && !window.location.search.includes('new=true');
+                }
+                return pathname === '/dashboard/products';
+              }
+              return pathname === href || pathname.startsWith(href + '/');
+            };
+
+            const activeState = checkActive(item.href);
 
             const handleMobileClick = (e: React.MouseEvent) => {
-              if (isLogout) {
-                e.preventDefault();
-                onLogout?.();
-              } else if (isHomeItem) {
+              if (item.href === '/') {
                 e.preventDefault();
                 navigateToMarketplaceHome(window);
               }
             };
 
-            if (isHomeItem) {
-              return (
-                <button
-                  key={item.href}
-                  type="button"
-                  onClick={handleMobileClick}
-                  className={cn(
-                    'flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-2xl transition-all duration-200 text-center gap-1',
-                    activeState
-                      ? 'text-accent-500 font-bold'
-                      : 'text-[#475569] hover:text-[#1f2937]'
-                  )}
-                  id="bottomHomeBtn"
-                  data-testid="bottom-home-btn"
-                >
-                  <span className={cn(
-                    'text-xl flex items-center justify-center h-8 w-8 rounded-full transition-all duration-200',
-                    activeState ? 'bg-accent-500/10 text-accent-500' : ''
-                  )}>
-                    {item.icon}
-                  </span>
-                  <span className="text-[10px] font-bold tracking-wide leading-none">{item.label}</span>
-                </button>
-              );
-            }
+            const isHome = item.href === '/';
 
             return (
-              <Link
-                key={item.href}
-                href={isLogout ? '#' : resolvedHref}
-                onClick={handleMobileClick}
-                className={cn(
-                  'flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-2xl transition-all duration-200 text-center gap-1',
-                  activeState 
-                    ? 'text-accent-500 font-bold' 
-                    : 'text-[#475569] hover:text-[#1f2937]'
+              <React.Fragment key={item.label}>
+                {isHome ? (
+                  <button
+                    type="button"
+                    onClick={handleMobileClick}
+                    className={cn(
+                      'relative flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-2xl transition-all duration-200 text-center gap-1.5 outline-none',
+                      activeState ? 'text-accent-500 font-bold' : 'text-[#475569]'
+                    )}
+                    id="bottomHomeBtn"
+                  >
+                    <motion.span 
+                      whileTap={{ scale: 0.9 }}
+                      className={cn(
+                        'text-xl flex items-center justify-center h-9 w-9 rounded-full transition-all duration-200 relative z-10',
+                        activeState ? 'bg-accent-500/10 text-accent-500 shadow-inner' : 'bg-transparent'
+                      )}
+                    >
+                      {item.icon}
+                    </motion.span>
+                    <span className="text-[10px] font-bold tracking-wide leading-none z-10">{item.label}</span>
+                    {activeState && (
+                      <motion.div 
+                        layoutId="activeTabGlow"
+                        className="absolute inset-0 bg-[#FAB12F]/5 rounded-2xl border border-[#FAB12F]/10 z-0"
+                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </button>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      'relative flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-2xl transition-all duration-200 text-center gap-1.5 outline-none',
+                      activeState ? 'text-accent-500 font-bold' : 'text-[#475569]'
+                    )}
+                  >
+                    <motion.span 
+                      whileTap={{ scale: 0.9 }}
+                      className={cn(
+                        'text-xl flex items-center justify-center h-9 w-9 rounded-full transition-all duration-200 relative z-10',
+                        activeState ? 'bg-accent-500/10 text-accent-500 shadow-inner' : 'bg-transparent'
+                      )}
+                    >
+                      {item.icon}
+                    </motion.span>
+                    <span className="text-[10px] font-bold tracking-wide leading-none z-10">{item.label}</span>
+                    {activeState && (
+                      <motion.div 
+                        layoutId="activeTabGlow"
+                        className="absolute inset-0 bg-[#FAB12F]/5 rounded-2xl border border-[#FAB12F]/10 z-0"
+                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </Link>
                 )}
-                data-testid={`mobile-nav-${item.href.replace(/\//g, '_')}`}
-              >
-                <span className={cn(
-                  'text-xl flex items-center justify-center h-8 w-8 rounded-full transition-all duration-200',
-                  activeState ? 'bg-accent-500/10 text-accent-500' : ''
-                )}>
-                  {item.icon}
-                </span>
-                <span className="text-[10px] font-bold tracking-wide leading-none">{item.label}</span>
-              </Link>
+              </React.Fragment>
             );
           })}
         </nav>

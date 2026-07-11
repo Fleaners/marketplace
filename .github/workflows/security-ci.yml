@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [functions, backend, web_app]
+        dir: [functions, backend, web_app, next_app]
     defaults:
       run:
         working-directory: ${{ matrix.dir }}

@@ -18,6 +18,12 @@ updates:
       interval: weekly
     open-pull-requests-limit: 10
 
+  - package-ecosystem: npm
+    directory: /next_app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
