@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/layout';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { navigationItems } from '@/lib/navigation';
+import { Greeting } from '@/components/dashboard/Greeting';
 
 interface SellerProfile {
   businessName: string;
@@ -358,6 +359,7 @@ export default function ProfilePage() {
       }}
     >
       <div className="space-y-6">
+        <Greeting />
         
         {/* Onboarding Progress Segment */}
         <section className="rounded-[32px] bg-gradient-to-r from-[#FAB12F]/10 via-[#fff0db] to-[#fff6e6] dark:from-slate-900 dark:via-indigo-950/20 dark:to-slate-950 border border-[#f3d9a7] dark:border-slate-800 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">

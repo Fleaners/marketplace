@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/layout';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { navigationItems } from '@/lib/navigation';
+import { Greeting } from '@/components/dashboard/Greeting';
 
 interface AdvertisingConnection {
   id: string;
@@ -181,10 +182,7 @@ export default function AdvertisingPage() {
         {/* Title row */}
         <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-[#1f2937] dark:text-white tracking-tight">📢 Advertising & Campaigns Center</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Securely connect B2B search, local directory maps, and social marketplace advertising channels.
-            </p>
+            <Greeting />
           </div>
 
           {/* Module Tabs */}

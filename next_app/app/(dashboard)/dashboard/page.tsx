@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout';
 import { KPICard } from '@/components/dashboard/KPICard';
+import { Greeting } from '@/components/dashboard/Greeting';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { navigationItems } from '@/lib/navigation';
@@ -142,16 +143,16 @@ export default function DashboardPage() {
         {/* Welcome Header */}
         <section className="rounded-[32px] bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
           <div className="space-y-2">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-600">Merchant Cockpit</p>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1f2937] dark:text-white font-display flex items-center flex-wrap gap-2">
-              Welcome back, {state.sellerName} 👋
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-600 mb-1">Merchant Cockpit</p>
+            <div className="flex items-center flex-wrap gap-3">
+              <Greeting />
               {state.gstVerified && (
                 <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border border-[#FAB12F] bg-blue-50 dark:bg-blue-950/40 text-[#FAB12F] cursor-pointer" title="This seller has a verified GST registration.">
                   🏅 GST Verified
                 </span>
               )}
-            </h1>
-            <p className="text-base text-slate-650 dark:text-slate-300 font-bold">
+            </div>
+            <p className="text-base text-slate-650 dark:text-slate-300 font-bold mt-2">
               Your business reached <span className="text-[#FAB12F] font-black">+{state.buyerReachThisWeek} new buyers</span> this week.
             </p>
           </div>

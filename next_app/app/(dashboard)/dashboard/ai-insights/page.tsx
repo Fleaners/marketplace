@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
 import { navigationItems } from '@/lib/navigation';
 import { dispatchTelemetry } from '@/lib/telemetry';
+import { Greeting } from '@/components/dashboard/Greeting';
 
 // Interfaces for structured state
 interface AgentState {
@@ -524,11 +525,8 @@ export default function AIInsightsPage() {
         {/* Page Header */}
         <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border border-[#f3d9a7] dark:border-slate-800 p-6 rounded-[32px] shadow-lg">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-accent-500 uppercase tracking-widest">Multi-Agent Suite</span>
-            <h1 className="text-2xl font-black text-white">Autonomous Commerce Advisor</h1>
-            <p className="text-xs text-slate-400">
-              Continuous background learning active. Models are synchronized with your inventory catalog and public tax codes.
-            </p>
+            <span className="text-xs font-bold text-[#FAB12F] uppercase tracking-widest">Multi-Agent Suite</span>
+            <Greeting className="text-white" />
           </div>
 
           <div className="flex flex-wrap gap-2">

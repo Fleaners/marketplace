@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { navigationItems } from '@/lib/navigation';
+import { Greeting } from '@/components/dashboard/Greeting';
 
 interface AnalyticsState {
   views: number;
@@ -98,10 +99,7 @@ export default function AnalyticsPage() {
         {/* Title row */}
         <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-[#1f2937] dark:text-white tracking-tight">Google Analytics Cockpit</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Analyze your B2B trade inquiries, location demographics, and pipeline conversion trends.
-            </p>
+            <Greeting />
           </div>
 
           {/* Timeframe Selectors */}

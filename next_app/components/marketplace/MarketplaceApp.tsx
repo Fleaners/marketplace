@@ -26,6 +26,7 @@ import type {
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { VersionAlert } from '../dashboard/VersionAlert';
+import { Greeting } from '../dashboard/Greeting';
 
 const demoAddresses: ShippingAddress[] = [
   {
@@ -528,6 +529,8 @@ export default function MarketplaceApp() {
                 transition={{ duration: 0.18 }}
                 className="space-y-6"
               >
+                <Greeting />
+
                 {/* Hero Promotion Widget */}
                 <div className="relative rounded-3xl bg-gradient-to-br from-slate-900 to-indigo-950 p-6 text-white overflow-hidden shadow-xl animate-fade-in">
                   <div className="absolute right-0 bottom-0 opacity-15 translate-x-10 translate-y-10 pointer-events-none select-none text-9xl">🏭</div>

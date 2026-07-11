@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/layout';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { navigationItems } from '@/lib/navigation';
+import { Greeting } from '@/components/dashboard/Greeting';
 
 interface Product {
   id: string;
@@ -169,10 +170,7 @@ export default function InventoryPage() {
         {/* Title action row */}
         <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1f2937]">Spreadsheet Inventory Editor</h1>
-            <p className="text-sm text-slate-500">
-              Bulk modify your listing stock levels and active prices with Excel-style inline editing.
-            </p>
+            <Greeting />
           </div>
           
           <div className="flex items-center gap-3">

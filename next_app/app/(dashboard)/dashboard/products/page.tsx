@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ImageUploader } from '@/components/ui/ImageUploader';
 import { navigationItems } from '@/lib/navigation';
+import { Greeting } from '@/components/dashboard/Greeting';
 
 interface Product {
   id: string;
@@ -305,10 +306,7 @@ function ProductsCatalog() {
         {/* Header Action bar */}
         <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1f2937]">Product Catalog</h1>
-            <p className="text-sm text-slate-500">
-              Create, edit, duplicate or archive your wholesale listings.
-            </p>
+            <Greeting />
           </div>
           <div>
             <Button
