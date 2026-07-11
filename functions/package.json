@@ -35,6 +35,6 @@
     "pg": "^8.22.0"
   },
   "devDependencies": {
-    "firebase-tools": "^13.7.0"
+    "firebase-tools": "^15.23.0"
   }
 }
