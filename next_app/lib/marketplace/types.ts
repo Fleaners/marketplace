@@ -89,3 +89,18 @@ export interface OrderStatus {
   status: 'processing' | 'packed' | 'shipped' | 'delivered';
   eta: string;
 }
+
+export interface RfqRecord {
+  id: string;
+  buyerId: string;
+  buyerName: string;
+  productName: string;
+  category: string;
+  quantity: number;
+  budget: number;
+  deliveryLocation: string;
+  deliveryDate: string;
+  notes: string;
+  status: 'pending' | 'accepted' | 'replied' | 'closed';
+  createdAt: string;
+}

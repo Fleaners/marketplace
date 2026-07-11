@@ -15,6 +15,8 @@ import {
   uploadProfileAsset,
   subscribeProducts,
   subscribeUserProfile,
+  createRfq,
+  subscribeRfqs,
 } from '../../lib/marketplace/firestore';
 import { getFirebaseServices } from '../../lib/firebase';
 import type {
@@ -22,6 +24,7 @@ import type {
   SellerPlan,
   ShippingAddress,
   UserProfile,
+  RfqRecord,
 } from '../../lib/marketplace/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -66,6 +69,25 @@ export default function MarketplaceApp() {
   const [filterInStockOnly, setFilterInStockOnly] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showSellerSandbox, setShowSellerSandbox] = useState(false);
+
+  // RFQ Engine states
+  const [rfqs, setRfqs] = useState<RfqRecord[]>([]);
+  const [isRfqModalOpen, setIsRfqModalOpen] = useState(false);
+  const [rfqProductName, setRfqProductName] = useState('');
+  const [rfqCategory, setRfqCategory] = useState('Industrial');
+  const [rfqQuantity, setRfqQuantity] = useState(10);
+  const [rfqBudget, setRfqBudget] = useState(5000);
+  const [rfqLocation, setRfqLocation] = useState('Chennai');
+  const [rfqDate, setRfqDate] = useState('2026-07-25');
+  const [rfqNotes, setRfqNotes] = useState('');
+
+  // Product detail modal state
+  const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null);
+
+  // Gemini B2B AI Assistant states
+  const [geminiQuery, setGeminiQuery] = useState('');
+  const [geminiLoading, setGeminiLoading] = useState(false);
+  const [geminiResponse, setGeminiResponse] = useState('');
 
   useEffect(() => {
     setIsSearching(true);
@@ -260,10 +282,15 @@ export default function MarketplaceApp() {
       } catch (e) {}
     });
 
+    const unsubscribeRfqs = subscribeRfqs(buyerProfile.id, (list) => {
+      setRfqs(list);
+    });
+
     return () => {
       unsubscribeProducts();
       unsubscribeSeller();
       unsubscribeBuyer();
+      unsubscribeRfqs();
     };
   }, []);
 
@@ -401,6 +428,135 @@ export default function MarketplaceApp() {
       setStatusMessage(err.message || 'Error generating description.');
     } finally {
       setIsGenerating(false);
+    }
+  }
+
+  // Gemini AI Search Sourcing Copilot Handler
+  async function handleGeminiSourcingSearch() {
+    const text = geminiQuery.trim();
+    if (!text) return;
+
+    setGeminiLoading(true);
+    setGeminiResponse('Gemini is analyzing your sourcing intent...');
+
+    try {
+      let token = '';
+      if (typeof window !== 'undefined') {
+        token = localStorage.getItem('mp_backend_token') || '';
+      }
+      if (!token) {
+        try {
+          const services = await getFirebaseServices();
+          if (services?.auth && services.auth.currentUser) {
+            token = await services.auth.currentUser.getIdToken();
+          }
+        } catch {}
+      }
+
+      const timestamp = Date.now().toString();
+      const nonce = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Timestamp': timestamp,
+        'X-Nonce': nonce
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+      const response = await fetch(`${API_BASE}/api/ai/analyze`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          prompt: `Classify B2B sourcing intent: "${text}". Output Category, Search String, Max MOQ, and GST requirement, and write a summary.`,
+          agentName: 'gemini'
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || 'Gemini pipeline error.');
+      }
+
+      const answer = payload.answer || '';
+      setGeminiResponse(answer);
+
+      // Parse fields to apply client-side filters automatically
+      try {
+        const catMatch = answer.match(/Category:\s*([^\n\r]+)/i);
+        const searchMatch = answer.match(/Search String:\s*([^\n\r]+)/i);
+        const gstMatch = answer.match(/GST Only:\s*([^\n\r]+)/i);
+        
+        if (catMatch && catMatch[1]) {
+          const cat = catMatch[1].replace(/[*_`]/g, '').trim();
+          if (CATEGORIES.includes(cat)) {
+            setSelectedCategory(cat);
+          }
+        }
+        if (searchMatch && searchMatch[1]) {
+          const queryStr = searchMatch[1].replace(/[*_`]/g, '').trim();
+          if (queryStr && queryStr.toLowerCase() !== 'null' && queryStr.toLowerCase() !== 'none') {
+            setSearchQuery(queryStr);
+          }
+        }
+        if (gstMatch && gstMatch[1]) {
+          const gstStr = gstMatch[1].toLowerCase();
+          if (gstStr.includes('true') || gstStr.includes('yes')) {
+            setFilterGstOnly(true);
+          }
+        }
+      } catch (parseErr) {
+        console.warn('Failed to auto-parse Gemini intent fields:', parseErr);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setGeminiResponse(`Gemini was unable to complete the search query: ${err.message}`);
+    } finally {
+      setGeminiLoading(false);
+    }
+  }
+
+  // Handle RFQ Submission to Firestore
+  async function handleSubmitRfq(e: React.FormEvent) {
+    e.preventDefault();
+    if (!rfqProductName.trim()) {
+      setStatusMessage('Product Name is required to post an RFQ.');
+      return;
+    }
+
+    const rfqRecord: RfqRecord = {
+      id: `rfq-${Date.now()}`,
+      buyerId: buyerProfile.id,
+      buyerName: buyerProfile.businessName || 'Anika Sharma',
+      productName: rfqProductName,
+      category: rfqCategory,
+      quantity: Number(rfqQuantity) || 1,
+      budget: Number(rfqBudget) || 0,
+      deliveryLocation: rfqLocation,
+      deliveryDate: rfqDate,
+      notes: rfqNotes,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      await createRfq(rfqRecord);
+      setRfqs((prev) => [rfqRecord, ...prev]);
+      setIsRfqModalOpen(false);
+      
+      // Reset form
+      setRfqProductName('');
+      setRfqQuantity(10);
+      setRfqBudget(5000);
+      setRfqNotes('');
+      
+      setStatusMessage(`RFQ posted successfully! Verifying seller availability...`);
+      setTimeout(() => setStatusMessage(''), 4000);
+    } catch (err: any) {
+      console.error(err);
+      setStatusMessage(`Failed to submit RFQ: ${err.message}`);
     }
   }
 
@@ -567,6 +723,91 @@ export default function MarketplaceApp() {
                   </div>
                 </div>
 
+                {/* Gemini AI Search Sourcing Copilot Card */}
+                <div className="relative rounded-3xl border border-[#f3d9a7] bg-gradient-to-br from-[#fffdfa] to-[#fff6e6] dark:from-slate-900 dark:to-indigo-950/20 p-5 shadow-sm space-y-4 overflow-hidden">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">✨</span>
+                    <div>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white">Gemini B2B AI Assistant</h4>
+                      <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Parse natural language requests into instant directory filters.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <textarea
+                        rows={2}
+                        value={geminiQuery}
+                        onChange={(e) => setGeminiQuery(e.target.value)}
+                        placeholder="e.g. Find electrical core grounding cables with low MOQ and GST verification..."
+                        className="w-full rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-3 text-xs focus:outline-none focus:border-[#FAB12F] focus:ring-1 focus:ring-[#FAB12F] transition-colors resize-none font-medium leading-relaxed"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          onClick={() => setGeminiQuery('Find industrial water pumps with MOQ under 3')}
+                          className="rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-2.5 py-1 text-[9px] font-bold text-slate-600 dark:text-slate-400"
+                        >
+                          "Pumps MOQ &lt; 3"
+                        </button>
+                        <button
+                          onClick={() => setGeminiQuery('Show GST verified electrical components')}
+                          className="rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-2.5 py-1 text-[9px] font-bold text-slate-600 dark:text-slate-400"
+                        >
+                          "GST Electricals"
+                        </button>
+                      </div>
+
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        disabled={geminiLoading}
+                        onClick={handleGeminiSourcingSearch}
+                        className="rounded-xl bg-[#FAB12F] hover:bg-[#e09e1b] text-slate-950 font-extrabold text-[10px] shadow-sm flex items-center gap-1.5 shrink-0"
+                      >
+                        {geminiLoading ? (
+                          <>
+                            <span className="h-3 w-3 border-2 border-slate-950 border-t-transparent rounded-full animate-spin mr-1" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            <span>✨</span> Ask Gemini
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {geminiResponse && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="rounded-2xl bg-white/70 dark:bg-slate-950/60 p-3.5 border border-[#f3d9a7]/40 dark:border-slate-800 text-[11px] leading-relaxed font-sans text-slate-800 dark:text-slate-200 shadow-inner"
+                    >
+                      <p className="font-extrabold text-[#FAB12F] uppercase tracking-wider text-[9px] mb-1">Gemini AI Sourcing Analysis</p>
+                      <div className="whitespace-pre-line font-medium">{geminiResponse}</div>
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] text-slate-400">
+                        <span>Filters applied automatically</span>
+                        <button
+                          onClick={() => {
+                            setGeminiQuery('');
+                            setGeminiResponse('');
+                            setSelectedCategory('All');
+                            setSearchQuery('');
+                            setFilterGstOnly(false);
+                          }}
+                          className="text-amber-600 hover:underline font-bold"
+                        >
+                          Clear Filters
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
                 {/* Sticky Search bar under Categories */}
                 <div className="relative rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm space-y-3">
                   <div className="relative">
@@ -625,7 +866,8 @@ export default function MarketplaceApp() {
                             key={prod.id}
                             layout
                             whileTap={{ scale: 0.98 }}
-                            className="group flex flex-col justify-between rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-sm hover:shadow-md transition-all relative"
+                            className="group flex flex-col justify-between rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-sm hover:shadow-md transition-all relative cursor-pointer"
+                            onClick={() => setSelectedProduct(prod)}
                           >
                             <div>
                               {/* Product Image area */}
@@ -636,7 +878,10 @@ export default function MarketplaceApp() {
                                   <div className="text-slate-400 text-3xl font-light">📦</div>
                                 )}
                                 <button 
-                                  onClick={() => handleToggleWishlist(prod.title)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleWishlist(prod.title);
+                                  }}
                                   className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-sm flex items-center justify-center text-sm border border-slate-100 dark:border-slate-800 hover:scale-105 active:scale-95 transition-transform"
                                 >
                                   {isWishlisted ? '❤️' : '🤍'}
@@ -679,12 +924,18 @@ export default function MarketplaceApp() {
                                   href={`https://wa.me/${prod.whatsapp || '919876543210'}?text=Hello%20sires!%20Interested%20in%20buying%20wholesale%20${encodeURIComponent(prod.title)}.%20Please%20share%20bulk%20quotes.`}
                                   target="_blank"
                                   rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
                                   className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] py-2 text-center transition-colors flex items-center justify-center gap-1 shadow-sm"
                                 >
                                   💬 Chat
                                 </a>
                                 <button 
-                                  onClick={() => setStatusMessage(`RFQ submitted for ${prod.title}. Seller typically replies in 2 hours.`)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setRfqProductName(prod.title);
+                                    setRfqCategory(prod.categories?.[0] || 'Industrial');
+                                    setIsRfqModalOpen(true);
+                                  }}
                                   className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-200 font-extrabold text-[10px] py-2 text-center hover:bg-slate-50 transition-colors shadow-sm"
                                 >
                                   ⚡ RFQ
@@ -870,6 +1121,46 @@ export default function MarketplaceApp() {
                     </div>
                   ) : (
                     <p className="text-xs text-slate-500">No active procurement lines running.</p>
+                  )}
+                </div>
+
+                {/* RFQ Sourcing Registry */}
+                <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Live RFQ Registry</h3>
+                    <button
+                      onClick={() => {
+                        setRfqProductName('');
+                        setIsRfqModalOpen(true);
+                      }}
+                      className="rounded-xl bg-[#FAB12F] text-slate-950 px-3 py-1.5 text-[10px] font-black shadow-sm flex items-center gap-1 hover:bg-[#e09e1b] transition-colors animate-pulse-slow"
+                    >
+                      + Create RFQ
+                    </button>
+                  </div>
+                  {rfqs && rfqs.length > 0 ? (
+                    <div className="space-y-3">
+                      {rfqs.map((rfq) => (
+                        <div key={rfq.id} className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/20 text-xs space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-black text-slate-800 dark:text-white">{rfq.productName}</h4>
+                              <p className="text-[10px] text-slate-400 mt-0.5">Category: {rfq.category} • Budget: ₹{rfq.budget?.toLocaleString()}</p>
+                            </div>
+                            <span className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                              {rfq.status}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 line-clamp-2">{rfq.notes}</p>
+                          <div className="flex items-center justify-between text-[9px] text-slate-400 dark:text-slate-500 font-semibold pt-1.5 border-t border-slate-100 dark:border-slate-800/40">
+                            <span>Qty: {rfq.quantity} units • {rfq.deliveryLocation}</span>
+                            <span>ETA: {rfq.deliveryDate}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500">No active RFQs posted. Click "Create RFQ" to post your sourcing requirement.</p>
                   )}
                 </div>
 
@@ -1107,6 +1398,234 @@ export default function MarketplaceApp() {
         </nav>
 
         <VersionAlert />
+
+        {/* Product Details Modal Overlay */}
+        <AnimatePresence>
+          {selectedProduct && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
+              onClick={() => setSelectedProduct(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 15 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 15 }}
+                transition={{ duration: 0.2 }}
+                className="w-full max-w-lg rounded-[32px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto space-y-5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header Actions */}
+                <div className="flex justify-between items-start">
+                  <span className="rounded-full bg-[#FAB12F]/10 border border-[#FAB12F]/20 px-3 py-1 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                    🏬 Verified B2B Listing
+                  </span>
+                  <button
+                    onClick={() => setSelectedProduct(null)}
+                    className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-sm font-bold text-slate-500 dark:text-slate-400 transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Image Gallery */}
+                <div className="aspect-video w-full rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-150 dark:border-slate-800 overflow-hidden flex items-center justify-center">
+                  {selectedProduct.images && selectedProduct.images[0] ? (
+                    <img src={selectedProduct.images[0]} alt={selectedProduct.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-slate-350 text-4xl">📦</span>
+                  )}
+                </div>
+
+                {/* Details */}
+                <div className="space-y-2">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight tracking-tight">
+                    {selectedProduct.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    {selectedProduct.description}
+                  </p>
+                </div>
+
+                {/* HSN & GST compliance info */}
+                <div className="grid gap-2 grid-cols-3 rounded-2xl bg-slate-50 dark:bg-slate-950 p-3 text-[10px] border border-slate-100 dark:border-slate-850">
+                  <div className="text-center border-r border-slate-200 dark:border-slate-800 last:border-0 pr-2">
+                    <span className="block text-slate-450 uppercase font-black tracking-wider text-[8px]">HSN Code</span>
+                    <span className="font-extrabold text-slate-800 dark:text-slate-200 mt-0.5 block">{(selectedProduct as any).sku || '8544-4920'}</span>
+                  </div>
+                  <div className="text-center border-r border-slate-200 dark:border-slate-800 last:border-0 px-2">
+                    <span className="block text-slate-450 uppercase font-black tracking-wider text-[8px]">GST Slab</span>
+                    <span className="font-extrabold text-slate-800 dark:text-slate-200 mt-0.5 block">{(selectedProduct as any).gst !== false ? '18% IGST' : 'Exempt'}</span>
+                  </div>
+                  <div className="text-center last:border-0 pl-2">
+                    <span className="block text-slate-450 uppercase font-black tracking-wider text-[8px]">Delivery</span>
+                    <span className="font-extrabold text-slate-800 dark:text-slate-200 mt-0.5 block">{(selectedProduct as any).delivery || '3-5 Days'}</span>
+                  </div>
+                </div>
+
+                {/* Specifications List */}
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-450">Technical Specifications</h4>
+                  <div className="rounded-2xl border border-slate-100 dark:border-slate-800/80 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 text-[10px]">
+                    <div className="flex justify-between p-2.5 bg-slate-50/50 dark:bg-slate-950/10">
+                      <span className="font-semibold text-slate-400">Minimum Order Quantity (MOQ)</span>
+                      <span className="font-extrabold text-slate-850 dark:text-slate-200">{(selectedProduct as any).moq ?? 5} units</span>
+                    </div>
+                    <div className="flex justify-between p-2.5">
+                      <span className="font-semibold text-slate-400">Stock Availability</span>
+                      <span className="font-extrabold text-slate-850 dark:text-slate-200">{(selectedProduct as any).stock ?? 50} units</span>
+                    </div>
+                    {selectedProduct.specifications && Object.entries(selectedProduct.specifications).map(([k, v]) => (
+                      <div key={k} className="flex justify-between p-2.5">
+                        <span className="font-semibold text-slate-400 capitalize">{k}</span>
+                        <span className="font-extrabold text-slate-850 dark:text-slate-200">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sourcing Actions */}
+                <div className="grid gap-2 grid-cols-2 pt-2">
+                  <a
+                    href={`https://wa.me/${selectedProduct.whatsapp || '919876543210'}?text=Hello!%20Interested%20in%2520bulk%2520quote%252520for%252520${encodeURIComponent(selectedProduct.title)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-3 text-center transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                  >
+                    💬 WhatsApp Chat
+                  </a>
+                  <button
+                    onClick={() => {
+                      setRfqProductName(selectedProduct.title);
+                      setRfqCategory(selectedProduct.categories?.[0] || 'Industrial');
+                      setSelectedProduct(null);
+                      setIsRfqModalOpen(true);
+                    }}
+                    className="rounded-2xl bg-[#FAB12F] hover:bg-[#e09e1b] text-slate-950 font-extrabold text-xs py-3 shadow-md flex items-center justify-center gap-1.5"
+                  >
+                    ⚡ Submit B2B RFQ
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* RFQ Creation Modal Dialog */}
+        <AnimatePresence>
+          {isRfqModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
+              onClick={() => setIsRfqModalOpen(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 15 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 15 }}
+                transition={{ duration: 0.2 }}
+                className="w-full max-w-md rounded-[32px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl relative space-y-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Post Sourcing RFQ</h3>
+                  <button
+                    onClick={() => setIsRfqModalOpen(false)}
+                    className="h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmitRfq} className="space-y-3.5 text-xs">
+                  <div className="space-y-1">
+                    <label className="font-extrabold text-slate-500">Product/Component Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={rfqProductName}
+                      onChange={(e) => setRfqProductName(e.target.value)}
+                      placeholder="e.g. Copper Cable Bundle"
+                      className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 focus:outline-none focus:border-[#FAB12F]"
+                    />
+                  </div>
+
+                  <div className="grid gap-3 grid-cols-2">
+                    <div className="space-y-1">
+                      <label className="font-extrabold text-slate-500">Required Quantity</label>
+                      <input
+                        type="number"
+                        min={1}
+                        required
+                        value={rfqQuantity}
+                        onChange={(e) => setRfqQuantity(Number(e.target.value))}
+                        className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-extrabold text-slate-500">Target Unit Budget (₹)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        required
+                        value={rfqBudget}
+                        onChange={(e) => setRfqBudget(Number(e.target.value))}
+                        className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 grid-cols-2">
+                    <div className="space-y-1">
+                      <label className="font-extrabold text-slate-500">Delivery Location</label>
+                      <input
+                        type="text"
+                        required
+                        value={rfqLocation}
+                        onChange={(e) => setRfqLocation(e.target.value)}
+                        placeholder="City name"
+                        className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-extrabold text-slate-500">Delivery ETA</label>
+                      <input
+                        type="date"
+                        required
+                        value={rfqDate}
+                        onChange={(e) => setRfqDate(e.target.value)}
+                        className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-extrabold text-slate-500">Detailed Sourcing Notes & Specs</label>
+                    <textarea
+                      rows={3}
+                      value={rfqNotes}
+                      onChange={(e) => setRfqNotes(e.target.value)}
+                      placeholder="Specify dimensions, compliance standards, packaging, etc."
+                      className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 focus:outline-none resize-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full rounded-2xl bg-[#FAB12F] hover:bg-[#e09e1b] text-slate-950 font-black py-3 text-center shadow-md transition-colors"
+                  >
+                    Submit Quotation Request
+                  </button>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ import {
   uploadBytes,
 } from 'firebase/storage';
 import { getFirebaseServices } from '../firebase';
-import type { ProductRecord, UserProfile } from './types';
+import type { ProductRecord, UserProfile, RfqRecord } from './types';
 
 export async function upsertUserProfile(profile: UserProfile): Promise<void> {
   const services = await getFirebaseServices();
@@ -187,6 +187,57 @@ export function subscribeUserProfile(userId: string, callback: (profile: UserPro
     });
   }).catch((err) => {
     console.error('Failed to initialize profile subscription:', err);
+  });
+
+  return () => {
+    active = false;
+    if (unsub) unsub();
+  };
+}
+
+export async function createRfq(rfq: RfqRecord): Promise<void> {
+  const services = await getFirebaseServices();
+  const db = services?.db;
+  if (!db) return;
+  const rfqRef = doc(db, 'rfqs', rfq.id);
+  await setDoc(rfqRef, {
+    buyerId: rfq.buyerId,
+    buyerName: rfq.buyerName,
+    productName: rfq.productName,
+    category: rfq.category,
+    quantity: rfq.quantity,
+    budget: rfq.budget,
+    deliveryLocation: rfq.deliveryLocation,
+    deliveryDate: rfq.deliveryDate,
+    notes: rfq.notes,
+    status: rfq.status,
+    createdAt: rfq.createdAt,
+  });
+}
+
+export function subscribeRfqs(buyerId: string, callback: (rfqs: RfqRecord[]) => void): () => void {
+  let unsub: (() => void) | null = null;
+  let active = true;
+
+  getFirebaseServices().then((services) => {
+    if (!active) return;
+    const db = services?.db;
+    if (!db) return;
+
+    const q = query(collection(db, 'rfqs'), limit(100));
+    unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs
+        .map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<RfqRecord, 'id'>),
+        }))
+        .filter((r) => r.buyerId === buyerId);
+      callback(list);
+    }, (error) => {
+      console.warn('Real-time RFQs subscription error:', error);
+    });
+  }).catch((err) => {
+    console.error('Failed to initialize RFQs subscription:', err);
   });
 
   return () => {
