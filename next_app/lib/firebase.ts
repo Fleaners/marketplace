@@ -132,6 +132,20 @@ export async function logoutUser(): Promise<void> {
       sessionStorage.clear();
     } catch {}
 
+    // Clear all IndexedDB databases for absolute device isolation
+    if (typeof window !== 'undefined' && window.indexedDB && window.indexedDB.databases) {
+      try {
+        const dbs = await window.indexedDB.databases();
+        for (const dbInfo of dbs) {
+          if (dbInfo.name) {
+            window.indexedDB.deleteDatabase(dbInfo.name);
+          }
+        }
+      } catch (err) {
+        console.warn('Wiping IndexedDB failed:', err);
+      }
+    }
+
     // Hard redirect to clear React and memory state completely
     window.location.href = '/';
   }
