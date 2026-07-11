@@ -109,7 +109,21 @@ export default function AIInsightsPage() {
   const [chatSelectedAgent, setChatSelectedAgent] = useState<string>('All-Agent Orchestrator');
   const [chatMessage, setChatMessage] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  const [chatLog, setChatLog] = useState<Array<{ sender: 'user' | 'agent'; text: string; agentName: string; time: string }>>([
+  const [chatLog, setChatLog] = useState<Array<{
+    sender: 'user' | 'agent';
+    text: string;
+    agentName: string;
+    time: string;
+    structured?: {
+      summary?: string;
+      insights?: string;
+      keyFindings?: string;
+      recommendations?: string;
+      priority?: string;
+      expectedImpact?: string;
+      suggestedSteps?: string;
+    };
+  }>>([
     {
       sender: 'agent',
       agentName: 'System Orchestrator',
@@ -482,16 +496,44 @@ export default function AIInsightsPage() {
         throw new Error(payload.error || 'Server processing error.');
       }
 
+      const answerText = payload.answer || 'Consultation complete.';
+      const words = answerText.split(' ');
+      let currentWordIndex = 0;
+      let streamingText = '';
+
       setChatLog(prev => [...prev, {
-        sender: 'agent',
+        sender: 'agent' as const,
         agentName: chatSelectedAgent,
-        text: payload.answer || 'Consultation complete.',
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        text: '',
+        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        structured: payload.summary ? {
+          summary: payload.summary,
+          insights: payload.insights,
+          keyFindings: payload.keyFindings,
+          recommendations: payload.recommendations,
+          priority: payload.priority,
+          expectedImpact: payload.expectedImpact,
+          suggestedSteps: payload.suggestedSteps
+        } : undefined
       }]);
 
-      if (matchingAgentIndex !== -1) {
-        setAgents(prev => prev.map((a, i) => i === matchingAgentIndex ? { ...a, status: 'success' } : a));
-      }
+      const timer = setInterval(() => {
+        if (currentWordIndex < words.length) {
+          streamingText += (currentWordIndex === 0 ? '' : ' ') + words[currentWordIndex];
+          currentWordIndex++;
+          setChatLog(prev => {
+            const copy = [...prev];
+            copy[copy.length - 1].text = streamingText;
+            return copy;
+          });
+        } else {
+          clearInterval(timer);
+          setChatLoading(false);
+          if (matchingAgentIndex !== -1) {
+            setAgents(prev => prev.map((a, i) => i === matchingAgentIndex ? { ...a, status: 'success' } : a));
+          }
+        }
+      }, 30);
     } catch (err: any) {
       console.error('AI Insights Request Error:', err);
       
@@ -844,10 +886,61 @@ export default function AIInsightsPage() {
                       className={`p-4 rounded-2xl text-xs font-semibold leading-relaxed border ${
                         chat.sender === 'user'
                           ? 'bg-[#222222] dark:bg-slate-800 text-white border-[#222222] dark:border-slate-700 rounded-tr-none shadow-sm'
-                          : 'bg-[#fff6e6] dark:bg-slate-950 text-slate-700 dark:text-slate-205 border-[#f3d9a7] dark:border-slate-850 rounded-tl-none shadow-xs'
+                          : 'bg-[#fff6e6] dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-[#f3d9a7] dark:border-slate-850 rounded-tl-none shadow-xs'
                       }`}
                     >
-                      {chat.text}
+                      {chat.structured && chat.text.includes('###') ? (
+                        <div className="space-y-4">
+                          {chat.structured.summary && (
+                            <div>
+                              <h4 className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1">📊 Summary</h4>
+                              <p className="mt-1 text-slate-655 dark:text-slate-350 leading-relaxed font-normal">{chat.structured.summary}</p>
+                            </div>
+                          )}
+                          {chat.structured.insights && (
+                            <div className="border-t border-slate-100 dark:border-slate-800/40 pt-3">
+                              <h4 className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1">🔍 Insights</h4>
+                              <p className="mt-1 text-slate-655 dark:text-slate-350 leading-relaxed font-normal">{chat.structured.insights}</p>
+                            </div>
+                          )}
+                          {chat.structured.keyFindings && (
+                            <div className="border-t border-slate-100 dark:border-slate-800/40 pt-3">
+                              <h4 className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1">💡 Key Findings</h4>
+                              <p className="mt-1 text-slate-655 dark:text-slate-350 leading-relaxed font-normal">{chat.structured.keyFindings}</p>
+                            </div>
+                          )}
+                          {chat.structured.recommendations && (
+                            <div className="border-t border-slate-100 dark:border-slate-800/40 pt-3 p-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                              <h4 className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1">📈 Recommendations</h4>
+                              <p className="mt-1 text-slate-655 dark:text-slate-350 leading-relaxed font-normal">{chat.structured.recommendations}</p>
+                            </div>
+                          )}
+                          {chat.structured.expectedImpact && (
+                            <div className="border-t border-slate-100 dark:border-slate-800/40 pt-3">
+                              <h4 className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1">🎯 Expected Business Impact</h4>
+                              <p className="mt-1 text-slate-655 dark:text-slate-350 leading-relaxed font-normal">{chat.structured.expectedImpact}</p>
+                            </div>
+                          )}
+                          {chat.structured.suggestedSteps && (
+                            <div className="border-t border-slate-100 dark:border-slate-800/40 pt-3">
+                              <h4 className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1">📋 Suggested Next Steps</h4>
+                              <p className="mt-1 text-slate-655 dark:text-slate-350 leading-relaxed font-normal">{chat.structured.suggestedSteps}</p>
+                            </div>
+                          )}
+                          {chat.structured.priority && (
+                            <div className="pt-2 flex items-center gap-2">
+                              <span className="text-[9px] text-slate-400">Priority Level:</span>
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                chat.structured.priority.toLowerCase().includes('high')
+                                  ? 'bg-rose-500/15 text-rose-500'
+                                  : 'bg-amber-500/15 text-amber-500'
+                              }`}>{chat.structured.priority}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap font-normal leading-relaxed">{chat.text}</div>
+                      )}
                     </div>
 
                     {/* Feedback and Correct buttons under Agent replies */}
@@ -886,6 +979,17 @@ export default function AIInsightsPage() {
                           title="Unhelpful (👎)"
                         >
                           👎
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(chat.text);
+                            alert('Response copied to clipboard!');
+                          }}
+                          className="text-[10px] text-slate-400 hover:text-[#FAB12F] font-bold ml-2 cursor-pointer flex items-center gap-0.5"
+                          title="Copy response"
+                        >
+                          📋 Copy Response
                         </button>
                         <button
                           type="button"

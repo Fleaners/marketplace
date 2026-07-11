@@ -8,11 +8,11 @@ const { askGeminiAgent } = require('../services/geminiAgent');
 // 1. Intent Classifier Helper
 function classifyIntent(prompt) {
   const query = String(prompt || '').toLowerCase();
-  const needsProfile = query.includes('profile') || query.includes('business') || query.includes('shop') || query.includes('gst');
-  const needsProducts = query.includes('product') || query.includes('listing') || query.includes('item') || query.includes('catalog') || query.includes('seo') || query.includes('hsn');
-  const needsInventory = query.includes('stock') || query.includes('inventory') || query.includes('restock') || query.includes('qty');
-  const needsAnalytics = query.includes('sale') || query.includes('profit') || query.includes('revenue') || query.includes('view') || query.includes('visit') || query.includes('lead') || query.includes('inquir') || query.includes('trend');
-  const needsExternal = query.includes('latest') || query.includes('update') || query.includes('notification') || query.includes('scheme') || query.includes('regulation') || query.includes('government') || query.includes('tax changes') || query.includes('budget') || query.includes('google algorithm') || query.includes('meta ads') || query.includes('industry');
+  const needsProfile = query.includes('profile') || query.includes('business') || query.includes('shop') || query.includes('gst') || query.includes('hsn') || query.includes('tax') || query.includes('accounting') || query.includes('finance');
+  const needsProducts = query.includes('product') || query.includes('listing') || query.includes('item') || query.includes('catalog') || query.includes('seo') || query.includes('keywords') || query.includes('hsn') || query.includes('pricing') || query.includes('discount') || query.includes('margin') || query.includes('promo');
+  const needsInventory = query.includes('stock') || query.includes('inventory') || query.includes('restock') || query.includes('qty') || query.includes('reorder') || query.includes('dead stock') || query.includes('forecast');
+  const needsAnalytics = query.includes('sale') || query.includes('profit') || query.includes('revenue') || query.includes('view') || query.includes('visit') || query.includes('lead') || query.includes('inquir') || query.includes('trend') || query.includes('clv') || query.includes('opportunities') || query.includes('funnel') || query.includes('health') || query.includes('score');
+  const needsExternal = query.includes('latest') || query.includes('update') || query.includes('notification') || query.includes('scheme') || query.includes('regulation') || query.includes('government') || query.includes('tax changes') || query.includes('budget') || query.includes('google algorithm') || query.includes('meta ads') || query.includes('industry') || query.includes('trends') || query.includes('benchmarks');
 
   return { needsProfile, needsProducts, needsInventory, needsAnalytics, needsExternal };
 }
@@ -47,12 +47,22 @@ function getSimulatedExternalInfo(query) {
 
 // 4. Secure Core AI Routing Pipeline
 async function runSecureAiPipeline(req, prompt, agentName = '') {
+  // Step 1, 2 & 5: Authenticate, Role, and Authorization checks
+  const role = req.business.role || 'seller';
   const businessId = req.business.id;
+
+  if (!businessId) {
+    throw new Error('Unauthorized access: Business identification missing from session.');
+  }
+
+  if (role !== 'seller' && role !== 'admin') {
+    throw new Error('Unauthorized role: Business advisor features are restricted to verified sellers and administrators.');
+  }
   
-  // Step 2: Intent Classification
+  // Step 3: Intent Classification
   const intent = classifyIntent(prompt);
 
-  // Step 3 & 4: Authorization and Context Collection
+  // Step 4: Determine Required Context
   const rawContext = {
     businessProfile: null,
     productsSummary: [],
@@ -103,16 +113,16 @@ async function runSecureAiPipeline(req, prompt, agentName = '') {
 
   // Step 6: Gemini Prompt Construction
   const systemInstruction = `You are a Principal AI Business Growth Consultant for marketplace.store.
-You must assist users ONLY within the following allowed domains: e-commerce, wholesale trading, retail, B2B distribution, manufacturing, HSN codes, GST taxes, catalog SEO, pricing models, marketing ads (Google/Meta), and inventory tracking.
-If the query is outside these e-commerce domains, reject it politely:
-"I am your Business Growth Advisor. I can only assist with B2B e-commerce, wholesale trading, retail, GST, SEO, inventory, and business analytics."
+You must assist users ONLY within the following allowed domains: retail, wholesale, manufacturing, distribution, B2B commerce, marketplace, inventory, sales, marketing, SEO, Google Ads, Meta Ads, digital marketing, GST, HSN, accounting concepts, pricing, business growth, lead generation, customer retention, analytics, business strategy, product optimization, supplier management, procurement, and financial KPIs.
+If the query is outside these domains, reject it politely:
+"I am specialized in e-commerce business operations, wholesale trading, retail, and digital marketing. I cannot answer unrelated topics."
 
 You MUST return your response in a highly structured, premium markdown format, including:
 ### 📊 Summary
 [Short, professional overview of the request context]
 
-### 🔍 Business Analysis
-[Analysis of seller profile, catalog metrics, or relevant parameters]
+### 🔍 Insights
+[Detailed insights and analysis of seller profile, catalog metrics, or relevant parameters]
 
 ### 💡 Key Findings
 [Prioritized bullet points of insights]
@@ -120,14 +130,14 @@ You MUST return your response in a highly structured, premium markdown format, i
 ### 📈 Recommendations
 [Actionable consulting insights]
 
-### 📋 Implementation Steps
-[Step-by-step roadmap for execution]
-
-### 🎯 Expected Results
-[Expected updates to business metrics]
-
 ### ⚡ Priority Level
-[High, Medium, or Low]`;
+[High, Medium, or Low]
+
+### 🎯 Expected Business Impact
+[Expected updates to business metrics, margins, and sales lift]
+
+### 📋 Suggested Next Steps
+[Actionable, step-by-step roadmap for execution]`;
 
   const structuredPrompt = `
 [BUSINESS DATA CONTEXT]
@@ -165,7 +175,7 @@ ${prompt}
       }
       
       // Check structure layout or polite rejection
-      if (text.includes('Business Growth Advisor') || text.includes('Summary') || text.includes('Recommendations')) {
+      if (text.includes('specialized') || text.includes('Summary') || text.includes('Key Findings')) {
         break;
       }
     } catch (err) {
@@ -189,12 +199,12 @@ ${prompt}
     answer: text,
     model: responseData.model || 'gemini-1.5-flash',
     summary: getSection('📊 Summary'),
-    businessAnalysis: getSection('🔍 Business Analysis'),
+    insights: getSection('🔍 Insights'),
     keyFindings: getSection('💡 Key Findings'),
     recommendations: getSection('📈 Recommendations'),
-    implementationSteps: getSection('📋 Implementation Steps'),
-    expectedResults: getSection('🎯 Expected Results'),
-    priority: getSection('⚡ Priority Level') || 'Medium'
+    priority: getSection('⚡ Priority Level') || 'Medium',
+    expectedImpact: getSection('🎯 Expected Business Impact'),
+    suggestedSteps: getSection('📋 Suggested Next Steps')
   };
 }
 
@@ -237,4 +247,3 @@ async function suggestWithPerplexity(req, res, next) {
 }
 
 module.exports = { analyzeWithPerplexity, produceInsights, suggestWithPerplexity };
-
