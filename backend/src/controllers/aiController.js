@@ -1,31 +1,50 @@
 const { getSalesSummary, getProductSales, getMonthlyProfitTrend } = require('../models/invoiceModel');
 const { askPerplexityAgent } = require('../services/perplexityAgent');
 const { askGlmAgent } = require('../services/nvidiaAgent');
+const { askGeminiAgent } = require('../services/geminiAgent');
 
 // Helper to select the AI agent based on configuration and request parameters
 async function runAiAgent(prompt, agentName = '') {
   const hasPerplexity = !!process.env.PERPLEXITY_API_KEY;
   const hasNvidia = !!process.env.NVIDIA_API_KEY;
+  const hasGemini = !!(process.env.GEMINI_API_KEY || process.env.MP_GEMINI_API_KEY);
 
-  const useGlm = (agentName && agentName.toLowerCase().includes('glm')) || 
-                 (agentName && agentName.toLowerCase().includes('nvidia')) ||
-                 (!hasPerplexity && hasNvidia);
+  const nameLower = String(agentName || '').toLowerCase().trim();
 
-  if (useGlm) {
+  // If user explicitly asks for GLM/Nvidia
+  if (nameLower.includes('glm') || nameLower.includes('nvidia')) {
     if (!hasNvidia) {
       throw new Error('NVIDIA_API_KEY is not configured for the GLM-5.2 agent.');
     }
     return await askGlmAgent(prompt);
-  } else {
-    if (!hasPerplexity && !hasNvidia) {
-      throw new Error('Neither PERPLEXITY_API_KEY nor NVIDIA_API_KEY is configured.');
-    }
+  }
+
+  // If user explicitly asks for Perplexity
+  if (nameLower.includes('perplexity')) {
     if (!hasPerplexity) {
-      // Fallback if user didn't specify GLM but only has NVIDIA key
-      return await askGlmAgent(prompt);
+      throw new Error('PERPLEXITY_API_KEY is not configured for Perplexity agent.');
     }
     return await askPerplexityAgent(prompt);
   }
+
+  // If user explicitly asks for Gemini or by default
+  const useGemini = nameLower.includes('gemini') || nameLower.includes('google') || 
+                    (!hasPerplexity && !hasNvidia) || 
+                    (!nameLower);
+
+  if (useGemini) {
+    return await askGeminiAgent(prompt);
+  }
+
+  // Fallbacks based on available keys
+  if (hasPerplexity) {
+    return await askPerplexityAgent(prompt);
+  }
+  if (hasNvidia) {
+    return await askGlmAgent(prompt);
+  }
+
+  return await askGeminiAgent(prompt);
 }
 
 async function produceInsights(req, res, next) {
