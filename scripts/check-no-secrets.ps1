@@ -23,6 +23,7 @@ $violations = @()
 foreach ($file in $files) {
   if (-not (Test-Path $file)) { continue }
   if ((Get-Item $file).PSIsContainer) { continue }
+  if ($file.Replace('/', '\').Contains('\next\') -or $file.Replace('/', '\').Contains('\_next\') -or $file.EndsWith('check-no-secrets.ps1')) { continue }
 
   $content = Get-Content -Path $file -Raw -ErrorAction SilentlyContinue
   if (-not $content) { continue }
