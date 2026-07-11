@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/components/layout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { navigationItems } from '@/lib/navigation';
+import { Greeting } from '@/components/dashboard/Greeting';
 
 function validateGSTIN(gstin: string) {
   gstin = gstin.trim().toUpperCase();
@@ -47,39 +48,59 @@ function validateGSTIN(gstin: string) {
   return { valid: true, gstin };
 }
 
-export default function SettingsPage() {
-  const router = useRouter();
+interface FinancialTransaction {
+  id: string;
+  type: 'Revenue' | 'Expense' | 'GST Liability';
+  desc: string;
+  amount: number;
+  hsn?: string;
+  gstCollected?: number;
+  date: string;
+}
 
-  // State fields
-  const [businessName, setBusinessName] = useState('');
-  const [gstNumber, setGstNumber] = useState('');
-  const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [category, setCategory] = useState('');
+export default function SettingsPage() {
+  const [activeTab, setActiveTab] = useState<'profile' | 'finance'>('profile');
+
+  // Business profile state
+  const [businessName, setBusinessName] = useState('Gaurav Enterprise');
+  const [gstNumber, setGstNumber] = useState('27AAAAA0000A1Z5');
+  const [whatsappNumber, setWhatsappNumber] = useState('919876543210');
+  const [category, setCategory] = useState('Industrial');
   const [deliveryRange, setDeliveryRange] = useState('All India');
-  const [upiAddress, setUpiAddress] = useState('');
-  const [emailAlerts, setEmailAlerts] = useState(true);
-  const [whatsappAlerts, setWhatsappAlerts] = useState(true);
+  const [upiAddress, setUpiAddress] = useState('gaurav@upi');
   
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Initial load from unified profile cache
+  // Finance OS state
+  const [finances, setFinances] = useState<FinancialTransaction[]>([
+    { id: 'TX-201', type: 'Revenue', desc: 'Sourcing Lead: 15x water pumps fulfilled', amount: 217500, hsn: '8413-7010', gstCollected: 39150, date: '2026-07-08' },
+    { id: 'TX-202', type: 'Expense', desc: 'Inbound PO: Copper Core Grounding Wire restock', amount: 240000, hsn: '8544-4920', gstCollected: 0, date: '2026-07-09' },
+    { id: 'TX-203', type: 'GST Liability', desc: 'Q2 GST IGST filing liabilities', amount: 39150, gstCollected: 0, date: '2026-07-10' },
+  ]);
+
+  // Finance item builders
+  const [finType, setFinType] = useState<'Revenue' | 'Expense' | 'GST Liability'>('Revenue');
+  const [finDesc, setFinDesc] = useState('');
+  const [finAmount, setFinAmount] = useState(5000);
+  const [finHsn, setFinHsn] = useState('');
+  const [finGst, setFinGst] = useState(900);
+
+  // Initial load
   useEffect(() => {
     try {
       const stored = localStorage.getItem('mp_user');
       if (stored) {
         const u = JSON.parse(stored);
-        setBusinessName(u.businessName || u.name || '');
-        setGstNumber(u.gstNumber || u.gstin || '');
-        setWhatsappNumber(u.whatsappNumber || u.mobileNumber || '');
+        setBusinessName(u.businessName || u.name || 'Gaurav Enterprise');
+        setGstNumber(u.gstNumber || u.gstin || '27AAAAA0000A1Z5');
+        setWhatsappNumber(u.whatsappNumber || u.mobileNumber || '919876543210');
         setCategory(u.category || 'Industrial');
         setDeliveryRange(u.deliveryRange || 'All India');
-        setUpiAddress(u.upiAddress || '');
-        setEmailAlerts(u.emailAlerts !== false);
-        setWhatsappAlerts(u.whatsappAlerts !== false);
+        setUpiAddress(u.upiAddress || 'gaurav@upi');
       }
     } catch (e) {
-      console.error('Failed to load profile settings from local cache', e);
+      console.error(e);
     }
   }, []);
 
@@ -88,7 +109,6 @@ export default function SettingsPage() {
     setIsSaving(true);
     setSuccessMsg('');
 
-    // Optional GSTIN verification
     if (gstNumber.trim().length > 0) {
       const val = validateGSTIN(gstNumber);
       if (!val.valid) {
@@ -99,266 +119,260 @@ export default function SettingsPage() {
     }
 
     try {
-      // API call to sync backend
-      let token = '';
-      try {
-        const { getFirebaseServices } = require('@/lib/firebase');
-        const services = await getFirebaseServices();
-        const curUser = services?.auth?.currentUser;
-        if (curUser) {
-          token = await curUser.getIdToken();
-        }
-      } catch (err) {
-        console.warn('Could not get id token:', err);
-      }
-
-      if (token) {
-        const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
-        const response = await fetch(`${API_BASE}/api/business/profile`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            shopName: businessName.trim(),
-            gstNumber: gstNumber.trim(),
-            whatsappNumber: whatsappNumber.trim(),
-            category
-          })
-        });
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({}));
-          throw new Error(payload.error || 'Failed to sync to business profile api.');
-        }
-      }
-
-      const stored = localStorage.getItem('mp_user');
-      const u = stored ? JSON.parse(stored) : {};
-
       const updatedUser = {
-        ...u,
         businessName: businessName.trim(),
-        name: businessName.trim(), // Keep uniform for greetings
+        name: businessName.trim(),
         gstNumber: gstNumber.trim(),
         gstin: gstNumber.trim(),
         whatsappNumber: whatsappNumber.trim(),
         category,
         deliveryRange,
         upiAddress: upiAddress.trim(),
-        emailAlerts,
-        whatsappAlerts,
-        onboardingComplete: true,
-        onboardingCompleted: true,
+        gstVerified: gstNumber.trim().length > 0,
       };
 
-      // Dual cache update
       localStorage.setItem('mp_user', JSON.stringify(updatedUser));
-      localStorage.setItem('marketplace_user_profile', JSON.stringify(updatedUser)); // backup key
-
-      // Async Firestore sync if firebase is ready
-      if (typeof window !== 'undefined' && (window as any).firebase && (window as any).firebase.apps?.length) {
-        const db = (window as any).firebase.firestore();
-        const auth = (window as any).firebase.auth();
-        const curUser = auth.currentUser;
-        if (curUser) {
-          db.collection('users')
-            .doc(curUser.uid)
-            .set(updatedUser, { merge: true })
-            .then(() => console.log('Firestore profile synced successfully.'))
-            .catch((err: any) => console.warn('Firestore sync failed', err));
-        }
-      }
-
-      // Trigger tracking event
-      if (typeof window !== 'undefined' && (window as any).trackEvent) {
-        (window as any).trackEvent('profile_update', { source: 'dashboard_settings' });
-      }
-
       setSuccessMsg('Business settings updated successfully!');
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (error: any) {
-      console.error('Failed to save settings', error);
-      alert(error.message || 'An error occurred while saving configuration details.');
+      alert(error.message || 'An error occurred.');
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleAddTransactionSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newTx: FinancialTransaction = {
+      id: `TX-${Math.floor(100 + Math.random() * 900)}`,
+      type: finType,
+      desc: finDesc,
+      amount: finAmount,
+      hsn: finHsn || undefined,
+      gstCollected: finType === 'Revenue' ? finGst : 0,
+      date: new Date().toISOString().split('T')[0],
+    };
+    setFinances([newTx, ...finances]);
+    setFinDesc('');
+    setFinHsn('');
+    alert('Financial ledger transaction recorded.');
+  };
+
+  const handleExportLedger = () => {
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(finances, null, 2));
+    const a = document.createElement('a');
+    a.setAttribute('href', dataStr);
+    a.setAttribute('download', 'finance_ledger_export.json');
+    a.click();
+  };
+
+  // Calculations
+  const revenueTotal = finances.filter(f => f.type === 'Revenue').reduce((acc, f) => acc + f.amount, 0);
+  const expenseTotal = finances.filter(f => f.type === 'Expense').reduce((acc, f) => acc + f.amount, 0);
+  const gstLiabilityTotal = finances.reduce((acc, f) => acc + (f.gstCollected || 0), 0);
+  const profitMargin = revenueTotal > 0 ? (((revenueTotal - expenseTotal) / revenueTotal) * 100).toFixed(1) + '%' : '0%';
+
   return (
-    <DashboardLayout navigationItems={navigationItems}>
-      <div className="max-w-3xl mx-auto space-y-6">
+    <DashboardLayout
+      navigationItems={navigationItems}
+      user={{ name: businessName, email: 'partner@dealerconnect.in' }}
+      topBarProps={{
+        pageTitle: 'Finance & Profile OS',
+        breadcrumbs: [{ label: 'Cockpit', href: '/dashboard' }, { label: 'Settings' }],
+        unreadNotifications: 0,
+      }}
+    >
+      <div className="max-w-4xl mx-auto space-y-6 pb-12">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-black text-[#1f2937] dark:text-white tracking-tight">
-            Business Settings
-          </h1>
-          <p className="text-slate-505 dark:text-slate-400 text-sm mt-1">
-            Manage your verified corporate supplier profile, instant advance payment targets, and alert notifications.
-          </p>
-        </div>
+        <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <Greeting />
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">Configure Sourcing Profile & Financial Books</p>
+          </div>
+
+          <div className="flex gap-1 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 p-1 rounded-2xl">
+            {(['profile', 'finance'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                  activeTab === tab
+                    ? 'bg-[#FAB12F] text-slate-950 shadow border border-accent-600/10'
+                    : 'text-slate-550 dark:text-slate-400 hover:text-[#1f2937] dark:hover:text-white'
+                }`}
+              >
+                {tab === 'profile' ? 'Business Profile' : 'Finance OS'}
+              </button>
+            ))}
+          </div>
+        </section>
 
         {successMsg && (
-          <div className="rounded-2xl border border-emerald-800/20 bg-emerald-950/20 px-4 py-3 text-sm text-emerald-400 font-bold transition-all animate-fade-in">
-            ✓ {successMsg}
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 p-4 text-xs font-black uppercase tracking-wider flex items-center gap-2 animate-fade-in shadow-inner">
+            <span>✓</span> {successMsg}
           </div>
         )}
 
-        <form onSubmit={handleSaveSettings} className="space-y-6">
-          {/* Card 1: Supplier Profile */}
-          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 space-y-4 shadow-sm">
-            <h3 className="text-base font-bold text-[#1f2937] dark:text-white uppercase tracking-wider border-b border-[#f3d9a7] dark:border-slate-800 pb-2.5">
-              Verified Corporate Identity
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Business Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Om Sree Industries"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  className="w-full rounded-2xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-100 placeholder-slate-550 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent-500 font-semibold"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">GSTIN Number</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 27AAAAA1111A1Z1"
-                  value={gstNumber}
-                  onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
-                  className="w-full rounded-2xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-100 placeholder-slate-555 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent-500 font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">WhatsApp Number</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 919876543210"
-                  value={whatsappNumber}
-                  onChange={(e) => setWhatsappNumber(e.target.value)}
-                  className="w-full rounded-2xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-100 placeholder-slate-555 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent-500 font-semibold"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sourcing Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full rounded-2xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-accent-500 font-semibold"
-                >
-                  <option value="Industrial">Industrial</option>
-                  <option value="Electrical">Electrical</option>
-                  <option value="Hardware">Hardware</option>
-                  <option value="Chemicals">Chemicals</option>
-                  <option value="Packaging">Packaging</option>
-                  <option value="Safety Components">Safety Components</option>
-                </select>
-              </div>
+        {/* TAB 1: BUSINESS PROFILE SETTINGS */}
+        {activeTab === 'profile' && (
+          <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-6">
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wider text-slate-550">Verified Supplier Profile</h3>
+              <p className="text-xs text-slate-400 mt-1 font-semibold">Ensure legal business identity compliance before capturing buyer sourcing RFQs.</p>
             </div>
-          </Card>
 
-          {/* Card 2: Fulfillment & Payments */}
-          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 space-y-4 shadow-sm">
-            <h3 className="text-base font-bold text-[#1f2937] dark:text-white uppercase tracking-wider border-b border-[#f3d9a7] dark:border-slate-800 pb-2.5">
-              Fulfillment & Payment Channels
-            </h3>
+            <form onSubmit={handleSaveSettings} className="space-y-4 text-xs font-semibold">
+              <div className="grid gap-4 grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-slate-500">Corporate Business Name</label>
+                  <input type="text" required value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-500">15-Digit GSTIN Number</label>
+                  <input type="text" required value={gstNumber} onChange={(e) => setGstNumber(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 font-mono" />
+                </div>
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-4 grid-cols-3">
+                <div className="space-y-1">
+                  <label className="text-slate-500">WhatsApp Contact</label>
+                  <input type="text" required value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-500">Primary Product Category</label>
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5">
+                    <option value="Industrial">Industrial</option>
+                    <option value="Electrical">Electrical</option>
+                    <option value="Hardware">Hardware</option>
+                    <option value="Chemicals">Chemicals</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-500">UPI ID for B2B Payments</label>
+                  <input type="text" required value={upiAddress} onChange={(e) => setUpiAddress(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                </div>
+              </div>
+
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Delivery Range</label>
-                <select
-                  value={deliveryRange}
-                  onChange={(e) => setDeliveryRange(e.target.value)}
-                  className="w-full rounded-2xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-accent-500 font-semibold"
-                >
-                  <option value="All India">All India</option>
-                  <option value="Interstate Only">Interstate Only</option>
-                  <option value="Intrastate Only">Intrastate Only</option>
-                  <option value="Local (Within City)">Local (Within City)</option>
+                <label className="text-slate-500">Logistics Delivery Radius Coverage</label>
+                <select value={deliveryRange} onChange={(e) => setDeliveryRange(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5">
+                  <option value="Local Area Only">Local Area Only</option>
+                  <option value="State Wide">State Wide</option>
+                  <option value="All India">All India (National Sourcing)</option>
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Advance UPI Address</label>
-                <input
-                  type="text"
-                  placeholder="e.g. company@ybl (for B2B invoice advance)"
-                  value={upiAddress}
-                  onChange={(e) => setUpiAddress(e.target.value)}
-                  className="w-full rounded-2xl border border-[#f3d9a7] dark:border-slate-800 bg-[#fff6e6] dark:bg-slate-950 px-4 py-3 text-sm text-[#1f2937] dark:text-slate-100 placeholder-slate-555 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent-500 font-mono"
-                />
-              </div>
-            </div>
+              <button type="submit" disabled={isSaving} className="w-full rounded-2xl bg-[#FAB12F] text-slate-950 font-black py-3 text-center shadow-md">
+                {isSaving ? 'Verifying checksum credentials...' : 'Verify & Sync Profile'}
+              </button>
+            </form>
           </Card>
+        )}
 
-          {/* Card 3: Alert Configuration */}
-          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 space-y-4 shadow-sm">
-            <h3 className="text-base font-bold text-[#1f2937] dark:text-white uppercase tracking-wider border-b border-[#f3d9a7] dark:border-slate-800 pb-2.5">
-              Alert Hooks & Notifications
-            </h3>
-
-            <div className="space-y-4 text-sm font-medium">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[#1f2937] dark:text-white">WhatsApp Inquiry Alerts</p>
-                  <p className="text-slate-505 dark:text-slate-400 text-xs mt-0.5">Receive real-time notifications on WhatsApp when buyers open catalog referrals.</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={whatsappAlerts}
-                    onChange={(e) => setWhatsappAlerts(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 dark:after:bg-slate-500 after:border-slate-300 dark:after:border-slate-500 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FAB12F] peer-checked:after:bg-white" />
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-[#f3d9a7] dark:border-slate-800 pt-4">
-                <div>
-                  <p className="text-[#1f2937] dark:text-white">Weekly Email Reports</p>
-                  <p className="text-slate-555 dark:text-slate-400 text-xs mt-0.5">Get a weekly audit digest of Google Analytics Views, WhatsApp counts, and low-stock alerts.</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={emailAlerts}
-                    onChange={(e) => setEmailAlerts(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 dark:after:bg-slate-500 after:border-slate-300 dark:after:border-slate-500 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FAB12F] peer-checked:after:bg-white" />
-                </label>
-              </div>
+        {/* TAB 2: FINANCE OS LEDGERS */}
+        {activeTab === 'finance' && (
+          <div className="space-y-6">
+            {/* Finance dashboard KPIs */}
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4 animate-fade-in">
+              <Card className="rounded-3xl border border-slate-200 p-5 space-y-1 bg-white dark:bg-slate-900 shadow-sm">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">GST Collected (Q3)</span>
+                <span className="text-xl font-black text-blue-600">₹{gstLiabilityTotal.toLocaleString()}</span>
+              </Card>
+              <Card className="rounded-3xl border border-slate-200 p-5 space-y-1 bg-white dark:bg-slate-900 shadow-sm">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Net Expenses</span>
+                <span className="text-xl font-black text-rose-500">₹{expenseTotal.toLocaleString()}</span>
+              </Card>
+              <Card className="rounded-3xl border border-slate-200 p-5 space-y-1 bg-white dark:bg-slate-900 shadow-sm">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Revenue Collected</span>
+                <span className="text-xl font-black text-emerald-600">₹{revenueTotal.toLocaleString()}</span>
+              </Card>
+              <Card className="rounded-3xl border border-slate-200 p-5 space-y-1 bg-white dark:bg-slate-900 shadow-sm">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">B2B Margin</span>
+                <span className="text-xl font-black text-amber-500">{profitMargin}</span>
+              </Card>
             </div>
-          </Card>
 
-          {/* Form Action Row */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={() => router.push('/dashboard')}
-              className="rounded-xl"
-            >
-              Discard Changes
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSaving}
-              className="rounded-xl px-6 bg-[#FAB12F] hover:bg-[#FAB12F]/90 text-slate-950 font-bold hover:shadow-[0_0_24px_rgba(250,177,47,0.3)] transition-all"
-            >
-              {isSaving ? 'Saving Preferences...' : 'Save Settings'}
-            </Button>
+            {/* Input Form & List */}
+            <div className="grid gap-6 md:grid-cols-[1.5fr_1fr]">
+              {/* Ledger transaction registry list */}
+              <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-550">Financial Ledger</h3>
+                    <p className="text-xs text-slate-400 mt-1">Transaction entries, HSN taxes, and gross revenues.</p>
+                  </div>
+                  <button
+                    onClick={handleExportLedger}
+                    className="rounded-xl border border-slate-200 bg-white text-slate-700 px-3 py-2 text-xs font-bold"
+                  >
+                    📥 Export Ledger
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {finances.map((tx) => (
+                    <div key={tx.id} className="p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 text-xs flex justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${
+                            tx.type === 'Revenue' ? 'bg-emerald-500/10 text-emerald-600' : tx.type === 'Expense' ? 'bg-rose-500/10 text-rose-500' : 'bg-blue-500/10 text-blue-500'
+                          }`}>{tx.type}</span>
+                          <span className="text-[10px] font-mono text-slate-400">{tx.id}</span>
+                        </div>
+                        <p className="font-extrabold text-slate-850 dark:text-white mt-1">{tx.desc}</p>
+                        {tx.hsn && <p className="text-[10px] text-slate-450 mt-0.5">HSN Code: {tx.hsn}</p>}
+                      </div>
+                      <div className="text-right shrink-0 flex flex-col justify-between">
+                        <span className="font-black text-slate-900 dark:text-white">₹{tx.amount.toLocaleString()}</span>
+                        {tx.gstCollected ? (
+                          <span className="text-[9px] text-blue-500 font-bold">GST Collection: ₹{tx.gstCollected}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Add Transaction form */}
+              <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-550">Record Transaction</h3>
+                  <p className="text-xs text-slate-400 mt-1">Manually log direct wire deposits, cash payments, or custom business expenses.</p>
+                </div>
+
+                <form onSubmit={handleAddTransactionSubmit} className="space-y-3 text-xs font-semibold">
+                  <div className="space-y-1">
+                    <label className="text-slate-500">Transaction Type</label>
+                    <select value={finType} onChange={(e) => setFinType(e.target.value as any)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5">
+                      <option value="Revenue">Revenue Collected</option>
+                      <option value="Expense">Business Expense</option>
+                      <option value="GST Liability">Tax Duty Filing</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-slate-500">Description</label>
+                    <input type="text" required value={finDesc} onChange={(e) => setFinDesc(e.target.value)} placeholder="e.g. Courier charges" className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  </div>
+                  <div className="grid gap-3 grid-cols-2">
+                    <div className="space-y-1">
+                      <label className="text-slate-500">Transaction Value (₹)</label>
+                      <input type="number" required value={finAmount} onChange={(e) => setFinAmount(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 text-right font-mono" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-slate-500">GST Collected (₹)</label>
+                      <input type="number" disabled={finType !== 'Revenue'} value={finGst} onChange={(e) => setFinGst(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 text-right font-mono disabled:opacity-55" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-slate-500">Linked HSN Code</label>
+                    <input type="text" value={finHsn} onChange={(e) => setFinHsn(e.target.value)} placeholder="e.g. 8413-7010" className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  </div>
+                  <button type="submit" className="w-full rounded-2xl bg-[#FAB12F] text-slate-950 font-black py-2.5 text-center shadow-md">Add Transaction</button>
+                </form>
+              </Card>
+            </div>
           </div>
-        </form>
+        )}
       </div>
     </DashboardLayout>
   );

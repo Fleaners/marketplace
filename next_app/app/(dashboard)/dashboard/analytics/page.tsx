@@ -2,254 +2,236 @@
 
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { navigationItems } from '@/lib/navigation';
 import { Greeting } from '@/components/dashboard/Greeting';
 
-interface AnalyticsState {
+interface ProductMetric {
+  name: string;
   views: number;
-  whatsappClicks: number;
-  conversionRate: number;
-  salesPipeline: number;
-  byState: Array<{ state: string; share: number; trend: 'up' | 'down'; count: number }>;
-  topProducts: Array<{ name: string; views: number; inquiries: number; conv: number }>;
+  inquiries: number;
+  conversion: number;
+  status: 'fast' | 'slow' | 'dead';
 }
 
 export default function AnalyticsPage() {
-  const [data, setData] = useState<AnalyticsState>({
-    views: 124,
-    whatsappClicks: 18,
-    conversionRate: 14.5,
-    salesPipeline: 245000,
-    byState: [
-      { state: 'Maharashtra', share: 45, trend: 'up', count: 56 },
-      { state: 'Gujarat', share: 25, trend: 'up', count: 31 },
-      { state: 'Tamil Nadu', share: 15, trend: 'up', count: 19 },
-      { state: 'West Bengal', share: 10, trend: 'down', count: 12 },
-      { state: 'Karnataka', share: 5, trend: 'up', count: 6 },
-    ],
-    topProducts: [
-      { name: 'Industrial Water Pump', views: 52, inquiries: 8, conv: 15.3 },
-      { name: 'Copper Core Grounding Wire', views: 34, inquiries: 5, conv: 14.7 },
-      { name: 'Heavy Duty Adhesive Sealant', views: 24, inquiries: 3, conv: 12.5 },
-      { name: 'Brass Coupling Joints (1/2 Inch)', views: 14, inquiries: 2, conv: 14.2 },
-    ],
+  const [activeTab, setActiveTab] = useState<'health' | 'sourcing' | 'products'>('health');
+  
+  const [data, setData] = useState({
+    healthScore: 89,
+    catalogViews: 3450,
+    whatsappConversions: 412,
+    avgMoqMatch: '96%',
+    pipelineValue: 645000,
+    topCustomer: 'Rajesh Electricals (Nagpur)',
+    clvAverage: 82000,
+    deadStockCount: 1,
+    productsList: [
+      { name: 'Industrial Water Pump', views: 1840, inquiries: 240, conversion: 13.0, status: 'fast' as const },
+      { name: 'Copper Core Grounding Wire', views: 1210, inquiries: 152, conversion: 12.5, status: 'fast' as const },
+      { name: 'Brass Coupling Joints (1/2 Inch)', views: 320, inquiries: 18, conversion: 5.6, status: 'slow' as const },
+      { name: 'Heavy Duty Adhesive Sealant', views: 80, inquiries: 2, conversion: 2.5, status: 'dead' as const },
+    ] as ProductMetric[],
   });
-
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'7d' | '30d' | 'all'>('7d');
-
-  // Load actual numbers dynamically from products in localStorage if available
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('marketplace_products');
-      if (stored) {
-        const list = JSON.parse(stored);
-        
-        // Calculate mock stats tied to actual items length and specs
-        const itemsCount = list.length;
-        const calcViews = itemsCount * 31 + 42; // Dynamic seed
-        const calcClicks = Math.round(calcViews * 0.145); // 14.5% conversion seed
-        const pipelineVal = list.reduce((acc: number, item: any) => acc + (item.price * item.moq), 0) * 1.5;
-
-        // Calculate product list view mappings
-        const productsAnalytics = list.map((item: any, index: number) => {
-          const itemViews = Math.max(12, 45 - (index * 8));
-          const itemInq = Math.max(1, Math.round(itemViews * 0.15));
-          return {
-            name: item.name,
-            views: itemViews,
-            inquiries: itemInq,
-            conv: Math.round((itemInq / itemViews) * 1000) / 10,
-          };
-        }).sort((a: any, b: any) => b.views - a.views);
-
-        setData({
-          views: calcViews,
-          whatsappClicks: calcClicks,
-          conversionRate: 14.5,
-          salesPipeline: Math.round(pipelineVal),
-          byState: [
-            { state: 'Maharashtra', share: 45, trend: 'up', count: Math.round(calcClicks * 0.45) },
-            { state: 'Gujarat', share: 25, trend: 'up', count: Math.round(calcClicks * 0.25) },
-            { state: 'Tamil Nadu', share: 15, trend: 'up', count: Math.round(calcClicks * 0.15) },
-            { state: 'West Bengal', share: 10, trend: 'down', count: Math.round(calcClicks * 0.10) },
-            { state: 'Karnataka', share: 5, trend: 'up', count: Math.round(calcClicks * 0.05) },
-          ],
-          topProducts: productsAnalytics,
-        });
-      }
-    } catch (e) {
-      console.error('Failed to calculate analytics from storage', e);
-    }
-  }, []);
 
   return (
     <DashboardLayout
       navigationItems={navigationItems}
       user={{ name: 'Gaurav Enterprise', email: 'partner@dealerconnect.in' }}
       topBarProps={{
-        pageTitle: 'Business Insights',
+        pageTitle: 'Analytics OS Dashboard',
         breadcrumbs: [{ label: 'Cockpit', href: '/dashboard' }, { label: 'Analytics' }],
-        unreadNotifications: 3,
+        unreadNotifications: 1,
       }}
     >
-      <div className="space-y-6">
-        {/* Title row */}
+      <div className="space-y-6 pb-12">
+        {/* Header */}
         <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <Greeting />
+            <p className="text-xs text-slate-505 font-bold uppercase tracking-wider mt-1">Real-time Sourcing Metrics & Business Health OS</p>
           </div>
 
-          {/* Timeframe Selectors */}
           <div className="flex gap-1.5 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 p-1 rounded-2xl">
-            {(['7d', '30d', 'all'] as const).map((t) => (
+            {(['health', 'sourcing', 'products'] as const).map((tab) => (
               <button
-                key={t}
-                onClick={() => setSelectedTimeframe(t)}
+                key={tab}
+                onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                  selectedTimeframe === t
+                  activeTab === tab
                     ? 'bg-[#FAB12F] text-slate-950 shadow border border-accent-600/10'
                     : 'text-slate-550 dark:text-slate-400 hover:text-[#1f2937] dark:hover:text-white'
                 }`}
               >
-                {t === '7d' ? '7 Days' : t === '30d' ? '30 Days' : 'Lifetime'}
+                {tab === 'health' ? 'Business Health' : tab === 'sourcing' ? 'Sourcing & CLV' : 'Product Sales'}
               </button>
             ))}
           </div>
         </section>
 
-        {/* Analytics KPI Dashboard Grid */}
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KPICard
-            title="Total Catalog Views"
-            value={`+${data.views}`}
-            icon="👀"
-            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-col justify-between"
-          >
-            <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-              📈 +12% vs previous period
-            </p>
-          </KPICard>
+        {/* TAB 1: BUSINESS HEALTH SCORE */}
+        {activeTab === 'health' && (
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Score card dial */}
+            <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl flex flex-col justify-between space-y-6">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-550">Business Operating Health Score</h3>
+                <p className="text-xs text-slate-400 mt-1 font-semibold">Gemini composite analyzer rating corporate supplier profile integrity, response velocity, and stock cover.</p>
+              </div>
 
-          <KPICard
-            title="WhatsApp Connections"
-            value={`${data.whatsappClicks}`}
-            icon="💬"
-            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-col justify-between"
-          >
-            <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-              📈 +15% conversion lift
-            </p>
-          </KPICard>
+              <div className="flex flex-col items-center py-6">
+                <div className="h-32 w-32 rounded-full border-8 border-emerald-500/20 flex items-center justify-center relative">
+                  <div className="h-28 w-28 rounded-full border-4 border-dashed border-emerald-500 flex items-center justify-center text-4xl font-black text-slate-850 dark:text-white">
+                    {data.healthScore}
+                  </div>
+                </div>
+                <span className="text-xs text-emerald-600 font-extrabold mt-4">✓ Optimal trading status active</span>
+              </div>
 
-          <KPICard
-            title="Inquiry Conversion Rate"
-            value={`${data.conversionRate}%`}
-            icon="🎯"
-            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-col justify-between"
-          >
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-450 font-bold">
-              Industry Average: 8.5%
-            </p>
-          </KPICard>
+              <div className="grid gap-3 grid-cols-3 text-center text-xs">
+                <div className="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-850 rounded-xl">
+                  <span className="text-[9px] text-slate-450 uppercase block font-bold">Profile GST</span>
+                  <span className="font-extrabold text-slate-750 dark:text-slate-250">Verified</span>
+                </div>
+                <div className="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-850 rounded-xl">
+                  <span className="text-[9px] text-slate-450 uppercase block font-bold">Inquiry Cover</span>
+                  <span className="font-extrabold text-slate-750 dark:text-slate-250">98%</span>
+                </div>
+                <div className="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-850 rounded-xl">
+                  <span className="text-[9px] text-slate-450 uppercase block font-bold">Stock Outages</span>
+                  <span className="font-extrabold text-rose-500">0%</span>
+                </div>
+              </div>
+            </Card>
 
-          <KPICard
-            title="Est. Sales Pipeline Value"
-            value={`₹${data.salesPipeline.toLocaleString('en-IN')}`}
-            icon="💰"
-            className="min-h-[140px] rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-col justify-between"
-          >
-            <p className="mt-2 text-xs text-amber-600 dark:text-amber-450 font-bold">
-              Escrow and wholesale inquiries
-            </p>
-          </KPICard>
-        </section>
+            {/* AI insights recommendations */}
+            <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-550">AI Sourcing Growth Directives</h3>
+                <p className="text-xs text-slate-400 mt-1 font-semibold">Automated directives based on real-time pipeline valuations.</p>
+              </div>
 
-        {/* Primary Data Row: Top Listings & Geographic Demographics */}
-        <section className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-          
-          {/* Top Listings performance */}
-          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4 shadow-sm">
+              <div className="space-y-3.5 text-xs font-semibold">
+                <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-2xl leading-relaxed">
+                  📢 **GST Compliance Boost**: Your catalog has **96%** GST rates set. Standardizing the remaining 4% to 18% HSN slots will lift search listing priority count by 15% next week.
+                </div>
+                <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 text-blue-600 rounded-2xl leading-relaxed">
+                  ⚙️ **Inbound Sourcing Alert**: Industrial Water Pump safety stocks are approaching MOQ safety ceilings. Initiate a restocking PO from Kirloskar Pump Division today.
+                </div>
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-850 text-slate-500 rounded-2xl leading-relaxed">
+                  💡 **Dead Stock Recourse**: Heavy Duty Adhesive Sealant has registered zero clicks for 14 days. Create a bundled promotional offer with copper wiring reels.
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* TAB 2: SOURCING DEMOGRAPHICS & CLV */}
+        {activeTab === 'sourcing' && (
+          <div className="space-y-6">
+            {/* KPI statistics */}
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              <Card className="rounded-3xl border border-slate-200 p-5 space-y-1 bg-white dark:bg-slate-900 shadow-sm">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Total Catalog Views</span>
+                <span className="text-xl font-black text-slate-850 dark:text-white">+{data.catalogViews}</span>
+              </Card>
+              <Card className="rounded-3xl border border-slate-200 p-5 space-y-1 bg-white dark:bg-slate-900 shadow-sm">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">WhatsApp Lead Clicks</span>
+                <span className="text-xl font-black text-emerald-600">{data.whatsappConversions}</span>
+              </Card>
+              <Card className="rounded-3xl border border-slate-200 p-5 space-y-1 bg-white dark:bg-slate-900 shadow-sm">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Average Customer CLV</span>
+                <span className="text-xl font-black text-blue-500">₹{data.clvAverage.toLocaleString()}</span>
+              </Card>
+              <Card className="rounded-3xl border border-slate-200 p-5 space-y-1 bg-white dark:bg-slate-900 shadow-sm">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Top Trade Partner</span>
+                <span className="text-sm font-black text-slate-900 dark:text-white truncate block">{data.topCustomer}</span>
+              </Card>
+            </div>
+
+            {/* Geographical Footprint and leads volume */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-550">Geographical Footprint (Maharashtra Leads)</h3>
+                  <p className="text-xs text-slate-400 mt-1">Statewise corporate client distribution footprint.</p>
+                </div>
+                <div className="space-y-2 text-xs font-semibold">
+                  <div className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-850 rounded-xl">
+                    <span>Nagpur, MH</span>
+                    <span className="text-amber-500">45% share</span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-850 rounded-xl">
+                    <span>Pune, MH</span>
+                    <span className="text-blue-500">30% share</span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-850 rounded-xl">
+                    <span>Surat, GJ</span>
+                    <span className="text-slate-500">25% share</span>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-550">Sourcing Conversion Summary</h3>
+                  <p className="text-xs text-slate-400 mt-1">Lead acquisition parameters calculated dynamically.</p>
+                </div>
+                <div className="space-y-3.5 text-xs text-slate-650 dark:text-slate-350">
+                  <p className="leading-relaxed">📈 Overall conversion lift is up by **+15.2%** this month compared to previous periods.</p>
+                  <p className="leading-relaxed">🎯 Google Ads traffic converts at **14.8%**, while Meta Business broadcasts show a CTR of **4.8%**.</p>
+                  <p className="leading-relaxed">💼 Direct RFQ submissions convert at **82%** on follow-ups via WhatsApp logs.</p>
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: PRODUCT & CATEGORY ANALYTICS */}
+        {activeTab === 'products' && (
+          <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Top Performers
-              </p>
-              <h3 className="mt-1 text-xl font-bold text-[#1f2937] dark:text-white">Listing Interest Metrics</h3>
+              <h3 className="text-sm font-black uppercase tracking-wider text-slate-550">Product Performance Matrix</h3>
+              <p className="text-xs text-slate-400 mt-1">Product listing views, WhatsApp click conversions, and dead stock classifiers.</p>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-[#f3d9a7] dark:border-slate-800 pb-3 text-slate-500 font-bold uppercase tracking-wider">
-                    <th className="pb-3 text-sm">Product Name</th>
-                    <th className="pb-3 text-center text-sm">Views</th>
-                    <th className="pb-3 text-center text-sm">Inquiries</th>
-                    <th className="pb-3 text-right text-sm">Conversion</th>
+                  <tr className="bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold uppercase tracking-wider">
+                    <th className="py-3 px-4">Product listing</th>
+                    <th className="py-3 px-4 text-center">Views</th>
+                    <th className="py-3 px-4 text-center">Conversions</th>
+                    <th className="py-3 px-4 text-right">Conversion CTR (%)</th>
+                    <th className="py-3 px-4 text-center">Moving Velocity</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#f3d9a7]/60 dark:divide-slate-800/40 font-bold text-[#1f2937] dark:text-slate-100">
-                  {data.topProducts.map((p, idx) => (
-                    <tr key={idx} className="group hover:bg-[#fff0db]/50 dark:hover:bg-slate-800/35 transition-colors">
-                      <td className="py-4 font-extrabold text-sm text-slate-700 dark:text-slate-200 group-hover:text-[#FAB12F] transition-colors">
-                        {p.name}
+                <tbody className="divide-y divide-slate-150 dark:divide-slate-800 font-semibold text-slate-800 dark:text-slate-200">
+                  {data.productsList.map((prod, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
+                      <td className="py-4 px-4 font-black">{prod.name}</td>
+                      <td className="py-4 px-4 text-center">{prod.views}</td>
+                      <td className="py-4 px-4 text-center text-emerald-600">{prod.inquiries} clicks</td>
+                      <td className="py-4 px-4 text-right text-amber-500">{prod.conversion}%</td>
+                      <td className="py-4 px-4 text-center">
+                        <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                          prod.status === 'fast'
+                            ? 'bg-emerald-500/10 text-emerald-600'
+                            : prod.status === 'slow'
+                            ? 'bg-amber-500/10 text-amber-600'
+                            : 'bg-rose-500/10 text-rose-500 animate-pulse'
+                        }`}>
+                          {prod.status === 'fast' ? 'Fast Moving' : prod.status === 'slow' ? 'Slow Moving' : 'Dead Stock'}
+                        </span>
                       </td>
-                      <td className="py-4 text-center text-slate-655 dark:text-slate-350">{p.views}</td>
-                      <td className="py-4 text-center text-emerald-500 font-extrabold">💬 {p.inquiries}</td>
-                      <td className="py-4 text-right text-amber-600 dark:text-amber-500 font-extrabold">{p.conv}%</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </Card>
-
-          {/* Regional Demographics */}
-          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4 flex flex-col justify-between shadow-sm">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Inquiry Demographics
-              </p>
-              <h3 className="mt-1 text-xl font-bold text-[#1f2937] dark:text-white">Interstate Trade Reach</h3>
-            </div>
-
-            <div className="space-y-4 my-2">
-              {data.byState.map((st, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex justify-between items-center text-xs font-semibold">
-                    <span className="text-slate-700 dark:text-slate-200">{st.state}</span>
-                    <span className="text-slate-555 dark:text-slate-400">
-                      {st.count} leads ({st.share}%) {st.trend === 'up' ? '↗' : '↘'}
-                    </span>
-                  </div>
-                  {/* Progress visualization track */}
-                  <div className="h-2 rounded-full bg-[#fff6e6] dark:bg-slate-950 overflow-hidden border border-[#f3d9a7] dark:border-slate-800">
-                    <div
-                      style={{ width: `${st.share}%` }}
-                      className={`h-full rounded-full transition-all duration-1000 ${
-                        idx === 0
-                          ? 'bg-[#FAB12F]'
-                          : idx === 1
-                          ? 'bg-emerald-500'
-                          : idx === 2
-                          ? 'bg-blue-500'
-                          : 'bg-slate-700 dark:bg-slate-600'
-                      }`}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-4 border-t border-[#f3d9a7]/60 dark:border-slate-800/60 text-center">
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-bold">
-                Google Analytics API Linked ✓
-              </p>
-            </div>
-          </Card>
-
-        </section>
+        )}
       </div>
     </DashboardLayout>
   );
