@@ -95,10 +95,40 @@ router.post(
       }
 
       const resolvedPrompt = prompt || 'Analyze this marketplace business data and provide growth tips.';
+      const db = getDb();
+      
+      // Fetch learning history and user corrections unconditionally for autonomous self-learning context from Firestore
+      let pastRecommendations = [];
+      let pastCorrections = [];
+      try {
+        const recommendationsSnapshot = await db
+          .collection('businesses')
+          .doc(businessId)
+          .collection('ai_recommendations')
+          .orderBy('created_at', 'desc')
+          .limit(5)
+          .get();
+        pastRecommendations = recommendationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        const correctionsSnapshot = await db
+          .collection('businesses')
+          .doc(businessId)
+          .collection('ai_corrections')
+          .orderBy('created_at', 'desc')
+          .limit(5)
+          .get();
+        pastCorrections = correctionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (historyErr) {
+        console.warn('Failed to query learning history from Firestore:', historyErr);
+      }
+
       const safeData = data && typeof data === 'object' ? data : {};
+      safeData.pastRecommendations = pastRecommendations;
+      safeData.pastCorrections = pastCorrections;
+
       const serializedData = JSON.stringify(safeData, null, 2);
 
-      if (serializedData.length > 15000) {
+      if (serializedData.length > 25000) {
         return res.status(400).json({ error: 'Data payload exceeds analysis limits.' });
       }
 
@@ -131,10 +161,10 @@ router.post(
 
       // Assemble final prompt with context
       const finalPrompt = `
-Business Context:
+[BUSINESS DATA CONTEXT]
 ${serializedData}
 
-User Question:
+[USER QUESTION]
 ${resolvedPrompt}
       `.trim();
 
@@ -144,6 +174,43 @@ ${resolvedPrompt}
       if (result.answer.startsWith('REJECTED:')) {
         const cleanAnswer = result.answer.replace(/^REJECTED:\s*/i, '');
         return res.status(400).json({ error: cleanAnswer, rejected: true });
+      }
+
+      // Log recommendation if it is analytical and has actionable recommendations
+      const text = result.answer;
+      const getSection = (title) => {
+        const regex = new RegExp(`### \\s*${title}[\\s\\S]*?(?=###|$)`, 'i');
+        const match = text.match(regex);
+        return match ? match[0].replace(new RegExp(`### \\s*${title}`, 'i'), '').trim() : '';
+      };
+
+      const isSimpleLookup = !text.includes('###');
+      const recommendationsText = getSection('📈 Recommendations') || getSection('📋 Suggested Next Steps') || text;
+
+      if (!isSimpleLookup && recommendationsText) {
+        try {
+          let domain = 'general';
+          const promptLower = String(resolvedPrompt).toLowerCase();
+          const agentLower = String(req.body.agentName || '').toLowerCase();
+          if (promptLower.includes('gst') || agentLower.includes('gst')) domain = 'gst';
+          else if (promptLower.includes('stock') || promptLower.includes('inventory') || agentLower.includes('inventory')) domain = 'inventory';
+          else if (promptLower.includes('seo') || promptLower.includes('ad') || agentLower.includes('marketing')) domain = 'marketing';
+          else if (promptLower.includes('price') || promptLower.includes('sale') || agentLower.includes('commerce')) domain = 'commerce';
+
+          await db
+            .collection('businesses')
+            .doc(businessId)
+            .collection('ai_recommendations')
+            .add({
+              agent_name: req.body.agentName || 'System Orchestrator',
+              prompt_context: resolvedPrompt,
+              recommendation_text: recommendationsText,
+              domain,
+              created_at: new Date().toISOString()
+            });
+        } catch (logErr) {
+          console.error('Failed to log recommendation to Firestore:', logErr);
+        }
       }
 
       const responsePayload = {
@@ -223,5 +290,38 @@ ${JSON.stringify(businessContext, null, 2)}
     next(error);
   }
 });
+
+router.post(
+  '/feedback',
+  rejectUnknownBodyFields(['promptContext', 'agentName', 'originalRecommendation', 'correctedText', 'isRejected']),
+  async (req, res, next) => {
+    try {
+      const businessId = req.user?.businessId;
+      if (!businessId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const { promptContext, agentName, originalRecommendation, correctedText, isRejected } = req.body;
+      const db = getDb();
+
+      const docRef = await db
+        .collection('businesses')
+        .doc(businessId)
+        .collection('ai_corrections')
+        .add({
+          agent_name: agentName || 'System Orchestrator',
+          prompt_context: promptContext || '',
+          original_recommendation: originalRecommendation || '',
+          corrected_text: correctedText || '',
+          is_rejected: !!isRejected,
+          created_at: new Date().toISOString()
+        });
+
+      res.json({ success: true, feedback: { id: docRef.id } });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 export default router;

@@ -109,9 +109,7 @@ function ProductsCatalog() {
     if (shouldOpenNewForm) {
       openAddForm();
       // Clean query parameter after trigger to avoid loop
-      const url = new URL(window.location.href);
-      url.searchParams.delete('new');
-      router.replace(url.pathname);
+      router.replace('/dashboard/products');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenNewForm]);
