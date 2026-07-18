@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { navigationItems } from '@/lib/navigation';
 import { Greeting } from '@/components/dashboard/Greeting';
+import { calculateGST, GSTCalculationResult } from '@/lib/gst';
 
 interface ProductVariant {
   size?: string;
@@ -21,7 +22,8 @@ interface Product {
   brand?: string;
   description: string;
   price: number;
-  moq: number;
+  moq: number; // Minimum order qty
+  reorderLevel: number; // Reorder alert level
   stock: number; // Available
   reserved?: number;
   damaged?: number;
@@ -80,18 +82,41 @@ interface GRNRecord {
 interface PendingEdit {
   price: number;
   stock: number;
+  reorderLevel: number;
+}
+
+interface SKUInvoice {
+  id: string;
+  sku: string;
+  productName: string;
+  customerName: string;
+  customerPhone: string;
+  quantity: number;
+  subtotal: number;
+  taxValue: number;
+  total: number;
+  status: 'draft' | 'sent' | 'paid';
+  date: string;
+  gstRate: number;
+  cgst: number;
+  sgst: number;
+  igst: number;
+  stateType: 'intra' | 'inter';
 }
 
 export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [stockStatusFilter, setStockStatusFilter] = useState<'active' | 'instock' | 'low' | 'archived'>('active');
+  const [sortBy, setSortBy] = useState<'name' | 'price' | 'stock' | 'reorder'>('name');
   const [activeTab, setActiveTab] = useState<'catalog' | 'adjustments' | 'ai' | 'purchasing'>('catalog');
   
   // Modals & Details State
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isPoModalOpen, setIsPoModalOpen] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   // Form Fields for Add/Edit
   const [formName, setFormName] = useState('');
@@ -100,6 +125,7 @@ export default function InventoryPage() {
   const [formDescription, setFormDescription] = useState('');
   const [formPrice, setFormPrice] = useState(1000);
   const [formMoq, setFormMoq] = useState(5);
+  const [formReorderLevel, setFormReorderLevel] = useState(10);
   const [formStock, setFormStock] = useState(100);
   const [formReserved, setFormReserved] = useState(0);
   const [formDamaged, setFormDamaged] = useState(0);
@@ -113,7 +139,7 @@ export default function InventoryPage() {
   const [formExpiryDate, setFormExpiryDate] = useState('');
   const [formSerialNo, setFormSerialNo] = useState('');
   const [formImei, setFormImei] = useState('');
-  const [formWarehouse, setFormWarehouse] = useState('Warehouse A');
+  const [formWarehouse, setFormWarehouse] = useState('Warehouse Alpha');
   const [formVariantSize, setFormVariantSize] = useState('');
   const [formVariantColor, setFormVariantColor] = useState('');
   const [formVariantWeight, setFormVariantWeight] = useState('');
@@ -127,6 +153,26 @@ export default function InventoryPage() {
   const [pendingEdits, setPendingEdits] = useState<Record<string, PendingEdit>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // CRM context & local lead caches
+  const [leads, setLeads] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<SKUInvoice[]>([]);
+
+  // Stock Adjustment sub-form state (inside spec sheet modal)
+  const [adjustStockVal, setAdjustStockVal] = useState(0);
+  const [adjustReservedVal, setAdjustReservedVal] = useState(0);
+  const [adjustDamagedVal, setAdjustDamagedVal] = useState(0);
+  const [adjustReturnedVal, setAdjustReturnedVal] = useState(0);
+  const [isAdjustDispatch, setIsAdjustDispatch] = useState(false);
+  const [createInvoiceOnDispatch, setCreateInvoiceOnDispatch] = useState(false);
+
+  // Invoice creator form states
+  const [invoiceCustomer, setInvoiceCustomer] = useState('Rajesh Electricals');
+  const [invoicePhone, setInvoicePhone] = useState('919876543210');
+  const [invoiceGstin, setInvoiceGstin] = useState('27AAAAA1111A1Z1');
+  const [invoiceQty, setInvoiceQty] = useState(5);
+  const [invoiceGstSlab, setInvoiceGstSlab] = useState(18);
+  const [invoiceStateType, setInvoiceStateType] = useState<'intra' | 'inter'>('intra');
 
   // Suppliers & Purchasing Mock State
   const [suppliers, setSuppliers] = useState<Supplier[]>([
@@ -156,11 +202,13 @@ export default function InventoryPage() {
   // Load from local storage on mount
   useEffect(() => {
     try {
+      // Load products
       const stored = localStorage.getItem('marketplace_products');
+      let currentProducts: Product[] = [];
       if (stored) {
-        setProducts(JSON.parse(stored));
+        currentProducts = JSON.parse(stored);
       } else {
-        const defaultProducts: Product[] = [
+        currentProducts = [
           {
             id: '1',
             name: 'Industrial Water Pump',
@@ -169,6 +217,7 @@ export default function InventoryPage() {
             description: 'Heavy duty centrifugal water pump suited for high pressure flow rate industrial operations.',
             price: 14500,
             moq: 2,
+            reorderLevel: 5,
             stock: 15,
             reserved: 3,
             damaged: 1,
@@ -198,6 +247,7 @@ export default function InventoryPage() {
             description: 'Premium grade pure copper grounding cable designed for protective earth systems.',
             price: 1200,
             moq: 5,
+            reorderLevel: 10,
             stock: 25,
             reserved: 10,
             damaged: 0,
@@ -217,8 +267,74 @@ export default function InventoryPage() {
             images: [],
           },
         ];
-        localStorage.setItem('marketplace_products', JSON.stringify(defaultProducts));
-        setProducts(defaultProducts);
+        localStorage.setItem('marketplace_products', JSON.stringify(currentProducts));
+      }
+      // Ensure all products have reorderLevel initialized
+      const validatedProducts = currentProducts.map(p => ({
+        ...p,
+        reorderLevel: p.reorderLevel !== undefined ? p.reorderLevel : (p.moq * 2 || 10)
+      }));
+      setProducts(validatedProducts);
+
+      // Load leads (CRM context)
+      const storedLeads = localStorage.getItem('marketplace_leads');
+      if (storedLeads) {
+        setLeads(JSON.parse(storedLeads));
+      } else {
+        const defaultLeads = [
+          { id: 'LD-101', customerName: 'Rajesh Sharma', businessName: 'Rajesh Electricals', productName: 'Copper Core Grounding Wire', value: 24000, location: 'Nagpur, MH', status: 'contacted', date: '2026-07-09', phone: '919876543210', notes: 'Wants delivery by Friday.' },
+          { id: 'LD-102', customerName: 'Siddharth Roy', businessName: 'Siddharth Pumps Ltd', productName: 'Industrial Water Pump', value: 145000, location: 'Kolkata, WB', status: 'proposal', date: '2026-07-10', phone: '919876543210', notes: 'Sent quotation with 5% discount.' },
+          { id: 'LD-103', customerName: 'Amit Desai', businessName: 'Desai Hardware Store', productName: 'Brass Coupling Joints (1/2 Inch)', value: 1700, location: 'Pune, MH', status: 'uncontacted', date: '2026-07-11', phone: '919876543210' },
+        ];
+        localStorage.setItem('marketplace_leads', JSON.stringify(defaultLeads));
+        setLeads(defaultLeads);
+      }
+
+      // Load invoices
+      const storedInvoices = localStorage.getItem('marketplace_inventory_invoices');
+      if (storedInvoices) {
+        setInvoices(JSON.parse(storedInvoices));
+      } else {
+        const mockInvoices: SKUInvoice[] = [
+          {
+            id: 'GE-INV-8821',
+            sku: 'EL-CC-GND',
+            productName: 'Copper Core Grounding Wire',
+            customerName: 'Rajesh Sharma',
+            customerPhone: '919876543210',
+            quantity: 20,
+            subtotal: 24000,
+            taxValue: 4320,
+            total: 28320,
+            status: 'paid',
+            date: '2026-07-12',
+            gstRate: 18,
+            cgst: 2160,
+            sgst: 2160,
+            igst: 0,
+            stateType: 'intra'
+          },
+          {
+            id: 'GE-INV-8822',
+            sku: 'WP-IND-100',
+            productName: 'Industrial Water Pump',
+            customerName: 'Siddharth Roy',
+            customerPhone: '919876543210',
+            quantity: 2,
+            subtotal: 29000,
+            taxValue: 5220,
+            total: 34220,
+            status: 'sent',
+            date: '2026-07-15',
+            gstRate: 18,
+            cgst: 0,
+            sgst: 0,
+            igst: 5220,
+            stateType: 'inter'
+          }
+        ];
+        localStorage.setItem('marketplace_inventory_invoices', JSON.stringify(mockInvoices));
+        setInvoices(mockInvoices);
       }
     } catch (e) {
       console.error(e);
@@ -230,16 +346,30 @@ export default function InventoryPage() {
     localStorage.setItem('marketplace_products', JSON.stringify(list));
   };
 
+  const saveInvoices = (list: SKUInvoice[]) => {
+    setInvoices(list);
+    localStorage.setItem('marketplace_inventory_invoices', JSON.stringify(list));
+  };
+
   // Cell edits
-  const handleCellChange = (productId: string, field: 'price' | 'stock', value: string) => {
+  const handleCellChange = (productId: string, field: 'price' | 'stock' | 'reorderLevel', value: string) => {
     const numericValue = value === '' ? 0 : Math.max(0, parseInt(value, 10) || 0);
     const original = products.find((p) => p.id === productId);
     if (!original) return;
 
-    const currentEdit = pendingEdits[productId] || { price: original.price, stock: original.stock };
+    const currentEdit = pendingEdits[productId] || { 
+      price: original.price, 
+      stock: original.stock,
+      reorderLevel: original.reorderLevel !== undefined ? original.reorderLevel : (original.moq * 2 || 10)
+    };
     const updatedEdit = { ...currentEdit, [field]: numericValue };
 
-    if (updatedEdit.price === original.price && updatedEdit.stock === original.stock) {
+    const isMatchOriginal = 
+      updatedEdit.price === original.price && 
+      updatedEdit.stock === original.stock && 
+      updatedEdit.reorderLevel === (original.reorderLevel !== undefined ? original.reorderLevel : (original.moq * 2 || 10));
+
+    if (isMatchOriginal) {
       const copy = { ...pendingEdits };
       delete copy[productId];
       setPendingEdits(copy);
@@ -255,7 +385,7 @@ export default function InventoryPage() {
       const updated = products.map((prod) => {
         const edits = pendingEdits[prod.id];
         if (edits) {
-          return { ...prod, price: edits.price, stock: edits.stock };
+          return { ...prod, price: edits.price, stock: edits.stock, reorderLevel: edits.reorderLevel };
         }
         return prod;
       });
@@ -278,6 +408,7 @@ export default function InventoryPage() {
       description: formDescription,
       price: Number(formPrice) || 0,
       moq: Number(formMoq) || 1,
+      reorderLevel: Number(formReorderLevel) || 10,
       stock: Number(formStock) || 0,
       reserved: Number(formReserved) || 0,
       damaged: Number(formDamaged) || 0,
@@ -286,7 +417,7 @@ export default function InventoryPage() {
       unit: formUnit,
       gst: true,
       gstRate: Number(formGstRate) || 18,
-      hsn: formHsn,
+      hsn: formHsn || '8544',
       barcode: formBarcode || `BAR-${Math.floor(100000000 + Math.random() * 900000000)}`,
       batchNo: formBatchNo,
       expiryDate: formExpiryDate,
@@ -317,6 +448,7 @@ export default function InventoryPage() {
     setFormDescription('');
     setFormPrice(1000);
     setFormMoq(5);
+    setFormReorderLevel(10);
     setFormStock(100);
     setFormReserved(0);
     setFormDamaged(0);
@@ -456,12 +588,173 @@ export default function InventoryPage() {
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === '' || p.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+    
+    // Flat tabs filter
+    const reorder = p.reorderLevel !== undefined ? p.reorderLevel : (p.moq * 2 || 10);
+    const isLow = p.stock <= reorder;
+    let matchesStatus = true;
+    if (stockStatusFilter === 'active') {
+      matchesStatus = !p.archived;
+    } else if (stockStatusFilter === 'instock') {
+      matchesStatus = !p.archived && !isLow && p.stock > 0;
+    } else if (stockStatusFilter === 'low') {
+      matchesStatus = !p.archived && isLow;
+    } else if (stockStatusFilter === 'archived') {
+      matchesStatus = !!p.archived;
+    }
+
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  // Sort products
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortBy === 'name') {
+      return a.name.localeCompare(b.name);
+    } else if (sortBy === 'price') {
+      return a.price - b.price;
+    } else if (sortBy === 'stock') {
+      return a.stock - b.stock;
+    } else if (sortBy === 'reorder') {
+      const aVal = a.reorderLevel !== undefined ? a.reorderLevel : (a.moq * 2 || 10);
+      const bVal = b.reorderLevel !== undefined ? b.reorderLevel : (b.moq * 2 || 10);
+      return aVal - bVal;
+    }
+    return 0;
   });
 
   // AI Insights calculations
   const totalStockValuation = products.reduce((acc, p) => acc + (p.price * p.stock), 0);
   const totalReservedValuation = products.reduce((acc, p) => acc + (p.price * (p.reserved || 0)), 0);
+
+  // Helper for consistent status color coding
+  const getStockStatus = (stock: number, reorder: number) => {
+    if (stock === 0) {
+      return { 
+        color: 'text-rose-600 bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/40', 
+        label: 'Out of Stock', 
+        badge: 'bg-rose-500',
+        text: 'text-rose-600 font-extrabold'
+      };
+    }
+    if (stock <= reorder) {
+      return { 
+        color: 'text-amber-600 bg-amber-50 dark:bg-amber-955/20 border-amber-200 dark:border-amber-800/40', 
+        label: 'Low Stock', 
+        badge: 'bg-amber-500',
+        text: 'text-amber-600 font-extrabold'
+      };
+    }
+    return { 
+      color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-955/20 border-emerald-200 dark:border-emerald-800/40', 
+      label: 'Healthy', 
+      badge: 'bg-emerald-500',
+      text: 'text-emerald-600 font-extrabold'
+    };
+  };
+
+  // Sync state variable from selectedProduct to stock adjustments subform
+  useEffect(() => {
+    if (selectedProduct) {
+      setAdjustStockVal(selectedProduct.stock);
+      setAdjustReservedVal(selectedProduct.reserved || 0);
+      setAdjustDamagedVal(selectedProduct.damaged || 0);
+      setAdjustReturnedVal(selectedProduct.returned || 0);
+      setCreateInvoiceOnDispatch(false);
+      setIsAdjustDispatch(false);
+    }
+  }, [selectedProduct]);
+
+  // Handle stock adjustments submit
+  const handleStockAdjustmentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProduct) return;
+
+    const diff = selectedProduct.stock - adjustStockVal;
+    
+    const updated = products.map((p) => {
+      if (p.id === selectedProduct.id) {
+        const u = {
+          ...p,
+          stock: adjustStockVal,
+          reserved: adjustReservedVal,
+          damaged: adjustDamagedVal,
+          returned: adjustReturnedVal
+        };
+        setSelectedProduct(u); // Update currently viewed product
+        return u;
+      }
+      return p;
+    });
+    
+    saveProducts(updated);
+    alert('Stock buckets successfully updated.');
+
+    // If dispatch and create invoice is enabled
+    if (diff > 0 && createInvoiceOnDispatch) {
+      // Set up invoicing fields pre-filled
+      setInvoiceQty(diff);
+      setInvoiceGstSlab(selectedProduct.gstRate || 18);
+      // Try to find a matching buyer name from leads
+      const productLeads = leads.filter(l => l.productName.toLowerCase().includes(selectedProduct.name.toLowerCase()));
+      if (productLeads.length > 0) {
+        setInvoiceCustomer(productLeads[0].businessName || productLeads[0].customerName);
+        setInvoicePhone(productLeads[0].phone || '919876543210');
+      } else {
+        setInvoiceCustomer('Rajesh Electricals');
+        setInvoicePhone('919876543210');
+      }
+      setIsInvoiceModalOpen(true);
+    }
+  };
+
+  // Handle new invoice submit
+  const handleCreateInvoiceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProduct) return;
+
+    const calc: GSTCalculationResult = calculateGST({
+      price: selectedProduct.price,
+      quantity: invoiceQty,
+      gstApplicable: selectedProduct.gst,
+      gstSlab: invoiceGstSlab,
+      stateType: invoiceStateType,
+      buyerGSTIN: invoiceGstin
+    });
+
+    const newInvoice: SKUInvoice = {
+      id: `GE-INV-${Math.floor(1000 + Math.random() * 9000)}`,
+      sku: selectedProduct.sku,
+      productName: selectedProduct.name,
+      customerName: invoiceCustomer,
+      customerPhone: invoicePhone,
+      quantity: invoiceQty,
+      subtotal: calc.subtotal,
+      taxValue: calc.taxValue,
+      total: calc.total,
+      status: 'draft',
+      date: new Date().toISOString().split('T')[0],
+      gstRate: invoiceGstSlab,
+      cgst: calc.cgst,
+      sgst: calc.sgst,
+      igst: calc.igst,
+      stateType: invoiceStateType
+    };
+
+    const updatedInvoices = [newInvoice, ...invoices];
+    saveInvoices(updatedInvoices);
+    setIsInvoiceModalOpen(false);
+    alert(`B2B Invoice ${newInvoice.id} generated successfully in Draft status.`);
+  };
+
+  const handleUpdateInvoiceStatus = (invId: string, nextStatus: SKUInvoice['status']) => {
+    const updated = invoices.map(inv => {
+      if (inv.id === invId) {
+        return { ...inv, status: nextStatus };
+      }
+      return inv;
+    });
+    saveInvoices(updated);
+  };
 
   return (
     <DashboardLayout
@@ -490,7 +783,7 @@ export default function InventoryPage() {
             </button>
             <button
               onClick={handleBulkExport}
-              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-extrabold px-3 py-2.5 text-xs hover:bg-slate-50 transition-all shadow-sm"
+              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-extrabold px-3 py-2.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
             >
               📤 Bulk Export
             </button>
@@ -515,7 +808,7 @@ export default function InventoryPage() {
               className={`px-4 py-2 text-xs uppercase tracking-widest font-black transition-all border-b-2 ${
                 activeTab === tab
                   ? 'border-[#FAB12F] text-slate-900 dark:text-white'
-                  : 'border-transparent text-slate-400 hover:text-slate-700'
+                  : 'border-transparent text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
             >
               {tab === 'catalog' ? 'Product Catalog' : tab === 'adjustments' ? 'Stock Levels & Adjustments' : tab === 'ai' ? 'AI Forecasting & XYZ' : 'Purchase Orders & GRN'}
@@ -532,29 +825,66 @@ export default function InventoryPage() {
 
         {/* Search & Filter Row */}
         {activeTab === 'catalog' && (
-          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
-            <div className="relative flex-1 max-w-md">
-              <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 text-sm">🔍</span>
-              <input
-                type="text"
-                placeholder="Search catalog by name, brand, SKU..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 pl-10 pr-4 py-2.5 text-xs text-slate-850 dark:text-slate-200 focus:outline-none focus:border-[#FAB12F] transition-all"
-              />
+          <Card className="rounded-3xl border border-[#f3d9a7] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-4 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="relative flex-1 max-w-md">
+                <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 text-sm">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Search catalog by name, brand, SKU..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 pl-10 pr-4 py-2.5 text-xs text-slate-850 dark:text-slate-200 focus:outline-none focus:border-[#FAB12F] transition-all"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Sort By</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-350 focus:outline-none focus:ring-1 focus:ring-[#FAB12F]"
+                >
+                  <option value="name">Name (A-Z)</option>
+                  <option value="price">Price (Low-High)</option>
+                  <option value="stock">Available Stock (Low-High)</option>
+                  <option value="reorder">Reorder Level (Low-High)</option>
+                </select>
+
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Category</span>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-350 focus:outline-none focus:ring-1 focus:ring-[#FAB12F]"
+                >
+                  <option value="">All Categories</option>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-4 py-2.5 text-xs text-slate-700 dark:text-slate-350 focus:outline-none"
-              >
-                <option value="">All Categories</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+            {/* Flat filters bar */}
+            <div className="flex flex-wrap gap-1.5 border-t border-slate-100 dark:border-slate-800 pt-3">
+              {([
+                { id: 'active', label: 'All Active' },
+                { id: 'instock', label: 'Live-In Stock' },
+                { id: 'low', label: 'Low Stock' },
+                { id: 'archived', label: 'Archived' }
+              ] as const).map((filter) => (
+                <button
+                  key={filter.id}
+                  onClick={() => setStockStatusFilter(filter.id)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                    stockStatusFilter === filter.id
+                      ? 'bg-slate-950 dark:bg-white text-white dark:text-slate-950 shadow-sm'
+                      : 'bg-slate-50 dark:bg-slate-955 text-slate-450 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-850'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
             </div>
           </Card>
         )}
@@ -578,7 +908,7 @@ export default function InventoryPage() {
                   </div>
                   <button
                     onClick={handleBulkUpdateMoq}
-                    className="rounded-xl bg-amber-500 text-slate-950 px-3.5 py-2 font-black shadow-sm"
+                    className="rounded-xl bg-[#FAB12F] text-slate-950 px-3.5 py-2 font-black shadow-sm"
                   >
                     Update MOQ
                   </button>
@@ -600,9 +930,9 @@ export default function InventoryPage() {
                       <th className="py-4 px-5 text-center">
                         <input
                           type="checkbox"
-                          checked={selectedProductIds.length === filteredProducts.length && filteredProducts.length > 0}
+                          checked={selectedProductIds.length === sortedProducts.length && sortedProducts.length > 0}
                           onChange={(e) =>
-                            setSelectedProductIds(e.target.checked ? filteredProducts.map((p) => p.id) : [])
+                            setSelectedProductIds(e.target.checked ? sortedProducts.map((p) => p.id) : [])
                           }
                           className="rounded text-amber-500 focus:ring-amber-500"
                         />
@@ -612,29 +942,33 @@ export default function InventoryPage() {
                       <th className="py-4 px-5">HSN / GST</th>
                       <th className="py-4 px-5 text-center">Warehouse</th>
                       <th className="py-4 px-5 text-right">Price (₹)</th>
+                      <th className="py-4 px-5 text-right">Reorder Alert Level</th>
                       <th className="py-4 px-5 text-right">Available Stock</th>
                       <th className="py-4 px-5 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-150 dark:divide-slate-800/80 font-semibold text-slate-800 dark:text-slate-200">
-                    {filteredProducts.length === 0 ? (
+                    {sortedProducts.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-12 text-slate-500">
-                          No active products found in matching category.
+                        <td colSpan={9} className="text-center py-12 text-slate-500 font-bold">
+                          No matching inventory items found.
                         </td>
                       </tr>
                     ) : (
-                      filteredProducts.map((prod) => {
+                      sortedProducts.map((prod) => {
                         const edits = pendingEdits[prod.id];
+                        const originalReorder = prod.reorderLevel !== undefined ? prod.reorderLevel : (prod.moq * 2 || 10);
                         const activePrice = edits ? edits.price : prod.price;
                         const activeStock = edits ? edits.stock : prod.stock;
+                        const activeReorder = edits ? edits.reorderLevel : originalReorder;
                         const isEdited = !!edits;
+                        const status = getStockStatus(activeStock, originalReorder);
 
                         return (
                           <tr
                             key={prod.id}
                             className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors ${
-                              prod.archived ? 'opacity-50 bg-slate-100/30' : ''
+                              prod.archived ? 'opacity-55 bg-slate-100/30' : ''
                             } ${isEdited ? 'bg-[#FAB12F]/5' : ''}`}
                           >
                             <td className="py-4 px-5 text-center">
@@ -661,7 +995,11 @@ export default function InventoryPage() {
                                   >
                                     {prod.name}
                                   </p>
-                                  <p className="text-[10px] text-slate-400 mt-0.5">{prod.category}</p>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[10px] text-slate-400">{prod.category}</span>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${status.badge}`} />
+                                    <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-450">{status.label}</span>
+                                  </div>
                                 </div>
                               </div>
                             </td>
@@ -674,11 +1012,11 @@ export default function InventoryPage() {
                               <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-bold ml-2">{prod.gstRate}%</span>
                             </td>
                             <td className="py-4 px-5 text-center font-bold text-slate-500">
-                              {prod.warehouse || 'Warehouse A'}
+                              {prod.warehouse || 'Warehouse Alpha'}
                             </td>
                             <td className="py-4 px-5 text-right">
-                              <div className="inline-flex items-center gap-1.5 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7]/60 dark:border-slate-800 rounded-xl px-2.5 py-1.5 focus-within:border-accent-500 transition-all shadow-inner">
-                                <span className="text-[10px] text-slate-500 font-bold">₹</span>
+                              <div className="inline-flex items-center gap-1.5 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7]/60 dark:border-slate-800 rounded-xl px-2.5 py-1.5 focus-within:border-[#FAB12F] transition-all shadow-inner">
+                                <span className="text-[10px] text-slate-505 font-bold">₹</span>
                                 <input
                                   type="number"
                                   value={activePrice}
@@ -688,17 +1026,39 @@ export default function InventoryPage() {
                               </div>
                             </td>
                             <td className="py-4 px-5 text-right">
-                              <div className="inline-flex items-center gap-1.5 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7]/60 dark:border-slate-800 rounded-xl px-2.5 py-1.5 focus-within:border-accent-500 transition-all shadow-inner">
+                              <div className="inline-flex items-center gap-1.5 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7]/60 dark:border-slate-800 rounded-xl px-2.5 py-1.5 focus-within:border-[#FAB12F] transition-all shadow-inner">
                                 <input
                                   type="number"
-                                  value={activeStock}
-                                  onChange={(e) => handleCellChange(prod.id, 'stock', e.target.value)}
+                                  value={activeReorder}
+                                  onChange={(e) => handleCellChange(prod.id, 'reorderLevel', e.target.value)}
                                   className="w-12 bg-transparent text-right font-black text-slate-850 dark:text-slate-100 focus:outline-none"
                                 />
                                 <span className="text-[9px] text-slate-400 font-bold">{prod.unit}</span>
                               </div>
                             </td>
-                            <td className="py-4 px-5 text-center space-x-1.5">
+                            <td className="py-4 px-5 text-right">
+                              <div className={`inline-flex items-center gap-1.5 bg-[#fff6e6] dark:bg-slate-950 border rounded-xl px-2.5 py-1.5 focus-within:border-[#FAB12F] transition-all shadow-inner ${
+                                activeStock === 0 ? 'border-rose-400' : activeStock <= originalReorder ? 'border-amber-400' : 'border-[#f3d9a7]/60 dark:border-slate-800'
+                              }`}>
+                                <input
+                                  type="number"
+                                  value={activeStock}
+                                  onChange={(e) => handleCellChange(prod.id, 'stock', e.target.value)}
+                                  className={`w-12 bg-transparent text-right font-black focus:outline-none ${status.text}`}
+                                />
+                                <span className="text-[9px] text-slate-450 font-bold">{prod.unit}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-5 text-center space-x-1">
+                              <button
+                                onClick={() => {
+                                  setSelectedProduct(prod);
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-amber-500 transition-colors"
+                                title="CRM Specs & Adjustment details"
+                              >
+                                👁️
+                              </button>
                               <button
                                 onClick={() => handleDuplicateProduct(prod)}
                                 className="p-1.5 text-slate-400 hover:text-amber-500 transition-colors"
@@ -754,30 +1114,34 @@ export default function InventoryPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-150 dark:divide-slate-800 font-semibold text-slate-800 dark:text-slate-200">
-                  {products.map((prod) => (
-                    <tr key={prod.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
-                      <td className="py-4 px-4 font-black">{prod.name}</td>
-                      <td className="py-4 px-4 text-center text-slate-500">{prod.warehouse || 'Warehouse Alpha'}</td>
-                      <td className="py-4 px-4 text-right text-emerald-600 dark:text-emerald-400 font-black">{prod.stock}</td>
-                      <td className="py-4 px-4 text-right text-amber-600 dark:text-amber-400 font-black">{prod.reserved || 0}</td>
-                      <td className="py-4 px-4 text-right text-rose-500 font-black">{prod.damaged || 0}</td>
-                      <td className="py-4 px-4 text-right text-blue-500 font-black">{prod.returned || 0}</td>
-                      <td className="py-4 px-4 text-right">
-                        <button
-                          onClick={() => {
-                            const newQty = prompt(`Enter new available stock for ${prod.name}:`, String(prod.stock));
-                            if (newQty !== null) {
-                              const updated = products.map((p) => (p.id === prod.id ? { ...p, stock: Number(newQty) || 0 } : p));
-                              saveProducts(updated);
-                            }
-                          }}
-                          className="rounded-lg border border-[#f3d9a7] bg-[#fff6e6] text-[#FAB12F] font-bold px-2 py-1 text-[10px] hover:bg-slate-50"
-                        >
-                          Quick Adjust
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {products.map((prod) => {
+                    const status = getStockStatus(prod.stock, prod.reorderLevel || prod.moq || 10);
+                    return (
+                      <tr key={prod.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
+                        <td className="py-4 px-4 font-black">
+                          <div className="flex items-center gap-2">
+                            <span>{prod.name}</span>
+                            <span className={`w-2 h-2 rounded-full ${status.badge}`} />
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-center text-slate-500">{prod.warehouse || 'Warehouse Alpha'}</td>
+                        <td className={`py-4 px-4 text-right font-black ${status.text}`}>{prod.stock}</td>
+                        <td className="py-4 px-4 text-right text-amber-600 dark:text-amber-400 font-black">{prod.reserved || 0}</td>
+                        <td className="py-4 px-4 text-right text-rose-500 font-black">{prod.damaged || 0}</td>
+                        <td className="py-4 px-4 text-right text-blue-500 font-black">{prod.returned || 0}</td>
+                        <td className="py-4 px-4 text-right">
+                          <button
+                            onClick={() => {
+                              setSelectedProduct(prod);
+                            }}
+                            className="rounded-lg border border-[#f3d9a7] bg-[#fff6e6] dark:bg-slate-950 text-[#FAB12F] font-bold px-2 py-1 text-[10px] hover:bg-slate-50 dark:hover:bg-slate-800"
+                          >
+                            Adjust Buckets
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -809,20 +1173,20 @@ export default function InventoryPage() {
 
               <div className="space-y-3.5 text-xs">
                 <h4 className="font-black text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-1">AI Reorder Suggestions</h4>
-                {products.filter((p) => p.stock <= p.moq * 2).map((p) => (
+                {products.filter((p) => p.stock <= (p.reorderLevel || p.moq || 10)).map((p) => (
                   <div key={p.id} className="flex justify-between items-center bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-850">
                     <div>
                       <p className="font-extrabold text-slate-850 dark:text-slate-100">{p.name}</p>
-                      <p className="text-[10px] text-slate-400">Available: {p.stock} units • MOQ: {p.moq}</p>
+                      <p className="text-[10px] text-slate-400">Available: <span className="text-rose-500 font-bold">{p.stock} units</span> • Alert Trigger: {p.reorderLevel || p.moq}</p>
                     </div>
                     <button
                       onClick={() => {
-                        setPoSupplierName('Hindalco Metal Industries');
+                        setPoSupplierName(suppliers.find(s => s.category === p.category)?.name || 'Hindalco Metal Industries');
                         setPoItemName(p.name);
                         setPoQty(p.moq * 10);
                         setIsPoModalOpen(true);
                       }}
-                      className="rounded-lg bg-[#FAB12F] text-slate-950 font-black px-2.5 py-1.5 text-[9px] shadow-sm"
+                      className="rounded-lg bg-[#FAB12F] text-slate-950 font-black px-2.5 py-1.5 text-[9px] shadow-sm hover:bg-[#e09e1b] transition-all"
                     >
                       ⚡ Auto Reorder
                     </button>
@@ -840,7 +1204,7 @@ export default function InventoryPage() {
 
               <div className="space-y-4 text-xs font-semibold">
                 <div className="space-y-2">
-                  <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px] text-slate-450">ABC Sourcing Classification</h4>
+                  <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px] text-slate-455">ABC Sourcing Classification</h4>
                   <div className="space-y-1.5">
                     <div className="flex justify-between p-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-xl">
                       <span>Class A (80% Revenue value)</span>
@@ -858,8 +1222,8 @@ export default function InventoryPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px] text-slate-450">AI Pricing & Promo Optimization</h4>
-                  <div className="rounded-xl border border-[#f3d9a7]/60 bg-[#fff6e6]/30 dark:bg-slate-950/20 p-3 space-y-2 text-slate-655 dark:text-slate-300">
+                  <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px] text-slate-455">AI Pricing & Promo Optimization</h4>
+                  <div className="rounded-xl border border-[#f3d9a7]/60 bg-[#fff6e6]/30 dark:bg-slate-950/20 p-3 space-y-2 text-slate-655 dark:text-slate-350">
                     <p className="leading-relaxed">
                       💡 **Industrial Water Pump**: Sourcing inquiries peak in July. Suggest setting a bulk discount of **5%** for quantities above **20 units** to capture monsoon agri-purchasing runs.
                     </p>
@@ -893,7 +1257,7 @@ export default function InventoryPage() {
 
               <div className="space-y-3">
                 {purchaseOrders.map((po) => (
-                  <div key={po.id} className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/20 text-xs space-y-2">
+                  <div key={po.id} className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-955 text-xs space-y-2">
                     <div className="flex justify-between items-center">
                       <div>
                         <h4 className="font-black text-slate-800 dark:text-white">{po.item}</h4>
@@ -932,8 +1296,8 @@ export default function InventoryPage() {
                       <span>{grn.id} (PO Link: {grn.poId})</span>
                       <span>{grn.date}</span>
                     </div>
-                    <h4 className="font-black text-slate-850 dark:text-white">{grn.item}</h4>
-                    <p className="text-[10px] text-slate-500">Received from {grn.supplierName} • Location: {grn.warehouse}</p>
+                    <h4 className="font-black text-slate-855 dark:text-white">{grn.item}</h4>
+                    <p className="text-[10px] text-slate-505">Received from {grn.supplierName} • Location: {grn.warehouse}</p>
                     <div className="flex justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800/40">
                       <span>Quantity Received: {grn.quantityReceived}</span>
                       <span>Verified: {grn.receivedBy}</span>
@@ -948,7 +1312,7 @@ export default function InventoryPage() {
 
       {/* Add Product Modal Overlay */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
           <div className="w-full max-w-2xl rounded-[32px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center pb-2 border-b border-slate-150 dark:border-slate-800">
               <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Add New Product</h3>
@@ -959,62 +1323,66 @@ export default function InventoryPage() {
               <div className="grid gap-4 grid-cols-2">
                 <div className="space-y-1">
                   <label className="text-slate-500">Product Name</label>
-                  <input type="text" required value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 focus:outline-none" />
+                  <input type="text" required value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 focus:outline-none dark:text-slate-100" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-500">Brand Name</label>
-                  <input type="text" required value={formBrand} onChange={(e) => setFormBrand(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 focus:outline-none" />
+                  <input type="text" required value={formBrand} onChange={(e) => setFormBrand(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 focus:outline-none dark:text-slate-100" />
                 </div>
               </div>
 
-              <div className="grid gap-4 grid-cols-3">
+              <div className="grid gap-4 grid-cols-4">
                 <div className="space-y-1">
                   <label className="text-slate-500">Category</label>
-                  <select value={formCategory} onChange={(e) => setFormCategory(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 focus:outline-none">
+                  <select value={formCategory} onChange={(e) => setFormCategory(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 focus:outline-none dark:text-slate-100">
                     {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-500">Wholesale Price (₹)</label>
-                  <input type="number" required value={formPrice} onChange={(e) => setFormPrice(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 focus:outline-none" />
+                  <input type="number" required value={formPrice} onChange={(e) => setFormPrice(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 p-2.5 focus:outline-none dark:text-slate-100" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-slate-500">Minimum Order Quantity (MOQ)</label>
-                  <input type="number" required value={formMoq} onChange={(e) => setFormMoq(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 focus:outline-none" />
+                  <label className="text-slate-505">Min. Order Qty (MOQ)</label>
+                  <input type="number" required value={formMoq} onChange={(e) => setFormMoq(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 p-2.5 focus:outline-none dark:text-slate-100" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-505">Reorder Level Alert</label>
+                  <input type="number" required value={formReorderLevel} onChange={(e) => setFormReorderLevel(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-955 border border-slate-200 p-2.5 focus:outline-none dark:text-slate-100" />
                 </div>
               </div>
 
               <div className="grid gap-4 grid-cols-4">
                 <div className="space-y-1">
                   <label className="text-slate-500">Available Stock</label>
-                  <input type="number" required value={formStock} onChange={(e) => setFormStock(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="number" required value={formStock} onChange={(e) => setFormStock(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-500">Reserved</label>
-                  <input type="number" value={formReserved} onChange={(e) => setFormReserved(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="number" value={formReserved} onChange={(e) => setFormReserved(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-500">Damaged</label>
-                  <input type="number" value={formDamaged} onChange={(e) => setFormDamaged(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="number" value={formDamaged} onChange={(e) => setFormDamaged(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-500">Returned</label>
-                  <input type="number" value={formReturned} onChange={(e) => setFormReturned(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="number" value={formReturned} onChange={(e) => setFormReturned(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100" />
                 </div>
               </div>
 
               <div className="grid gap-4 grid-cols-3">
                 <div className="space-y-1">
                   <label className="text-slate-500">SKU Code</label>
-                  <input type="text" value={formSku} onChange={(e) => setFormSku(e.target.value)} placeholder="Auto-generated if empty" className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="text" value={formSku} onChange={(e) => setFormSku(e.target.value)} placeholder="Auto-generated if empty" className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-500">HSN Code</label>
-                  <input type="text" value={formHsn} onChange={(e) => setFormHsn(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="text" value={formHsn} onChange={(e) => setFormHsn(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-500">GST Rate (%)</label>
-                  <select value={formGstRate} onChange={(e) => setFormGstRate(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5">
+                  <select value={formGstRate} onChange={(e) => setFormGstRate(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100">
                     <option value={5}>5%</option>
                     <option value={12}>12%</option>
                     <option value={18}>18%</option>
@@ -1026,59 +1394,59 @@ export default function InventoryPage() {
               <div className="grid gap-4 grid-cols-2">
                 <div className="space-y-1">
                   <label className="text-slate-500">Batch Number</label>
-                  <input type="text" value={formBatchNo} onChange={(e) => setFormBatchNo(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="text" value={formBatchNo} onChange={(e) => setFormBatchNo(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-500">Expiry Date</label>
-                  <input type="date" value={formExpiryDate} onChange={(e) => setFormExpiryDate(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="date" value={formExpiryDate} onChange={(e) => setFormExpiryDate(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100" />
                 </div>
               </div>
 
               <div className="grid gap-4 grid-cols-3">
                 <div className="space-y-1">
                   <label className="text-slate-500">Serial Number</label>
-                  <input type="text" value={formSerialNo} onChange={(e) => setFormSerialNo(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="text" value={formSerialNo} onChange={(e) => setFormSerialNo(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-500">IMEI</label>
-                  <input type="text" value={formImei} onChange={(e) => setFormImei(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="text" value={formImei} onChange={(e) => setFormImei(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-500">Target Warehouse</label>
-                  <select value={formWarehouse} onChange={(e) => setFormWarehouse(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5">
+                  <select value={formWarehouse} onChange={(e) => setFormWarehouse(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100">
                     {WAREHOUSES.map((w) => <option key={w} value={w}>{w}</option>)}
                   </select>
                 </div>
               </div>
 
-              <div className="space-y-2 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
+              <div className="space-y-2 bg-slate-50 dark:bg-slate-955 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                 <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px]">Product Variants</h4>
                 <div className="grid gap-3 grid-cols-4">
                   <div className="space-y-1">
                     <label className="text-[10px] text-slate-400">Size</label>
-                    <input type="text" value={formVariantSize} onChange={(e) => setFormVariantSize(e.target.value)} placeholder="e.g. Standard" className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 p-2" />
+                    <input type="text" value={formVariantSize} onChange={(e) => setFormVariantSize(e.target.value)} placeholder="e.g. Standard" className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 p-2 dark:text-slate-100 dark:border-slate-800" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] text-slate-400">Color</label>
-                    <input type="text" value={formVariantColor} onChange={(e) => setFormVariantColor(e.target.value)} placeholder="e.g. Blue" className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 p-2" />
+                    <input type="text" value={formVariantColor} onChange={(e) => setFormVariantColor(e.target.value)} placeholder="e.g. Blue" className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 p-2 dark:text-slate-100 dark:border-slate-800" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] text-slate-400">Weight</label>
-                    <input type="text" value={formVariantWeight} onChange={(e) => setFormVariantWeight(e.target.value)} placeholder="e.g. 5kg" className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 p-2" />
+                    <input type="text" value={formVariantWeight} onChange={(e) => setFormVariantWeight(e.target.value)} placeholder="e.g. 5kg" className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 p-2 dark:text-slate-100 dark:border-slate-800" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] text-slate-400">Material</label>
-                    <input type="text" value={formVariantMaterial} onChange={(e) => setFormVariantMaterial(e.target.value)} placeholder="e.g. Copper" className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 p-2" />
+                    <input type="text" value={formVariantMaterial} onChange={(e) => setFormVariantMaterial(e.target.value)} placeholder="e.g. Copper" className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 p-2 dark:text-slate-100 dark:border-slate-800" />
                   </div>
                 </div>
               </div>
 
               <div className="space-y-1">
                 <label className="text-slate-505">Detailed Product Description</label>
-                <textarea rows={3} required value={formDescription} onChange={(e) => setFormDescription(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 resize-none" />
+                <textarea rows={3} required value={formDescription} onChange={(e) => setFormDescription(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 resize-none dark:text-slate-100 dark:border-slate-800" />
               </div>
 
-              <button type="submit" className="w-full rounded-2xl bg-[#FAB12F] text-slate-950 font-black py-3 text-center shadow-md">Add Product to Inventory</button>
+              <button type="submit" className="w-full rounded-2xl bg-[#FAB12F] text-slate-950 font-black py-3 text-center shadow-md hover:bg-[#e09e1b] transition-all">Add Product to Inventory</button>
             </form>
           </div>
         </div>
@@ -1086,7 +1454,7 @@ export default function InventoryPage() {
 
       {/* PO Creation Modal */}
       {isPoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsPoModalOpen(false)}>
+        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsPoModalOpen(false)}>
           <div className="w-full max-w-md rounded-[32px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl relative space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center pb-2 border-b border-slate-150 dark:border-slate-800">
               <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Create Purchase Order</h3>
@@ -1096,76 +1464,423 @@ export default function InventoryPage() {
             <form onSubmit={handleCreatePoSubmit} className="space-y-3.5 text-xs font-semibold">
               <div className="space-y-1">
                 <label className="text-slate-505">Select Supplier</label>
-                <select value={poSupplierName} onChange={(e) => setPoSupplierName(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5">
+                <select value={poSupplierName} onChange={(e) => setPoSupplierName(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100 dark:border-slate-800">
                   {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
               </div>
 
               <div className="space-y-1">
                 <label className="text-slate-505">Product Item Name</label>
-                <input type="text" required value={poItemName} onChange={(e) => setPoItemName(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                <input type="text" required value={poItemName} onChange={(e) => setPoItemName(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100 dark:border-slate-800" />
               </div>
 
               <div className="grid gap-3 grid-cols-2">
                 <div className="space-y-1">
                   <label className="text-slate-505">Order Quantity</label>
-                  <input type="number" required value={poQty} onChange={(e) => setPoQty(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="number" required value={poQty} onChange={(e) => setPoQty(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100 dark:border-slate-800" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-slate-505">Target Unit Price (₹)</label>
-                  <input type="number" required value={poBudget} onChange={(e) => setPoBudget(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5" />
+                  <input type="number" required value={poBudget} onChange={(e) => setPoBudget(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 dark:text-slate-100 dark:border-slate-800" />
                 </div>
               </div>
 
-              <button type="submit" className="w-full rounded-2xl bg-[#FAB12F] text-slate-950 font-black py-3 text-center shadow-md">Submit Purchase Order</button>
+              <button type="submit" className="w-full rounded-2xl bg-[#FAB12F] text-slate-955 font-black py-3 text-center shadow-md hover:bg-[#e09e1b] transition-all">Submit Purchase Order</button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Product View Details Modal */}
+      {/* Upgraded Product View Details Specs Modal (CRM + ERP Cockpit) */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" onClick={() => setSelectedProduct(null)}>
-          <div className="w-full max-w-lg rounded-[32px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto space-y-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center pb-2 border-b border-slate-150 dark:border-slate-800">
-              <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Product Specs Sheet</h3>
-              <button onClick={() => setSelectedProduct(null)} className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto" onClick={() => setSelectedProduct(null)}>
+          <div className="w-full max-w-4xl rounded-[32px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-6" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex justify-between items-center pb-3 border-b border-slate-150 dark:border-slate-800">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">SKU Control Panel & CRM Insights</h3>
+                <p className="text-xs text-slate-450 mt-1">Comprehensive Zoho-style ledger context for this item.</p>
+              </div>
+              <button onClick={() => setSelectedProduct(null)} className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">✕</button>
             </div>
 
-            <div className="space-y-4 text-xs font-semibold text-slate-700 dark:text-slate-300">
-              <div>
-                <h4 className="text-base font-black text-slate-900 dark:text-white">{selectedProduct.name}</h4>
-                <p className="text-slate-450">{selectedProduct.brand} • {selectedProduct.category}</p>
-              </div>
+            {/* Content split in 2 columns */}
+            <div className="grid gap-6 md:grid-cols-2 text-xs">
+              
+              {/* Column 1: Core Specifications */}
+              <div className="space-y-4">
+                <div className="bg-slate-50/50 dark:bg-slate-950/40 p-4 rounded-3xl border border-slate-150 dark:border-slate-850 space-y-3">
+                  <div>
+                    <span className="text-[9px] uppercase font-black text-slate-400 block tracking-widest">Selected Item</span>
+                    <h4 className="text-base font-black text-slate-900 dark:text-white leading-tight">{selectedProduct.name}</h4>
+                    <p className="text-slate-450 font-bold mt-1">{selectedProduct.brand} • {selectedProduct.category}</p>
+                  </div>
 
-              <div className="grid gap-2 grid-cols-2 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-850">
-                <p>📦 SKU: <span className="font-extrabold text-slate-800 dark:text-slate-200">{selectedProduct.sku}</span></p>
-                <p>🏷️ Barcode: <span className="font-extrabold text-slate-800 dark:text-slate-200">{selectedProduct.barcode || 'N/A'}</span></p>
-                <p>🔢 Batch: <span className="font-extrabold text-slate-800 dark:text-slate-200">{selectedProduct.batchNo || 'N/A'}</span></p>
-                <p>📅 Expiry: <span className="font-extrabold text-slate-800 dark:text-slate-200">{selectedProduct.expiryDate || 'N/A'}</span></p>
-                <p>🔢 Serial: <span className="font-extrabold text-slate-800 dark:text-slate-200">{selectedProduct.serialNo || 'N/A'}</span></p>
-                <p>📱 IMEI: <span className="font-extrabold text-slate-800 dark:text-slate-200">{selectedProduct.imei || 'N/A'}</span></p>
-                <p>🏬 Warehouse: <span className="font-extrabold text-slate-800 dark:text-slate-200">{selectedProduct.warehouse || 'N/A'}</span></p>
-                <p>⚖️ HSN: <span className="font-extrabold text-slate-800 dark:text-slate-200">{selectedProduct.hsn || 'N/A'}</span></p>
-              </div>
-
-              {selectedProduct.variants && (
-                <div className="space-y-2">
-                  <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px]">Configured Variants</h4>
-                  <div className="grid gap-2 grid-cols-4 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-100 dark:border-slate-850 text-center">
-                    <div><span className="text-[10px] text-slate-400 block">Size</span><span>{selectedProduct.variants.size || '-'}</span></div>
-                    <div><span className="text-[10px] text-slate-400 block">Color</span><span>{selectedProduct.variants.color || '-'}</span></div>
-                    <div><span className="text-[10px] text-slate-400 block">Weight</span><span>{selectedProduct.variants.weight || '-'}</span></div>
-                    <div><span className="text-[10px] text-slate-400 block">Material</span><span>{selectedProduct.variants.material || '-'}</span></div>
+                  <div className="grid gap-2 grid-cols-2 pt-2 border-t border-slate-200 dark:border-slate-850 font-semibold text-slate-700 dark:text-slate-350">
+                    <p>📦 SKU: <span className="font-extrabold text-slate-900 dark:text-white font-mono">{selectedProduct.sku}</span></p>
+                    <p>🏷️ Barcode: <span className="font-extrabold text-slate-900 dark:text-white font-mono">{selectedProduct.barcode || 'N/A'}</span></p>
+                    <p>🔢 Batch: <span className="font-extrabold text-slate-900 dark:text-white font-mono">{selectedProduct.batchNo || 'N/A'}</span></p>
+                    <p>📅 Expiry: <span className="font-extrabold text-slate-900 dark:text-white">{selectedProduct.expiryDate || 'N/A'}</span></p>
+                    <p>🔢 Serial: <span className="font-extrabold text-slate-900 dark:text-white font-mono">{selectedProduct.serialNo || 'N/A'}</span></p>
+                    <p>📱 IMEI: <span className="font-extrabold text-slate-900 dark:text-white font-mono">{selectedProduct.imei || 'N/A'}</span></p>
+                    <p>🏬 Warehouse: <span className="font-extrabold text-slate-900 dark:text-white">{selectedProduct.warehouse || 'Warehouse Alpha'}</span></p>
+                    <p>⚖️ HSN Code: <span className="font-extrabold text-slate-900 dark:text-white font-mono">{selectedProduct.hsn || '8544'}</span></p>
+                    <p>💰 Price (Wholesale): <span className="font-extrabold text-slate-900 dark:text-white">₹{selectedProduct.price.toLocaleString('en-IN')}</span></p>
+                    <p>💼 GST Slab: <span className="font-extrabold text-slate-900 dark:text-white">{selectedProduct.gstRate || 18}%</span></p>
                   </div>
                 </div>
-              )}
 
-              <div className="space-y-1">
-                <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px]">Description</h4>
-                <p className="text-slate-500 leading-relaxed bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-850 font-normal">{selectedProduct.description}</p>
+                {selectedProduct.variants && (
+                  <div className="space-y-2">
+                    <h4 className="font-black text-slate-500 uppercase tracking-wider text-[10px]">Configured Variants</h4>
+                    <div className="grid gap-2 grid-cols-4 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-850 text-center font-bold">
+                      <div><span className="text-[10px] text-slate-400 block font-normal">Size</span><span>{selectedProduct.variants.size || '-'}</span></div>
+                      <div><span className="text-[10px] text-slate-400 block font-normal">Color</span><span>{selectedProduct.variants.color || '-'}</span></div>
+                      <div><span className="text-[10px] text-slate-400 block font-normal">Weight</span><span>{selectedProduct.variants.weight || '-'}</span></div>
+                      <div><span className="text-[10px] text-slate-400 block font-normal">Material</span><span>{selectedProduct.variants.material || '-'}</span></div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <h4 className="font-black text-slate-500 uppercase tracking-wider text-[10px]">Item Description</h4>
+                  <p className="text-slate-500 leading-relaxed bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-850 font-normal">{selectedProduct.description}</p>
+                </div>
+
+                {/* Stock Adjustment bucket update form */}
+                <Card className="p-4 border border-[#f3d9a7]/65 dark:border-slate-800 bg-[#fff6e6]/20 dark:bg-slate-950/20 rounded-3xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px]">📦 Stock Adjustment Cockpit</h4>
+                    <span className="text-[9px] text-[#FAB12F] font-bold">Quick Update Buckets</span>
+                  </div>
+                  
+                  <form onSubmit={handleStockAdjustmentSubmit} className="space-y-3">
+                    <div className="grid gap-2 grid-cols-4 text-center font-bold">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block font-medium mb-1">Available</label>
+                        <input 
+                          type="number" 
+                          value={adjustStockVal} 
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            setAdjustStockVal(val);
+                            setIsAdjustDispatch(val < selectedProduct.stock);
+                          }} 
+                          className="w-full text-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg p-1 text-xs font-bold dark:text-slate-150" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block font-medium mb-1">Reserved</label>
+                        <input type="number" value={adjustReservedVal} onChange={(e) => setAdjustReservedVal(Number(e.target.value) || 0)} className="w-full text-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg p-1 text-xs font-bold dark:text-slate-150" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block font-medium mb-1">Damaged</label>
+                        <input type="number" value={adjustDamagedVal} onChange={(e) => setAdjustDamagedVal(Number(e.target.value) || 0)} className="w-full text-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg p-1 text-xs font-bold dark:text-slate-150" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block font-medium mb-1">Returned</label>
+                        <input type="number" value={adjustReturnedVal} onChange={(e) => setAdjustReturnedVal(Number(e.target.value) || 0)} className="w-full text-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg p-1 text-xs font-bold dark:text-slate-150" />
+                      </div>
+                    </div>
+
+                    {isAdjustDispatch && (
+                      <div className="flex items-center gap-2 p-2 bg-[#FAB12F]/10 rounded-xl border border-[#f3d9a7]/40 animate-fade-in text-[10px] text-amber-700 font-bold">
+                        <input 
+                          type="checkbox" 
+                          id="chkDispatchInvoice"
+                          checked={createInvoiceOnDispatch} 
+                          onChange={(e) => setCreateInvoiceOnDispatch(e.target.checked)}
+                          className="rounded text-amber-500 focus:ring-amber-500"
+                        />
+                        <label htmlFor="chkDispatchInvoice" className="cursor-pointer">
+                          Generate compliant B2B tax invoice for this dispatch of {selectedProduct.stock - adjustStockVal} {selectedProduct.unit}
+                        </label>
+                      </div>
+                    )}
+
+                    <button 
+                      type="submit" 
+                      className="w-full bg-[#FAB12F] text-slate-950 py-2 rounded-xl font-black text-[10px] shadow-sm hover:bg-[#e09e1b] transition-all"
+                    >
+                      Apply Stock Adjustment
+                    </button>
+                  </form>
+                </Card>
+              </div>
+
+              {/* Column 2: CRM & Invoicing Context */}
+              <div className="space-y-4">
+                
+                {/* Linked Supplier Card */}
+                {(() => {
+                  const supplier = suppliers.find(s => s.category === selectedProduct.category) || suppliers[0];
+                  return (
+                    <Card className="p-4 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 rounded-3xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Linked Supplier Partner</span>
+                        <span className="text-[9px] bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full font-bold">Verified SKU Provider</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h5 className="font-black text-slate-850 dark:text-white text-sm">{supplier.name}</h5>
+                          <p className="text-[10px] text-slate-450 mt-0.5">{supplier.location} • Rating: ⭐ {supplier.rating} ({supplier.performance} On-Time)</p>
+                        </div>
+                        
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => window.open(`https://wa.me/${supplier.whatsapp}?text=Hello%20${supplier.name},%20we%20would%2520like%2520to%2520inquire%2520about%2520restocking%2520${selectedProduct.name}%2520(SKU:%2520${selectedProduct.sku}).`)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-2.5 py-1.5 font-bold text-[10px] shadow-sm flex items-center gap-1 transition-all"
+                          >
+                            💬 WhatsApp
+                          </button>
+                          <a
+                            href={`tel:${supplier.whatsapp}`}
+                            className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-[10px] shadow-sm flex items-center justify-center transition-all"
+                          >
+                            📞 Call
+                          </a>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })()}
+
+                {/* Recent Buyers CRM Context */}
+                <Card className="p-4 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 rounded-3xl space-y-3">
+                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider block">Recent CRM Buyers & RFQs</span>
+                  
+                  {(() => {
+                    const productLeads = leads.filter(l => l.productName.toLowerCase().includes(selectedProduct.name.toLowerCase()));
+                    if (productLeads.length === 0) {
+                      return <p className="text-slate-400 italic text-[11px] font-medium">No recent customer inquiries logged for this SKU.</p>;
+                    }
+                    return (
+                      <div className="space-y-2.5">
+                        {productLeads.slice(0, 3).map((lead, idx) => (
+                          <div key={idx} className="p-2.5 border border-slate-100 dark:border-slate-850 bg-white dark:bg-slate-900 rounded-2xl flex justify-between items-center">
+                            <div>
+                              <p className="font-extrabold text-slate-800 dark:text-slate-100">{lead.businessName || lead.customerName}</p>
+                              <p className="text-[9px] text-slate-450 mt-0.5">Value: ₹{lead.value.toLocaleString()} • Status: <span className="text-amber-600 font-extrabold uppercase">{lead.status}</span></p>
+                              <span className="text-[8px] text-slate-400">{lead.date} • {lead.location}</span>
+                            </div>
+
+                            <div className="flex gap-1 shrink-0">
+                              <button
+                                onClick={() => window.open(`https://wa.me/${lead.phone || '919876543210'}?text=Hi%20${lead.customerName},%20regarding%2520your%2520inquiry%2520for%252520${selectedProduct.name}...`)}
+                                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-850 rounded-lg text-xs"
+                                title="WhatsApp Buyer"
+                              >
+                                💬
+                              </button>
+                              <a
+                                href={`tel:${lead.phone || '919876543210'}`}
+                                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-850 rounded-lg text-xs flex items-center justify-center"
+                                title="Call Buyer"
+                              >
+                                📞
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </Card>
+
+                {/* SKU Transaction & Invoice History */}
+                <Card className="p-4 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 rounded-3xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">SKU Invoices & Fulfillment</span>
+                    <button
+                      onClick={() => {
+                        setInvoiceQty(selectedProduct.moq);
+                        setInvoiceGstSlab(selectedProduct.gstRate || 18);
+                        const pLeads = leads.filter(l => l.productName.toLowerCase().includes(selectedProduct.name.toLowerCase()));
+                        if (pLeads.length > 0) {
+                          setInvoiceCustomer(pLeads[0].businessName || pLeads[0].customerName);
+                          setInvoicePhone(pLeads[0].phone || '919876543210');
+                        }
+                        setIsInvoiceModalOpen(true);
+                      }}
+                      className="text-[10px] text-[#FAB12F] font-black hover:underline"
+                    >
+                      + Create Invoice
+                    </button>
+                  </div>
+
+                  {(() => {
+                    const skuInvoices = invoices.filter(inv => inv.sku === selectedProduct.sku);
+                    if (skuInvoices.length === 0) {
+                      return <p className="text-slate-400 italic text-[11px] font-medium">No billing invoices issued for this SKU.</p>;
+                    }
+                    return (
+                      <div className="space-y-2 max-h-[160px] overflow-y-auto">
+                        {skuInvoices.map((inv) => (
+                          <div key={inv.id} className="p-2 border border-slate-100 dark:border-slate-850 bg-white dark:bg-slate-900 rounded-2xl space-y-1.5">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <span className="font-extrabold text-[10px] text-slate-800 dark:text-slate-150">{inv.id}</span>
+                                <span className="text-[8px] text-slate-400 block">{inv.date}</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-1.5">
+                                <span className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wider ${
+                                  inv.status === 'paid'
+                                    ? 'bg-emerald-500/10 text-emerald-600'
+                                    : inv.status === 'sent'
+                                    ? 'bg-blue-500/10 text-blue-600'
+                                    : 'bg-amber-500/10 text-amber-600'
+                                }`}>
+                                  {inv.status}
+                                </span>
+                                
+                                <select
+                                  value={inv.status}
+                                  onChange={(e) => handleUpdateInvoiceStatus(inv.id, e.target.value as any)}
+                                  className="text-[8px] font-bold bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-1 py-0.5 focus:outline-none"
+                                >
+                                  <option value="draft">Draft</option>
+                                  <option value="sent">Sent</option>
+                                  <option value="paid">Paid</option>
+                                </select>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between text-[9px] text-slate-500 border-t border-slate-100 dark:border-slate-800/40 pt-1 font-semibold">
+                              <span>Customer: {inv.customerName}</span>
+                              <span>{inv.quantity} units • ₹{inv.total.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </Card>
+
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Zoho compliant Tax Invoice Creator Overlay */}
+      {isInvoiceModalOpen && selectedProduct && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-2xl rounded-[32px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl relative space-y-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center pb-2 border-b border-slate-150 dark:border-slate-800">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Generate Compliant B2B GST Invoice</h3>
+                <p className="text-[10px] text-slate-450 mt-0.5">Pre-filled with product HSN, base price, and GST rates.</p>
+              </div>
+              <button onClick={() => setIsInvoiceModalOpen(false)} className="h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">✕</button>
+            </div>
+
+            <form onSubmit={handleCreateInvoiceSubmit} className="space-y-4 text-xs font-semibold">
+              <div className="bg-slate-50/50 dark:bg-slate-950/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-850 grid gap-2 grid-cols-3">
+                <p>📦 Product: <span className="font-extrabold text-slate-850 dark:text-white">{selectedProduct.name}</span></p>
+                <p>🔢 SKU: <span className="font-extrabold text-slate-850 dark:text-white font-mono">{selectedProduct.sku}</span></p>
+                <p>⚖️ HSN: <span className="font-extrabold text-slate-850 dark:text-white font-mono">{selectedProduct.hsn || '8544'}</span></p>
+              </div>
+
+              <div className="grid gap-3 grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-slate-500">Buyer Business / Customer Name</label>
+                  <select 
+                    value={invoiceCustomer} 
+                    onChange={(e) => {
+                      setInvoiceCustomer(e.target.value);
+                      const matching = leads.find(l => (l.businessName || l.customerName) === e.target.value);
+                      if (matching) {
+                        setInvoicePhone(matching.phone || '919876543210');
+                        setInvoiceStateType(matching.location.includes('MH') || matching.location.toLowerCase().includes('maharashtra') ? 'intra' : 'inter');
+                      }
+                    }} 
+                    className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 focus:outline-none dark:text-slate-100"
+                  >
+                    <option value="Rajesh Electricals">Rajesh Electricals (Nagpur, MH)</option>
+                    <option value="Siddharth Pumps Ltd">Siddharth Pumps Ltd (Kolkata, WB)</option>
+                    <option value="Desai Hardware Store">Desai Hardware Store (Pune, MH)</option>
+                    {leads.map((l, i) => (
+                      <option key={i} value={l.businessName || l.customerName}>{l.businessName || l.customerName} ({l.location})</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-slate-500">Buyer Phone Number</label>
+                  <input type="text" required value={invoicePhone} onChange={(e) => setInvoicePhone(e.target.value)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 focus:outline-none dark:text-slate-100" />
+                </div>
+              </div>
+
+              <div className="grid gap-3 grid-cols-3">
+                <div className="space-y-1">
+                  <label className="text-slate-500">Billing Quantity</label>
+                  <input type="number" required min={1} value={invoiceQty} onChange={(e) => setInvoiceQty(Number(e.target.value) || 1)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 focus:outline-none dark:text-slate-100" />
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-slate-500">GST Slab (%)</label>
+                  <select value={invoiceGstSlab} onChange={(e) => setInvoiceGstSlab(Number(e.target.value))} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 focus:outline-none dark:text-slate-100">
+                    <option value={5}>5%</option>
+                    <option value={12}>12%</option>
+                    <option value={18}>18%</option>
+                    <option value={28}>28%</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-500">Buyer State Code type</label>
+                  <select value={invoiceStateType} onChange={(e) => setInvoiceStateType(e.target.value as any)} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 focus:outline-none dark:text-slate-100">
+                    <option value="intra">Intra-State (Maharashtra: CGST+SGST)</option>
+                    <option value="inter">Inter-State (IGST Compliant)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Buyer GSTIN Identification Number (Optional)</label>
+                <input type="text" placeholder="e.g. 27AAAAA1111A1Z1" value={invoiceGstin} onChange={(e) => setInvoiceGstin(e.target.value.toUpperCase())} className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 p-2.5 focus:outline-none font-mono uppercase dark:text-slate-100" />
+                {invoiceGstin && invoiceGstin.length < 15 && (
+                  <p className="text-[9px] text-amber-500 mt-1">Note: Compliant GSTIN requires exactly 15 alphanumeric characters.</p>
+                )}
+              </div>
+
+              {/* Dynamic Live calculations display */}
+              {(() => {
+                const calc = calculateGST({
+                  price: selectedProduct.price,
+                  quantity: invoiceQty,
+                  gstApplicable: selectedProduct.gst,
+                  gstSlab: invoiceGstSlab,
+                  stateType: invoiceStateType,
+                  buyerGSTIN: invoiceGstin
+                });
+
+                return (
+                  <div className="bg-[#fff6e6]/30 dark:bg-slate-955 border border-[#f3d9a7]/50 dark:border-slate-800 p-4 rounded-2xl space-y-2">
+                    <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider">Dynamic GST Invoice Calculations</span>
+                    <div className="grid grid-cols-2 gap-2 text-slate-655 dark:text-slate-350">
+                      <p>Subtotal Amount: <span className="font-extrabold text-slate-900 dark:text-white">₹{calc.subtotal.toLocaleString()}</span></p>
+                      {invoiceStateType === 'intra' ? (
+                        <>
+                          <p>CGST ({invoiceGstSlab / 2}%): <span className="font-extrabold text-slate-900 dark:text-white">₹{calc.cgst.toLocaleString()}</span></p>
+                          <p>SGST ({invoiceGstSlab / 2}%): <span className="font-extrabold text-slate-900 dark:text-white">₹{calc.sgst.toLocaleString()}</span></p>
+                        </>
+                      ) : (
+                        <p>IGST ({invoiceGstSlab}%): <span className="font-extrabold text-slate-900 dark:text-white">₹{calc.igst.toLocaleString()}</span></p>
+                      )}
+                      <p className="col-span-2 border-t border-slate-200 dark:border-slate-800/80 pt-2 flex justify-between items-center text-sm font-black">
+                        <span className="text-slate-500 uppercase text-[10px]">Net Receivable (Total):</span>
+                        <span className="text-emerald-600 dark:text-emerald-450 text-base">₹{calc.total.toLocaleString()}</span>
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <button type="submit" className="w-full rounded-2xl bg-[#FAB12F] text-slate-950 font-black py-3 text-center shadow-md hover:bg-[#e09e1b] transition-all">Generate & Record Invoice</button>
+            </form>
           </div>
         </div>
       )}
