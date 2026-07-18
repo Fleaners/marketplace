@@ -371,6 +371,10 @@ async function loadFirebasePublicConfig() {
   const fromWindow = window.MP_FIREBASE_CONFIG || null;
   if (fromWindow && fromWindow.apiKey) {
     firebaseConfig = hydrateFirebaseConfig(fromWindow);
+    // Also pick up reCAPTCHA site key if provided inline
+    if (window.MP_RECAPTCHA_SITE_KEY) {
+      recaptchaSiteKey = String(window.MP_RECAPTCHA_SITE_KEY).trim();
+    }
     return;
   }
 
@@ -2362,22 +2366,28 @@ function renderRecommendedProducts() {
 
 function renderNearbyBusinesses() {
   if (!elements.nearbyBusinessesList) return;
-  elements.nearbyBusinessesList.innerHTML = state.nearby
-    .map(
-      (business) => `
-      <article class="nearby-card">
-        <div>
-          <h3>${business.name}</h3>
-          <p>${business.location}</p>
-        </div>
-        <div class="dealer-info">
-          <span>${business.rating.toFixed(1)} ★</span>
-          <span class="badge ${business.verified ? 'badgeVerified' : 'badgeSoft'}">${business.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</span>
-        </div>
-      </article>
-    `,
-    )
-    .join('');
+  if (state.loading) {
+    elements.nearbyBusinessesList.innerHTML = new Array(3).fill(0).map(()=>`<div class="skeleton" style="height:80px;border-radius:16px"></div>`).join('');
+    return;
+  }
+  elements.nearbyBusinessesList.innerHTML = (state.nearby || []).length
+    ? (state.nearby || [])
+        .map(
+          (business) => `
+          <article class="nearby-card">
+            <div>
+              <h3>${business.name}</h3>
+              <p>${business.location}</p>
+            </div>
+            <div class="dealer-info">
+              <span>${business.rating.toFixed(1)} ★</span>
+              <span class="badge ${business.verified ? 'badgeVerified' : 'badgeSoft'}">${business.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</span>
+            </div>
+          </article>
+        `,
+        )
+        .join('')
+    : getPremiumEmptyStateHtml("No Nearby Businesses", "Local trade partners will appear here once registered.");
 }
 
 function renderTopSuppliers() {
@@ -2412,30 +2422,36 @@ function renderStats() {
 
 function renderVerifiedSellers() {
   if (!elements.verifiedSellersList) return;
-  elements.verifiedSellersList.innerHTML = (state.verifiedSellers || [])
-    .map(
-      (seller) => `
-      <article class="dealer-card airbnb-card">
-        <div class="supplier-logo">${seller.name.split(' ').slice(0,2).map((s) => s[0]).join('')}</div>
-        <div>
-          <h3>${seller.name}</h3>
-          <p>${seller.location || 'India'}</p>
-          <p class="muted">${seller.verified ? 'GST Verified' : 'GST Not Added (Optional)'} • ${seller.response || 'Responds in 2 hours'}</p>
-        </div>
-        <div class="productMetaRow">
-          <span class="badge ${seller.verified ? 'badgeVerified' : 'badgeSoft'}">${seller.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</span>
-          <span class="badge badgeSoft">${seller.yearsInBusiness || 5}+ years</span>
-          <span class="badge badgeSoft">${seller.products || 0} products</span>
-          <span class="badge badgeSoft">Trust ${Math.round((seller.rating || 4.6) * 20)}/100</span>
-        </div>
-        <div class="cardActions">
-          <button class="actionPrimary" type="button" data-action="contact-business" data-seller="${seller.name}">Contact Dealer</button>
-          <button class="actionSecondary" type="button" data-action="view-business" data-seller="${seller.name}">Visit Store</button>
-        </div>
-      </article>
-    `,
-    )
-    .join('');
+  if (state.loading) {
+    elements.verifiedSellersList.innerHTML = new Array(3).fill(0).map(()=>`<div class="skeleton" style="height:200px;border-radius:16px"></div>`).join('');
+    return;
+  }
+  elements.verifiedSellersList.innerHTML = (state.verifiedSellers || []).length
+    ? (state.verifiedSellers || [])
+        .map(
+          (seller) => `
+          <article class="dealer-card airbnb-card">
+            <div class="supplier-logo">${seller.name.split(' ').slice(0,2).map((s) => s[0]).join('')}</div>
+            <div>
+              <h3>${seller.name}</h3>
+              <p>${seller.location || 'India'}</p>
+              <p class="muted">${seller.verified ? 'GST Verified' : 'GST Not Added (Optional)'} • ${seller.response || 'Responds in 2 hours'}</p>
+            </div>
+            <div class="productMetaRow">
+              <span class="badge ${seller.verified ? 'badgeVerified' : 'badgeSoft'}">${seller.verified ? 'GST Verified' : 'GST Not Added (Optional)'}</span>
+              <span class="badge badgeSoft">${seller.yearsInBusiness || 5}+ years</span>
+              <span class="badge badgeSoft">${seller.products || 0} products</span>
+              <span class="badge badgeSoft">Trust ${Math.round((seller.rating || 4.6) * 20)}/100</span>
+            </div>
+            <div class="cardActions">
+              <button class="actionPrimary" type="button" data-action="contact-business" data-seller="${seller.name}">Contact Dealer</button>
+              <button class="actionSecondary" type="button" data-action="view-business" data-seller="${seller.name}">Visit Store</button>
+            </div>
+          </article>
+        `,
+        )
+        .join('')
+    : getPremiumEmptyStateHtml("No Verified Sellers Found", "We are currently onboarding verified local distributors. Check back soon!");
 }
 
 function renderSuccessStories() {
@@ -3652,6 +3668,8 @@ async function initializeAppData() {
     renderTopSuppliers();
     renderSuccessStories();
     renderStats();
+    renderVerifiedSellers();
+    renderNearbyBusinesses();
   };
 
   if (!db) {
@@ -3660,7 +3678,7 @@ async function initializeAppData() {
     return;
   }
 
-  try {
+
     const [categoriesSnapshot, sellersSnapshot] = await Promise.all([
       db.collection(FIRESTORE_COLLECTIONS.categories).get(),
       db.collection(FIRESTORE_COLLECTIONS.users).where('role', '==', 'seller').limit(16).get(),
@@ -3746,6 +3764,8 @@ async function initializeAppData() {
 
     renderCategories();
     renderFeaturedDealers();
+    renderVerifiedSellers();
+    renderNearbyBusinesses();
     renderTopSuppliers();
     renderSuccessStories();
     renderExploreView();

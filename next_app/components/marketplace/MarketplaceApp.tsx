@@ -774,7 +774,7 @@ export default function MarketplaceApp() {
                           </>
                         ) : (
                           <>
-                            <span>✨</span> Ask Gemini
+                            <span>✨</span> Search with AI
                           </>
                         )}
                       </Button>
@@ -787,7 +787,7 @@ export default function MarketplaceApp() {
                       animate={{ opacity: 1, height: 'auto' }}
                       className="rounded-2xl bg-white/70 dark:bg-slate-950/60 p-3.5 border border-[#f3d9a7]/40 dark:border-slate-800 text-[11px] leading-relaxed font-sans text-slate-800 dark:text-slate-200 shadow-inner"
                     >
-                      <p className="font-extrabold text-[#FAB12F] uppercase tracking-wider text-[9px] mb-1">Gemini AI Sourcing Analysis</p>
+                      <p className="font-extrabold text-[#FAB12F] uppercase tracking-wider text-[9px] mb-1">AI Sourcing Analysis</p>
                       <div className="whitespace-pre-line font-medium">{geminiResponse}</div>
                       <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] text-slate-400">
                         <span>Filters applied automatically</span>

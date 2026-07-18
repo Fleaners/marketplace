@@ -29,13 +29,19 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <!-- Firebase public config removed from static HTML for security.
-       The app will fetch public Firebase config from the backend endpoint
-       `/api/public/config` at runtime via `loadFirebasePublicConfig()` in
-       `web_app/app.js`. If you need to provide an inline config for local
-       development, set `window.MP_FIREBASE_CONFIG` dynamically from your
-       server-rendered HTML or use a local environment-specific script that
-       is NOT checked in. -->
+  <!-- Firebase public config: Web API keys are public by design (enforced by Firebase Security Rules). -->
+  <script>
+    window.MP_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyChPAYRigFB8AIZMzFysYi_ZOgp3alRkiM",
+      authDomain: "marketplace-store-fef91.firebaseapp.com",
+      projectId: "marketplace-store-fef91",
+      storageBucket: "marketplace-store-fef91.firebasestorage.app",
+      messagingSenderId: "360203367218",
+      appId: "1:360203367218:web:e5e846e0c7954843ef5d2b"
+    };
+    window.MP_RECAPTCHA_SITE_KEY = "6LeKAUAtAAAAADildvEO4seiMOu3oS3Fnh8kS18X";
+  </script>
+
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -144,7 +150,7 @@
           <button type="submit" class="button buttonPrimary buttonFull">Search Marketplace</button>
         </form>
         <div class="hero-trust-strip">
-          <div><strong>No checkout</strong><span>Explore, compare, connect</span></div>
+          <div><strong>Browse & Compare</strong><span>Direct supplier connection via WhatsApp (No account required)</span></div>
         </div>
       </div>
     </section>
@@ -506,6 +512,8 @@
         <a href="/privacy.html">Privacy Policy</a>
         <a href="/terms.html">Terms of Service</a>
         <a href="/privacy.html">Trust & Safety</a>
+        <a href="mailto:hello@marketplace.store">Email Support</a>
+        <a href="https://wa.me/919876543210?text=Hello%20marketplace.store%20Support">WhatsApp Support</a>
       </div>
     </footer>
   </div>

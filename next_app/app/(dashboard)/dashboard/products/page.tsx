@@ -627,7 +627,7 @@ function ProductsCatalog() {
                     <label className="text-xs font-semibold text-slate-600">Product Name *</label>
                     <input
                       type="text"
-                      placeholder="e.g. Pure Copper Grounding Grounding Wire"
+                      placeholder="e.g. Pure Copper Grounding Wire"
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
                       className={`w-full rounded-2xl bg-[#fff6e6] border px-4 py-3 text-sm text-[#1f2937] focus:outline-none focus:border-accent-500 transition-colors ${

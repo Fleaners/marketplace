@@ -122,3 +122,29 @@ CREATE INDEX IF NOT EXISTS idx_listing_visits_seller_time ON listing_visits(sell
 CREATE INDEX IF NOT EXISTS idx_message_threads_seller_time ON message_threads(seller_business_id, latest_message_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_thread_time ON messages(thread_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_business_time ON analytics_events(business_id, created_at DESC);
+
+-- AI Orchestrator Self-Learning and Loop History Tables
+CREATE TABLE IF NOT EXISTS ai_recommendations (
+  id SERIAL PRIMARY KEY,
+  business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
+  agent_name TEXT NOT NULL,
+  prompt_context TEXT NOT NULL,
+  recommendation_text TEXT NOT NULL,
+  domain TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS ai_corrections (
+  id SERIAL PRIMARY KEY,
+  business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
+  agent_name TEXT NOT NULL,
+  prompt_context TEXT NOT NULL,
+  original_recommendation TEXT NOT NULL,
+  corrected_text TEXT NOT NULL,
+  is_rejected BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_recommendations_business ON ai_recommendations(business_id);
+CREATE INDEX IF NOT EXISTS idx_ai_corrections_business ON ai_corrections(business_id);
+

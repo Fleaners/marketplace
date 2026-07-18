@@ -4,6 +4,7 @@ const {
   analyzeWithPerplexity,
   produceInsights,
   suggestWithPerplexity,
+  saveAiFeedback,
 } = require('../controllers/aiController');
 
 const router = express.Router();
@@ -11,5 +12,7 @@ const router = express.Router();
 router.get('/', requireAuth, produceInsights);
 router.post('/analyze', requireAuth, analyzeWithPerplexity);
 router.get('/suggestions', requireAuth, suggestWithPerplexity);
+router.post('/feedback', requireAuth, saveAiFeedback);
+
 
 module.exports = router;

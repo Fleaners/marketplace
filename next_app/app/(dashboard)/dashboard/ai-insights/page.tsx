@@ -948,7 +948,7 @@ export default function AIInsightsPage() {
                       <div className="flex items-center gap-3 mt-1.5 ml-2">
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             dispatchTelemetry({
                               promptContext: `Agent: ${chat.agentName}, Query Context: ${chatLog[idx - 1]?.text || 'No preceding message context'}`,
                               generatedResponse: chat.text,
@@ -956,6 +956,26 @@ export default function AIInsightsPage() {
                               implicitScore: 1,
                               featureArea: 'chat-bot'
                             });
+                            try {
+                              const token = localStorage.getItem('mp_backend_token') || '';
+                              const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+                              await fetch(`${API_BASE}/api/ai/feedback`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': token ? `Bearer ${token}` : ''
+                                },
+                                body: JSON.stringify({
+                                  promptContext: chatLog[idx - 1]?.text || 'No preceding message context',
+                                  agentName: chat.agentName,
+                                  originalRecommendation: chat.text,
+                                  correctedText: chat.text,
+                                  isRejected: false
+                                })
+                              });
+                            } catch (err) {
+                              console.error('Failed to log positive feedback:', err);
+                            }
                             alert('Thank you! Response marked helpful for agent reinforcement.');
                           }}
                           className="text-xs hover:scale-125 active:scale-90 transition-transform cursor-pointer"
@@ -965,7 +985,7 @@ export default function AIInsightsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             dispatchTelemetry({
                               promptContext: `Agent: ${chat.agentName}, Query Context: ${chatLog[idx - 1]?.text || 'No preceding message context'}`,
                               generatedResponse: chat.text,
@@ -973,6 +993,26 @@ export default function AIInsightsPage() {
                               implicitScore: -1,
                               featureArea: 'chat-bot'
                             });
+                            try {
+                              const token = localStorage.getItem('mp_backend_token') || '';
+                              const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+                              await fetch(`${API_BASE}/api/ai/feedback`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': token ? `Bearer ${token}` : ''
+                                },
+                                body: JSON.stringify({
+                                  promptContext: chatLog[idx - 1]?.text || 'No preceding message context',
+                                  agentName: chat.agentName,
+                                  originalRecommendation: chat.text,
+                                  correctedText: chat.text,
+                                  isRejected: true
+                                })
+                              });
+                            } catch (err) {
+                              console.error('Failed to log negative feedback:', err);
+                            }
                             alert('Thank you! Feedback recorded for safety optimization.');
                           }}
                           className="text-xs hover:scale-125 active:scale-90 transition-transform cursor-pointer"
@@ -1024,7 +1064,7 @@ export default function AIInsightsPage() {
                           <Button
                             size="sm"
                             variant="primary"
-                            onClick={() => {
+                            onClick={async () => {
                               const updatedLog = [...chatLog];
                               updatedLog[idx].text = editingMessageText;
                               setChatLog(updatedLog);
@@ -1036,6 +1076,27 @@ export default function AIInsightsPage() {
                                 implicitScore: 1,
                                 featureArea: 'chat-bot'
                               });
+
+                              try {
+                                const token = localStorage.getItem('mp_backend_token') || '';
+                                const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+                                await fetch(`${API_BASE}/api/ai/feedback`, {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': token ? `Bearer ${token}` : ''
+                                  },
+                                  body: JSON.stringify({
+                                    promptContext: chatLog[idx - 1]?.text || 'No preceding message context',
+                                    agentName: chat.agentName,
+                                    originalRecommendation: chat.text,
+                                    correctedText: editingMessageText,
+                                    isRejected: false
+                                  })
+                                });
+                              } catch (err) {
+                                console.error('Failed to log text correction:', err);
+                              }
                               
                               setEditingMessageIdx(null);
                               alert('Correction recorded and piped to AI model self-training cluster.');

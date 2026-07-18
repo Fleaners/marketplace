@@ -1669,6 +1669,11 @@ h1, h2, h3, h4 {
 	padding: 22px;
 }
 
+.onboarding-banner button {
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
 .onboarding-banner p {
 	margin: 6px 0 0;
 	color: #cbd5e1;
