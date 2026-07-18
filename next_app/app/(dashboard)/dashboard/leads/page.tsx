@@ -116,7 +116,107 @@ export default function LeadsPage() {
       // Load Leads
       const storedLeads = localStorage.getItem('marketplace_leads');
       if (storedLeads) {
-        setLeads(JSON.parse(storedLeads));
+        try {
+          const parsed = JSON.parse(storedLeads);
+          const migrated: Lead[] = parsed.map((l: any) => {
+            const status = (l.status || 'new').toLowerCase() as Lead['status'];
+            return {
+              id: l.id || `LD-${Date.now()}-${Math.random()}`,
+              customerName: l.customerName || l.businessName || 'Valued Lead',
+              businessName: l.businessName || '',
+              productName: l.productName || 'General SKU Product',
+              value: Number(l.value) || 0,
+              location: l.location || 'India',
+              status: ['new', 'contacted', 'qualified', 'negotiation', 'won', 'lost'].includes(status) ? status : 'new',
+              date: l.date || new Date().toISOString().split('T')[0],
+              phone: l.phone || '919876543210',
+              email: l.email || '',
+              source: l.source || 'Marketplace',
+              notes: l.notes || '',
+              assignedTo: l.assignedTo || 'Anil Kumar',
+              lastContact: l.lastContact || l.date || new Date().toISOString().split('T')[0],
+              followUpDate: l.followUpDate || '',
+              followUpNote: l.followUpNote || '',
+              converted: !!l.converted,
+              timeline: Array.isArray(l.timeline) ? l.timeline : [
+                { type: 'note', text: 'Legacy lead imported into CRM.', date: l.date || new Date().toISOString().split('T')[0] }
+              ]
+            };
+          });
+          setLeads(migrated);
+          localStorage.setItem('marketplace_leads', JSON.stringify(migrated));
+        } catch (err) {
+          console.error('Failed to parse legacy leads, seeding defaults:', err);
+          const defaultLeads: Lead[] = [
+            {
+              id: 'LD-101',
+              customerName: 'Rajesh Sharma',
+              businessName: 'Rajesh Electricals',
+              productName: 'Copper Core Grounding Wire',
+              value: 24000,
+              location: 'Nagpur, MH',
+              status: 'contacted',
+              date: '2026-07-09',
+              phone: '919876543210',
+              source: 'WhatsApp',
+              email: 'rajesh@rajeshelectricals.in',
+              assignedTo: 'Anil Kumar',
+              lastContact: '2026-07-15',
+              followUpDate: new Date().toISOString().split('T')[0],
+              followUpNote: 'Discuss price discount for bulk buy.',
+              timeline: [
+                { type: 'note', text: 'Lead created from WhatsApp click-to-chat.', date: '2026-07-09' },
+                { type: 'whatsapp', text: 'Inquired about copper wire wholesale prices.', date: '2026-07-10' },
+                { type: 'stage_change', text: 'Stage updated from New to Contacted.', date: '2026-07-12' },
+                { type: 'note', text: 'Sent catalog & price list.', date: '2026-07-15' }
+              ]
+            },
+            {
+              id: 'LD-102',
+              customerName: 'Siddharth Roy',
+              businessName: 'Siddharth Pumps Ltd',
+              productName: 'Industrial Water Pump',
+              value: 145000,
+              location: 'Kolkata, WB',
+              status: 'negotiation',
+              date: '2026-07-10',
+              phone: '919876543210',
+              source: 'Marketplace',
+              email: 'siddharth@roy-pumps.com',
+              assignedTo: 'Priya Sharma',
+              lastContact: '2026-07-16',
+              followUpDate: new Date().toISOString().split('T')[0],
+              followUpNote: 'Follow up on the final quote proposal.',
+              timeline: [
+                { type: 'note', text: 'Lead captured from marketplace quote request.', date: '2026-07-10' },
+                { type: 'call', text: 'Called to discuss pump specifications.', date: '2026-07-11' },
+                { type: 'stage_change', text: 'Stage updated to Qualified.', date: '2026-07-13' },
+                { type: 'stage_change', text: 'Stage updated to Negotiation (Sent proposal with 5% discount).', date: '2026-07-16' }
+              ]
+            },
+            {
+              id: 'LD-103',
+              customerName: 'Amit Desai',
+              businessName: 'Desai Hardware Store',
+              productName: 'Brass Coupling Joints (1/2 Inch)',
+              value: 1700,
+              location: 'Pune, MH',
+              status: 'new',
+              date: '2026-07-11',
+              phone: '919876543210',
+              source: 'Referral',
+              email: 'amit@desaihardware.com',
+              assignedTo: 'Anil Kumar',
+              followUpDate: '2026-07-25',
+              followUpNote: 'Send catalog next week.',
+              timeline: [
+                { type: 'note', text: 'Referral logged from Connection Referral Network.', date: '2026-07-11' }
+              ]
+            }
+          ];
+          setLeads(defaultLeads);
+          localStorage.setItem('marketplace_leads', JSON.stringify(defaultLeads));
+        }
       } else {
         const defaultLeads: Lead[] = [
           {
@@ -133,7 +233,7 @@ export default function LeadsPage() {
             email: 'rajesh@rajeshelectricals.in',
             assignedTo: 'Anil Kumar',
             lastContact: '2026-07-15',
-            followUpDate: new Date().toISOString().split('T')[0], // Due today
+            followUpDate: new Date().toISOString().split('T')[0],
             followUpNote: 'Discuss price discount for bulk buy.',
             timeline: [
               { type: 'note', text: 'Lead created from WhatsApp click-to-chat.', date: '2026-07-09' },
@@ -156,7 +256,7 @@ export default function LeadsPage() {
             email: 'siddharth@roy-pumps.com',
             assignedTo: 'Priya Sharma',
             lastContact: '2026-07-16',
-            followUpDate: new Date().toISOString().split('T')[0], // Due today
+            followUpDate: new Date().toISOString().split('T')[0],
             followUpNote: 'Follow up on the final quote proposal.',
             timeline: [
               { type: 'note', text: 'Lead captured from marketplace quote request.', date: '2026-07-10' },
@@ -471,9 +571,9 @@ export default function LeadsPage() {
   // Search & Filter Pipeline/List Leads
   const processedLeads = leads.filter((l) => {
     const matchesSearch = 
-      l.customerName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (l.businessName && l.businessName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      l.productName.toLowerCase().includes(searchQuery.toLowerCase());
+      (l.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (l.businessName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.productName || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     let matchesStage = true;
     if (stageFilter === 'new') {
@@ -493,13 +593,13 @@ export default function LeadsPage() {
   const sortedLeads = [...processedLeads].sort((a, b) => {
     let comp = 0;
     if (sortField === 'customerName') {
-      comp = a.customerName.localeCompare(b.customerName);
+      comp = (a.customerName || '').localeCompare(b.customerName || '');
     } else if (sortField === 'value') {
-      comp = a.value - b.value;
+      comp = (a.value || 0) - (b.value || 0);
     } else if (sortField === 'date') {
-      comp = a.date.localeCompare(b.date);
+      comp = (a.date || '').localeCompare(b.date || '');
     } else if (sortField === 'source') {
-      comp = a.source.localeCompare(b.source);
+      comp = (a.source || '').localeCompare(b.source || '');
     }
     return sortOrder === 'asc' ? comp : -comp;
   });
