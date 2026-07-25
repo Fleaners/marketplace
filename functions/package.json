@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^6.3.0",
-    "argon2": "^0.41.1",
+    "argon2": "^0.45.1",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.38.0",
     "cors": "^2.8.5",
