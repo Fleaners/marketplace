@@ -72,7 +72,7 @@ async function fetchConfigFromPublicEndpoint(): Promise<Partial<FirebaseRuntimeC
       messagingSenderId: firebase.messagingSenderId,
       appId: firebase.appId,
     };
-  } catch {
+  } catch (e) {
     return {};
   }
 }
@@ -130,7 +130,7 @@ export async function logoutUser(): Promise<void> {
     // Clear all sessionStorage
     try {
       sessionStorage.clear();
-    } catch {}
+    } catch (e) {}
 
     // Clear all IndexedDB databases for absolute device isolation
     if (typeof window !== 'undefined' && window.indexedDB && window.indexedDB.databases) {

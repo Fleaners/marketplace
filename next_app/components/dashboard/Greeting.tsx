@@ -81,7 +81,7 @@ export function Greeting({ subtitleOverride, className = '' }: GreetingProps) {
             // Sync to cache
             try {
               localStorage.setItem('mp_user', JSON.stringify(updatedProfile));
-            } catch {}
+            } catch (e) {}
           });
         } else {
           setProfile(null);

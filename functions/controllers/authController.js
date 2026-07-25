@@ -167,12 +167,7 @@ export function buildToken(business) {
     {
       id: business.id,
       businessId: business.id,
-      shop_name: business.shop_name,
-      shopName: business.shop_name,
-      phone: business.phone,
-      email: business.email,
-      city: business.city,
-      gst_number: business.gst_number,
+      role: business.role || 'seller',
       jti,
       nonce: crypto.randomUUID(),
     },
@@ -524,7 +519,7 @@ export async function requestOtp(req, res, next) {
     await saveOtpRecord(business, otp, expiresAt);
 
     if (OTP_DEBUG_MODE) {
-      console.log(`OTP for ${normalizedIdentifier}: ${otp}`);
+      console.log(`[OTP_DEBUG] OTP generated for identifier (not logging code for security)`);
     }
 
     if (!OTP_DEBUG_MODE) {

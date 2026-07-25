@@ -7,6 +7,8 @@ import { Card } from '@/components/ui/Card';
 import { navigationItems } from '@/lib/navigation';
 import { Greeting } from '@/components/dashboard/Greeting';
 import { calculateGST, GSTCalculationResult } from '@/lib/gst';
+import { getFirebaseServices } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc } from 'firebase/firestore';
 
 interface ProductVariant {
   size?: string;
@@ -199,83 +201,12 @@ export default function InventoryPage() {
   const CATEGORIES = ['Industrial', 'Electrical', 'Hardware', 'Chemicals', 'Packaging', 'Safety Components', 'Agriculture', 'Office Supplies'];
   const WAREHOUSES = ['Warehouse Alpha', 'Warehouse Beta', 'Warehouse Gamma'];
 
-  // Load from local storage on mount
+  // Load from local storage and Firestore on mount
   useEffect(() => {
+    let unsubscribeProducts = () => {};
+    
+    // Load other stored parameters
     try {
-      // Load products
-      const stored = localStorage.getItem('marketplace_products');
-      let currentProducts: Product[] = [];
-      if (stored) {
-        currentProducts = JSON.parse(stored);
-      } else {
-        currentProducts = [
-          {
-            id: '1',
-            name: 'Industrial Water Pump',
-            category: 'Industrial',
-            brand: 'Kirloskar',
-            description: 'Heavy duty centrifugal water pump suited for high pressure flow rate industrial operations.',
-            price: 14500,
-            moq: 2,
-            reorderLevel: 5,
-            stock: 15,
-            reserved: 3,
-            damaged: 1,
-            returned: 2,
-            sku: 'WP-IND-100',
-            unit: 'Pieces',
-            gst: true,
-            gstRate: 18,
-            hsn: '8413-7010',
-            barcode: '890103241092',
-            qrCode: 'QR-WP-IND-100',
-            batchNo: 'B-PMP-2026',
-            expiryDate: '2030-12-31',
-            serialNo: 'SN-7761002-A',
-            warehouse: 'Warehouse Alpha',
-            variants: { size: 'Standard', color: 'Blue', material: 'Cast Iron' },
-            delivery: '2-3 days',
-            tags: ['Pumps', 'Heavy Duty'],
-            whatsapp: '919876543210',
-            images: [],
-          },
-          {
-            id: '2',
-            name: 'Copper Core Grounding Wire',
-            category: 'Electrical',
-            brand: 'Hindalco',
-            description: 'Premium grade pure copper grounding cable designed for protective earth systems.',
-            price: 1200,
-            moq: 5,
-            reorderLevel: 10,
-            stock: 25,
-            reserved: 10,
-            damaged: 0,
-            returned: 1,
-            sku: 'EL-CC-GND',
-            unit: 'Meters',
-            gst: true,
-            gstRate: 18,
-            hsn: '8544-4920',
-            barcode: '890103241093',
-            batchNo: 'B-COP-2026',
-            warehouse: 'Warehouse Alpha',
-            variants: { size: '10 Meters', material: 'Copper' },
-            delivery: '3-5 days',
-            tags: ['Electrical', 'Wiring'],
-            whatsapp: '919876543210',
-            images: [],
-          },
-        ];
-        localStorage.setItem('marketplace_products', JSON.stringify(currentProducts));
-      }
-      // Ensure all products have reorderLevel initialized
-      const validatedProducts = currentProducts.map(p => ({
-        ...p,
-        reorderLevel: p.reorderLevel !== undefined ? p.reorderLevel : (p.moq * 2 || 10)
-      }));
-      setProducts(validatedProducts);
-
       // Load leads (CRM context)
       const storedLeads = localStorage.getItem('marketplace_leads');
       if (storedLeads) {
@@ -339,11 +270,162 @@ export default function InventoryPage() {
     } catch (e) {
       console.error(e);
     }
+
+    // Connect products query to Firestore
+    const initFirestoreProducts = async () => {
+      try {
+        const storedUser = localStorage.getItem('mp_user');
+        const userObj = storedUser ? JSON.parse(storedUser) : null;
+        if (!userObj || !userObj.uid) return;
+
+        const services = await getFirebaseServices();
+        if (!services) return;
+        const { db } = services;
+
+        const q = query(
+          collection(db, 'products'),
+          where('sellerId', '==', userObj.uid)
+        );
+
+        unsubscribeProducts = onSnapshot(q, (snapshot) => {
+          const list: Product[] = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            list.push({
+              id: doc.id,
+              name: data.name || '',
+              category: data.category || 'General',
+              brand: data.specifications?.brand || 'General',
+              description: data.description || '',
+              price: Number(data.price) || 0,
+              moq: Number(data.moq) || 1,
+              reorderLevel: Number(data.reorderLevel) || Number(data.moq) * 2 || 10,
+              stock: Number(data.stock) || 0,
+              reserved: Number(data.reserved) || 0,
+              damaged: Number(data.damaged) || 0,
+              returned: Number(data.returned) || 0,
+              sku: data.sku || '',
+              unit: data.unit || 'Pieces',
+              gst: !!data.gst,
+              gstRate: Number(data.gstRate) || 18,
+              hsn: data.hsn || '8538',
+              barcode: data.barcode || '',
+              qrCode: data.qrCode || '',
+              batchNo: data.batchNo || '',
+              expiryDate: data.expiryDate || '',
+              serialNo: data.serialNo || '',
+              imei: data.imei || '',
+              warehouse: data.warehouse || 'Warehouse Alpha',
+              variants: data.variants || {},
+              delivery: data.delivery || '3-5 days',
+              tags: data.features || [],
+              whatsapp: data.whatsapp || '',
+              images: Array.isArray(data.images) ? data.images : (data.image ? [data.image] : []),
+              archived: !!data.archived,
+            });
+          });
+          setProducts(list);
+          localStorage.setItem('marketplace_products', JSON.stringify(list));
+        }, (err) => {
+          console.error("Firestore inventory products stream error:", err);
+        });
+      } catch (err) {
+        console.error("Failed to connect products to Firestore:", err);
+      }
+    };
+    initFirestoreProducts();
+
+    return () => {
+      unsubscribeProducts();
+    };
   }, []);
 
-  const saveProducts = (list: Product[]) => {
-    setProducts(list);
-    localStorage.setItem('marketplace_products', JSON.stringify(list));
+  const saveProducts = async (list: Product[]) => {
+    try {
+      const storedUser = localStorage.getItem('mp_user');
+      const userObj = storedUser ? JSON.parse(storedUser) : null;
+      const sellerId = userObj?.uid || '';
+      const seller = userObj?.businessName || userObj?.name || 'Gaurav Enterprise';
+
+      const services = await getFirebaseServices();
+      if (!services) return;
+      const { db } = services;
+
+      // Detect deleted products
+      for (const originalProd of products) {
+        const stillExists = list.some(p => p.id === originalProd.id);
+        if (!stillExists) {
+          await deleteDoc(doc(db, 'products', originalProd.id));
+        }
+      }
+
+      for (const prod of list) {
+        const original = products.find(p => p.id === prod.id);
+        if (!original) {
+          // New product - write full schema matching security rules
+          await setDoc(doc(db, 'products', prod.id), {
+            sellerId,
+            seller,
+            name: prod.name,
+            title: prod.name,
+            category: prod.category || 'General',
+            description: prod.description || '',
+            price: Number(prod.price) || 0,
+            moq: Number(prod.moq) || 1,
+            stock: Number(prod.stock) || 0,
+            sku: prod.sku || `SKU-${Date.now()}`,
+            unit: prod.unit || 'Pieces',
+            gst: !!prod.gst,
+            delivery: prod.delivery || '3-5 days',
+            whatsapp: prod.whatsapp || userObj?.whatsappNumber || '919876543210',
+            images: prod.images || [],
+            archived: !!prod.archived,
+            features: prod.tags || [],
+            specifications: {
+              brand: prod.brand || 'General',
+              model: prod.sku || '',
+            },
+            analytics: {
+              views: 0,
+              orders: 0
+            },
+            reorderLevel: prod.reorderLevel || prod.moq * 2 || 10,
+            reserved: prod.reserved || 0,
+            damaged: prod.damaged || 0,
+            returned: prod.returned || 0,
+            gstRate: prod.gstRate || 18,
+            hsn: prod.hsn || '8538',
+            warehouse: prod.warehouse || 'Warehouse Alpha',
+            created_at: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+        } else if (
+            original.price !== prod.price || 
+            original.stock !== prod.stock || 
+            original.reorderLevel !== prod.reorderLevel ||
+            original.reserved !== prod.reserved ||
+            original.damaged !== prod.damaged ||
+            original.returned !== prod.returned ||
+            original.archived !== prod.archived ||
+            original.moq !== prod.moq) {
+          
+          // Existing product edit - update fields
+          await setDoc(doc(db, 'products', prod.id), {
+            price: prod.price,
+            stock: prod.stock,
+            reorderLevel: prod.reorderLevel,
+            reserved: prod.reserved || 0,
+            damaged: prod.damaged || 0,
+            returned: prod.returned || 0,
+            archived: !!prod.archived,
+            moq: prod.moq,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to save products to Firestore:', err);
+    }
   };
 
   const saveInvoices = (list: SKUInvoice[]) => {

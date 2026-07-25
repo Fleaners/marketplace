@@ -13,7 +13,7 @@ const CartSystem = (() => {
   const getCart = () => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    } catch {
+    } catch (e) {
       return [];
     }
   };
@@ -109,7 +109,7 @@ const WishlistSystem = (() => {
   const getWishlist = () => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    } catch {
+    } catch (e) {
       return [];
     }
   };
@@ -177,7 +177,7 @@ const OrdersSystem = (() => {
   const getOrders = () => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    } catch {
+    } catch (e) {
       return [];
     }
   };

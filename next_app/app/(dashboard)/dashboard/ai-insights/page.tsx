@@ -33,6 +33,7 @@ interface ProductItem {
 
 export default function AIInsightsPage() {
   const [activeTab, setActiveTab] = useState<'cockpit' | 'chat' | 'inventory' | 'gst' | 'marketing'>('cockpit');
+  const [aiHealth, setAiHealth] = useState<{ status: string; error?: string }>({ status: 'ok' });
   const [growthScore, setGrowthScore] = useState(78);
   const [smoothingAlpha, setSmoothingAlpha] = useState(0.85); // Smoothing factor alpha
   const [temporalLeadW, setTemporalLeadW] = useState(1.20); // Temporal shipping lead factor W
@@ -105,7 +106,7 @@ export default function AIInsightsPage() {
   ]);
 
 
-  // 2. Chat States
+  // 2. Chat State
   const [chatSelectedAgent, setChatSelectedAgent] = useState<string>('All-Agent Orchestrator');
   const [chatMessage, setChatMessage] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
@@ -114,6 +115,17 @@ export default function AIInsightsPage() {
     text: string;
     agentName: string;
     time: string;
+    retryable?: boolean;
+    agentLabel?: string;
+    confidence?: string;
+    confidenceReason?: string;
+    evidence?: string[];
+    alternatives?: string[];
+    impact?: string;
+    suggestedNextSteps?: string[];
+    draftActions?: Array<{ type: string; label: string; details: string }>;
+    requiresApproval?: boolean;
+    memoryId?: string | null;
     structured?: {
       summary?: string;
       insights?: string;
@@ -123,14 +135,12 @@ export default function AIInsightsPage() {
       expectedImpact?: string;
       suggestedSteps?: string;
     };
-  }>>([
-    {
-      sender: 'agent',
-      agentName: 'System Orchestrator',
-      text: 'Namaste! I am the Autonomous Business Intelligence Orchestrator. Select any specialized agent on the side, or ask me anything. I can forecast demand, analyze GST slabs, copywrite marketing briefs, or optimize inventory.',
-      time: 'Now'
-    }
-  ]);
+  }>>([{
+    sender: 'agent',
+    agentName: 'System Orchestrator',
+    text: 'Namaste! I am your AI Business Copilot — an orchestrated system of 8 specialized agents. Ask me anything about inventory, GST, marketing, finance, CRM, or compliance. I will route your question to the right expert automatically.',
+    time: 'Now'
+  }]);
   const [editingMessageIdx, setEditingMessageIdx] = useState<number | null>(null);
   const [editingMessageText, setEditingMessageText] = useState<string>('');
 
@@ -162,6 +172,28 @@ export default function AIInsightsPage() {
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [diagnosticStep, setDiagnosticStep] = useState<'idle' | 'discover' | 'learn' | 'test' | 'improve'>('idle');
   const [diagnosticResult, setDiagnosticResult] = useState<any | null>(null);
+
+  useEffect(() => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+    let token = '';
+    try {
+      token = localStorage.getItem('mp_token') || localStorage.getItem('mp_backend_token') || 'mock-token';
+    } catch (e) {}
+    fetch(`${API_BASE}/api/ai/health`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.status) {
+        setAiHealth(data);
+      }
+    })
+    .catch(err => {
+      console.error('Failed to fetch AI health status:', err);
+    });
+  }, []);
 
   // Load actual catalog products to link math and simulation
   useEffect(() => {
@@ -404,7 +436,7 @@ export default function AIInsightsPage() {
     }, 1000);
   };
 
-  // Handle Conversational chat submission (augmented for loop structure)
+  // Handle Conversational chat submission
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatMessage.trim() || chatLoading) return;
@@ -431,127 +463,138 @@ export default function AIInsightsPage() {
     }
 
     try {
-      // Check if user is asking "why is SKU low" or "why is stock low" to apply loop logic
-      const isStockQuery = userText.toLowerCase().includes('low') || userText.toLowerCase().includes('stock') || userText.toLowerCase().includes('forecasting');
-      const isCrmQuery = userText.toLowerCase().includes('lead') || userText.toLowerCase().includes('crm') || userText.toLowerCase().includes('conversion') || userText.toLowerCase().includes('follow-up');
-      
       let answerText = '';
       let mockPayload: any = {};
 
-      if (isStockQuery) {
-        // Feed direct reasoning loop response structured
-        mockPayload = {
-          answer: `Diagnostic execution completed for active listing stocks. Based on the 4-Structure loop, we discovered that Copper Core Grounding Wire has registered a stock decline. Safety threshold validation confirms urgent replenishment.`,
-          summary: `Current available stock for "Copper Core Grounding Wire" is 4 units (below safety limit of 10). Lead transit duration is 3.5 days.`,
-          insights: `Learned from historical logs that delays in procurement at this phase trigger an average 12.8% sales drop. Demand forecasts estimate an upcoming seasonal surge of +35% in Electrical inquiries.`,
-          keyFindings: `ARIMA/LSTM model validation indicates that stocking a safety cushion of 10 units prevents stockouts with a 96.5% accuracy rate. Competitor price indices reflect standard wholesale margins.`,
-          recommendations: `Trigger a replenishment PO of 100 units to Hindalco Metal Industries immediately. Standardize compliance templates to capture trade priority.`,
-          priority: `High`,
-          expectedImpact: `Fulfillment coverage maintained at 98%; prevents stockout risk for upcoming monsoon contractor RFQs.`,
-          suggestedSteps: `1. Click WhatsApp click-to-chat to contact Hindalco.\n2. Create pre-filled PO inside Inventory cockpit.`
-        };
-      } else if (isCrmQuery) {
-        // AI CRM Lead diagnostic loop responses
-        mockPayload = {
-          answer: `CRM Lead conversion diagnostics completed. Based on the 4-Structure loop, we discovered that WhatsApp inbound leads convert 2.4x faster than marketplace inquiries, but follow-up latencies beyond 48 hours reduce win probabilities by 40%.`,
-          summary: `Total active sales pipeline value is ₹1,70,700 across 3 deals. 2 active leads require follow-up attention today (Rajesh Sharma & Siddharth Roy).`,
-          insights: `WhatsApp leads maintain a high conversion rate of 35.2% when contacted within a 24h window. Marketplace inquiry conversions drop to 18.4% due to email communication latency.`,
-          keyFindings: `Testing indicates a 78% win probability for WhatsApp deals with active follow-ups. Missed follow-ups represent ₹25,000 in lost pipeline opportunities.`,
-          recommendations: `Prioritize the pending WhatsApp deal for Rajesh Sharma. Initiate a WhatsApp quick chat and set the next follow-up milestone date.`,
-          priority: `High`,
-          expectedImpact: `A 14% lift in overall pipeline conversion velocity, securing ₹24,000 contract value.`,
-          suggestedSteps: `1. Open Leads Pipeline cockpit.\n2. Click WhatsApp quick chat for Rajesh Sharma.\n3. Log notes and update stage to Qualified.`
-        };
-      } else {
-        const profileStr = localStorage.getItem('marketplace_seller_profile');
-        const profile = profileStr ? JSON.parse(profileStr) : {};
+      const profileStr = localStorage.getItem('marketplace_seller_profile');
+      const profile = profileStr ? JSON.parse(profileStr) : {};
+      const leadsStr = localStorage.getItem('marketplace_leads');
+      const leads = leadsStr ? JSON.parse(leadsStr) : [];
 
-        const leadsStr = localStorage.getItem('marketplace_leads');
-        const leads = leadsStr ? JSON.parse(leadsStr) : [];
+      const businessContext = {
+        sellerProfile: {
+          name: profile.businessName || 'Gaurav Enterprise',
+          category: profile.category || 'Electrical & Industrial',
+          location: profile.city || 'India',
+          verified: !!profile.gstNumber,
+          gst_number: profile.gstNumber || '',
+          shop_name: profile.businessName || 'Gaurav Enterprise',
+        },
+        productsSummary: products.map(p => ({
+          name: p.name,
+          price: p.price,
+          stock: p.stock,
+          moq: p.moq,
+          sku: p.sku,
+          category: p.category,
+          reorderLevel: p.reorderLevel,
+        })).slice(0, 10),
+        lowStockAlerts: products.filter(p => p.stock <= (p.reorderLevel || p.moq || 5)).map(p => ({ name: p.name, stock: p.stock, moq: p.moq })),
+        inquiriesCount: leads.length,
+        recentLeads: leads.map((l: any) => ({ productName: l.productName, status: l.status })).slice(0, 3),
+      };
 
-        const businessContext = {
-          sellerProfile: {
-            name: profile.businessName || 'Gaurav Enterprise',
-            category: profile.category || 'Electrical & Industrial',
-            location: profile.city || 'India',
-            verified: !!profile.gstNumber
-          },
-          productsSummary: products.map(p => ({
-            name: p.name,
-            price: p.price,
-            stock: p.stock,
-            moq: p.moq
-          })).slice(0, 5),
-          inquiriesCount: leads.length,
-          recentLeads: leads.map((l: any) => ({
-            productName: l.productName,
-            status: l.status
-          })).slice(0, 3)
-        };
-
-        let token = '';
-        if (typeof window !== 'undefined') {
+      // Get Firebase Auth token
+      let token = '';
+      if (typeof window !== 'undefined') {
+        try {
+          const { getFirebaseServices } = await import('@/lib/firebase');
+          const services = await getFirebaseServices();
+          if (services?.auth?.currentUser) {
+            token = await services.auth.currentUser.getIdToken();
+          }
+        } catch (e) {
           token = localStorage.getItem('mp_backend_token') || '';
         }
+        if (!token) token = localStorage.getItem('mp_backend_token') || '';
+      }
 
-        const timestamp = Date.now().toString();
-        const nonce = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const timestamp = Date.now().toString();
+      const nonce = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          'X-Timestamp': timestamp,
-          'X-Nonce': nonce
-        };
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Timestamp': timestamp,
+        'X-Nonce': nonce,
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
-        const response = await fetch(`${API_BASE}/api/ai/analyze`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            prompt: userText,
-            data: businessContext,
-            agentName: chatSelectedAgent
-          })
-        });
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+      const response = await fetch(`${API_BASE}/api/ai/analyze`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          prompt: userText,
+          data: businessContext,
+          agentName: chatSelectedAgent,
+        }),
+      });
 
-        mockPayload = await response.json().catch(() => ({}));
 
-        if (!response.ok) {
-          throw new Error(mockPayload.error || 'Server processing error.');
-        }
+      mockPayload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(mockPayload.error || 'Server processing error.');
       }
 
       answerText = mockPayload.answer || 'Consultation complete.';
+
+      // Parse legacy markdown sections for backward compat
+      const text = answerText;
+      const getSection = (title: string) => {
+        const regex = new RegExp(`### \\s*${title}[\\s\\S]*?(?=###|$)`, 'i');
+        const match = text.match(regex);
+        return match ? match[0].replace(new RegExp(`### \\s*${title}`, 'i'), '').trim() : '';
+      };
+      const parsedSummary = getSection('Summary') || getSection('📊 Summary');
+      const parsedInsights = getSection('Insights') || getSection('🔍 Insights');
+      const parsedKeyFindings = getSection('Key Findings') || getSection('💡 Key Findings');
+      const parsedRecommendations = getSection('Recommendations') || getSection('📈 Recommendations');
+      const parsedPriority = getSection('Priority Level') || getSection('⚡ Priority Level') || 'Medium';
+      const parsedExpectedImpact = getSection('Expected Business Impact') || getSection('🎯 Expected Business Impact');
+      const parsedSuggestedSteps = getSection('Suggested Next Steps') || getSection('📋 Suggested Next Steps');
+
+      const agentMsg = {
+        sender: 'agent' as const,
+        agentName: mockPayload.agentLabel || chatSelectedAgent,
+        text: answerText,
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        agentLabel: mockPayload.agentLabel,
+        confidence: mockPayload.confidence,
+        confidenceReason: mockPayload.confidenceReason,
+        evidence: mockPayload.evidence || [],
+        alternatives: mockPayload.alternatives || [],
+        impact: mockPayload.impact || parsedExpectedImpact || '',
+        suggestedNextSteps: mockPayload.suggestedNextSteps || (parsedSuggestedSteps ? [parsedSuggestedSteps] : []),
+        draftActions: mockPayload.draftActions || [],
+        requiresApproval: mockPayload.requiresApproval ?? false,
+        memoryId: mockPayload.memoryId || null,
+        ...(parsedSummary || parsedInsights || parsedRecommendations ? {
+          structured: {
+            summary: parsedSummary,
+            insights: parsedInsights,
+            keyFindings: parsedKeyFindings,
+            recommendations: parsedRecommendations,
+            priority: parsedPriority,
+            expectedImpact: parsedExpectedImpact,
+            suggestedSteps: parsedSuggestedSteps,
+          }
+        } : {}),
+      };
+
+      setChatLog(prev => [...prev, agentMsg]);
+
+      // Streaming word-by-word reveal
       const words = answerText.split(' ');
       let currentWordIndex = 0;
       let streamingText = '';
-
-      setChatLog(prev => [...prev, {
-        sender: 'agent' as const,
-        agentName: chatSelectedAgent,
-        text: '',
-        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
-        structured: mockPayload.summary ? {
-          summary: mockPayload.summary,
-          insights: mockPayload.insights,
-          keyFindings: mockPayload.keyFindings,
-          recommendations: mockPayload.recommendations,
-          priority: mockPayload.priority,
-          expectedImpact: mockPayload.expectedImpact,
-          suggestedSteps: mockPayload.suggestedSteps
-        } : undefined
-      }]);
-
       const timer = setInterval(() => {
         if (currentWordIndex < words.length) {
           streamingText += (currentWordIndex === 0 ? '' : ' ') + words[currentWordIndex];
           currentWordIndex++;
           setChatLog(prev => {
             const copy = [...prev];
-            copy[copy.length - 1].text = streamingText;
+            copy[copy.length - 1] = { ...copy[copy.length - 1], text: streamingText };
             return copy;
           });
         } else {
@@ -561,17 +604,16 @@ export default function AIInsightsPage() {
             setAgents(prev => prev.map((a, i) => i === matchingAgentIndex ? { ...a, status: 'success' } : a));
           }
         }
-      }, 30);
+      }, 25);
     } catch (err: any) {
       console.error('AI Insights Request Error:', err);
-      
       setChatLog(prev => [...prev, {
         sender: 'agent',
         agentName: 'System Advisor',
-        text: err.message || 'Apologies, we encountered a technical interruption. Please verify your connection and try again shortly.',
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        text: err.message || 'Apologies, we encountered a technical interruption. Please try again.',
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        retryable: true,
       }]);
-
       if (matchingAgentIndex !== -1) {
         setAgents(prev => prev.map((a, i) => i === matchingAgentIndex ? { ...a, status: 'idle' } : a));
       }
@@ -600,15 +642,34 @@ export default function AIInsightsPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-xs font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Agent Orchestrator Live
+            {aiHealth.status === 'degraded' ? (
+              <span id="agentOrchestratorStatus" className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-full text-xs font-semibold">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                Orchestrator Degraded
+              </span>
+            ) : (
+              <span id="agentOrchestratorStatus" className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-xs font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Agent Orchestrator Live
+              </span>
+            )}
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-violet-500/10 border border-violet-500/20 text-violet-300 rounded-full text-xs font-semibold">
+              🧠 AI Memory Active
             </span>
             <span className="flex items-center gap-1.5 px-3 py-1 bg-[#FAB12F]/10 border border-accent-500/20 text-amber-600 rounded-full text-xs font-semibold">
-              🔒 Privacy Preserved (Anonymized)
+              🔒 Privacy Preserved
             </span>
           </div>
         </section>
+
+        {aiHealth.status === 'degraded' && (
+          <div id="aiDegradedBanner" className="bg-rose-500/10 border border-rose-500/25 p-4 rounded-2xl flex flex-col gap-1">
+            <h4 className="text-sm font-bold text-rose-400">⚠️ AI Insights Service Degraded</h4>
+            <p className="text-xs text-rose-300 font-medium">
+              The AI assistant is currently operating with simulated intelligence fallback. Error details: {aiHealth.error || 'Gemini API Key validation failed.'}
+            </p>
+          </div>
+        )}
 
         {/* Dynamic Navigation Tabs */}
         <div className="flex overflow-x-auto gap-2 p-1 bg-[#fff6e6] dark:bg-slate-950 border border-[#f3d9a7] dark:border-slate-800 rounded-2xl">
@@ -854,12 +915,15 @@ export default function AIInsightsPage() {
             <Card className="bg-white dark:bg-slate-900 border border-[#f3d9a7] dark:border-slate-800 p-5 rounded-3xl space-y-3 shadow-sm">
               <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Select Agent Persona</h3>
               {[
-                { name: 'All-Agent Orchestrator', desc: 'Unified network supervisor', emoji: '🤖' },
-                { name: 'Commerce Intelligence Agent', desc: 'Category growth & trends expert', emoji: '📈' },
-                { name: 'GST Intelligence Agent', desc: 'HSN, billing & threshold advisor', emoji: '🏛️' },
-                { name: 'Digital Marketing Agent', desc: 'Copywriter & performance advisor', emoji: '📣' },
-                { name: 'Inventory Optimization Agent', desc: 'Lead time & replenishment forecaster', emoji: '⚙️' },
-                { name: 'NVIDIA GLM-5.2 Agent', desc: 'General business & cross-lingual advisor', emoji: '⚡' }
+                { name: 'All-Agent Orchestrator', desc: 'Unified network supervisor', emoji: '🤖', domain: 'general' },
+                { name: 'Inventory Optimization Agent', desc: 'Stock, reorder & procurement', emoji: '📦', domain: 'inventory' },
+                { name: 'CRM & Sales Agent', desc: 'Leads, pipeline & follow-ups', emoji: '🤝', domain: 'crm' },
+                { name: 'Finance Agent', desc: 'Revenue, margins & cash flow', emoji: '💰', domain: 'finance' },
+                { name: 'Digital Marketing Agent', desc: 'SEO, ads & campaigns', emoji: '📣', domain: 'marketing' },
+                { name: 'GST Compliance Agent', desc: 'Tax slabs, MSME & Udyam', emoji: '🏛️', domain: 'compliance' },
+                { name: 'Market Intelligence Agent', desc: 'Trends, news & opportunities', emoji: '🌐', domain: 'market_intel' },
+                { name: 'Customer Support Agent', desc: 'Reply drafts & FAQ generation', emoji: '💬', domain: 'support' },
+                { name: 'Analytics Agent', desc: 'KPIs, reports & growth insights', emoji: '📊', domain: 'analytics' },
               ].map((persona) => (
                 <button
                   key={persona.name}
@@ -921,12 +985,30 @@ export default function AIInsightsPage() {
                       {chat.agentName} • {chat.time}
                     </span>
                     <div
+                      data-testid={chat.sender === 'user' ? 'user-message' : 'agent-message'}
                       className={`p-4 rounded-2xl text-xs font-semibold leading-relaxed border ${
                         chat.sender === 'user'
                           ? 'bg-[#222222] dark:bg-slate-800 text-white border-[#222222] dark:border-slate-700 rounded-tr-none shadow-sm'
                           : 'bg-[#fff6e6] dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-[#f3d9a7] dark:border-slate-850 rounded-tl-none shadow-xs'
                       }`}
                     >
+                      {/* Agent routing label */}
+                      {chat.sender === 'agent' && chat.agentLabel && (
+                        <div className="flex items-center gap-1.5 mb-3 pb-2 border-b border-[#f3d9a7]/60 dark:border-slate-800/60">
+                          <span className="text-[9px] text-slate-400 font-medium">Routed to:</span>
+                          <span className="text-[9px] font-bold text-violet-500 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full">{chat.agentLabel}</span>
+                          {chat.confidence && (
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ml-auto ${
+                              chat.confidence === 'High' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                              : chat.confidence === 'Low' ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                              : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                            }`}>
+                              {chat.confidence} Confidence
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       {chat.structured && (chat.text.includes('###') || chat.structured.summary) ? (
                         <div className="space-y-4">
                           {chat.structured.summary && (
@@ -979,14 +1061,117 @@ export default function AIInsightsPage() {
                       ) : (
                         <div className="whitespace-pre-wrap font-normal leading-relaxed">{chat.text}</div>
                       )}
+
+                      {/* Evidence pills */}
+                      {chat.sender === 'agent' && chat.evidence && chat.evidence.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-[#f3d9a7]/60 dark:border-slate-800/60">
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Evidence</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {chat.evidence.map((ev, ei) => (
+                              <span key={ei} className="text-[9px] bg-blue-500/8 border border-blue-500/15 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium">{ev}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Business impact */}
+                      {chat.sender === 'agent' && chat.impact && (
+                        <div className="mt-2 p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+                          <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">Business Impact</p>
+                          <p className="text-[10px] text-slate-600 dark:text-slate-300 font-normal leading-normal">{chat.impact}</p>
+                        </div>
+                      )}
+
+                      {/* Alternatives */}
+                      {chat.sender === 'agent' && chat.alternatives && chat.alternatives.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Alternatives</p>
+                          <ul className="space-y-0.5">
+                            {chat.alternatives.map((alt, ai) => (
+                              <li key={ai} className="text-[10px] text-slate-500 dark:text-slate-400 flex items-start gap-1">
+                                <span className="text-amber-500 mt-0.5">›</span> {alt}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Next steps */}
+                      {chat.sender === 'agent' && chat.suggestedNextSteps && chat.suggestedNextSteps.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Next Steps</p>
+                          <ol className="space-y-0.5 list-decimal list-inside">
+                            {chat.suggestedNextSteps.map((step, si) => (
+                              <li key={si} className="text-[10px] text-slate-600 dark:text-slate-300 font-normal">{step}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      )}
+
+                      {/* Approval-first draft action cards */}
+                      {chat.sender === 'agent' && chat.draftActions && chat.draftActions.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-[#f3d9a7]/60 dark:border-slate-800/60 space-y-2">
+                          <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider">⚡ Draft Actions — Review Required</p>
+                          {chat.draftActions.map((action, ai) => (
+                            <div key={ai} className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/15">
+                              <p className="text-[10px] font-bold text-[#1f2937] dark:text-white">{action.label}</p>
+                              <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 font-normal">{action.details}</p>
+                              <div className="flex gap-2 mt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => alert(`Draft approved: ${action.label}`)}
+                                  className="text-[9px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/20 transition-colors"
+                                >
+                                  ✓ Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => alert(`Draft dismissed: ${action.label}`)}
+                                  className="text-[9px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-200 transition-colors"
+                                >
+                                  Dismiss
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Feedback and Correct buttons under Agent replies */}
                     {chat.sender !== 'user' && (
                       <div className="flex items-center gap-3 mt-1.5 ml-2">
+                        {chat.retryable && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const retryMsg = chatLog.slice(0, idx).filter(m => m.sender === 'user').slice(-1)[0]?.text || '';
+                              if (retryMsg) {
+                                setChatMessage(retryMsg);
+                              }
+                            }}
+                            className="text-[10px] text-rose-500 hover:underline font-bold flex items-center gap-0.5"
+                          >
+                            🔄 Retry
+                          </button>
+                        )}
                         <button
                           type="button"
-                          onClick={() => alert('Response marked helpful for agent reinforcement.')}
+                          onClick={() => {
+                            const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+                            if (chat.memoryId) {
+                              import('@/lib/firebase').then(({ getFirebaseServices }) =>
+                                getFirebaseServices().then(services =>
+                                  services?.auth?.currentUser?.getIdToken().then(token =>
+                                    fetch(`${API_BASE}/api/ai/memory/${chat.memoryId}/feedback`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                      body: JSON.stringify({ feedback: 'approved' }),
+                                    })
+                                  )
+                                )
+                              );
+                            }
+                          }}
                           className="text-xs hover:scale-125 active:scale-90 transition-transform cursor-pointer"
                           title="Helpful (👍)"
                         >
@@ -994,7 +1179,22 @@ export default function AIInsightsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => alert('Feedback recorded for safety optimization.')}
+                          onClick={() => {
+                            const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+                            if (chat.memoryId) {
+                              import('@/lib/firebase').then(({ getFirebaseServices }) =>
+                                getFirebaseServices().then(services =>
+                                  services?.auth?.currentUser?.getIdToken().then(token =>
+                                    fetch(`${API_BASE}/api/ai/memory/${chat.memoryId}/feedback`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                      body: JSON.stringify({ feedback: 'rejected' }),
+                                    })
+                                  )
+                                )
+                              );
+                            }
+                          }}
                           className="text-xs hover:scale-125 active:scale-90 transition-transform cursor-pointer"
                           title="Unhelpful (👎)"
                         >
@@ -1004,7 +1204,6 @@ export default function AIInsightsPage() {
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(chat.text);
-                            alert('Response copied to clipboard!');
                           }}
                           className="text-[10px] text-slate-400 hover:text-[#FAB12F] font-bold ml-2 cursor-pointer flex items-center gap-0.5"
                           title="Copy response"
@@ -1063,12 +1262,15 @@ export default function AIInsightsPage() {
                 {chatLoading && (
                   <div className="flex flex-col max-w-[80%] mr-auto items-start">
                     <span className="text-[10px] font-bold text-slate-505 mb-1">
-                      {chatSelectedAgent} • Thinking...
+                      Orchestrator • Routing...
                     </span>
-                    <div className="p-4 rounded-2xl text-xs font-semibold leading-relaxed border bg-[#fff6e6] dark:bg-slate-950 text-slate-400 border-[#f3d9a7] dark:border-slate-800 rounded-tl-none flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-bounce" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-bounce [animation-delay:0.2s]" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-bounce [animation-delay:0.4s]" />
+                    <div className="p-4 rounded-2xl text-xs leading-relaxed border bg-[#fff6e6] dark:bg-slate-950 border-[#f3d9a7] dark:border-slate-800 rounded-tl-none space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-bounce" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#FAB12F] animate-bounce [animation-delay:0.2s]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-bounce [animation-delay:0.4s]" />
+                        <span className="text-[10px] text-slate-400 font-medium ml-1">Detecting intent & routing to specialist agent...</span>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -10,6 +10,7 @@ const mime = {
 };
 
 const server = http.createServer((req, res) => {
+  console.log(`[REQUEST] ${req.method} ${req.url}`);
   let file = req.url.split('?')[0];
   if (file === '/') file = '/index.html';
   let filePath = path.join(root, file);
@@ -38,6 +39,7 @@ const server = http.createServer((req, res) => {
       resolvedPath = path.join(filePath, 'index.html');
     }
 
+    console.log(`  -> Resolved: ${resolvedPath}`);
     fs.readFile(resolvedPath, (err, data) => {
       if (err) {
         res.statusCode = 404;

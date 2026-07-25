@@ -3,8 +3,15 @@ title = "marketplace-store gitleaks config"
 [allowlist]
 description = "Allow placeholder docs/examples"
 paths = [
-  '''^.*\.md$''',
-  '''^\.env\.example$'''
+  '''^\.env\.example$''',
+  '''^scripts/full-secret-scan\.ps1$''',
+  '''^tests/.*$'''
+]
+
+[allowlist.regexes]
+regexes = [
+  '''JWT_SECRET=replace-with-.*''',
+  '''JWT_SECRET=your-.*'''
 ]
 
 [[rules]]
@@ -26,3 +33,23 @@ regex = '''-----BEGIN PRIVATE KEY-----'''
 id = "aws-secret"
 description = "AWS secret access key"
 regex = '''(?i)aws(.{0,20})?(secret|access).{0,20}['\"][0-9a-zA-Z/+]{40}['\"]'''
+
+[[rules]]
+id = "razorpay-key"
+description = "Razorpay key"
+regex = '''rzp_(test|live)_[a-zA-Z0-9]{14,30}'''
+
+[[rules]]
+id = "twilio-credentials"
+description = "Twilio credentials"
+regex = '''(SK|AC)[0-9a-fA-F]{32}'''
+
+[[rules]]
+id = "nvidia-api-key"
+description = "NVIDIA API key"
+regex = '''nvapi-[A-Za-z0-9_-]{20,100}'''
+
+[[rules]]
+id = "gcp-service-account"
+description = "Google Cloud service account key"
+regex = '''"type":\s*"service_account"'''

@@ -479,7 +479,6 @@ export default function LeadsPage() {
       return l;
     });
     saveLeads(updatedLeads);
-    alert('Follow-up schedule updated.');
   };
 
   // Add CRM Contact manually

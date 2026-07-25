@@ -1,0 +1,34 @@
+{
+  "recommendations": [
+    {
+      "id": 1784353233232,
+      "business_id": 1,
+      "agent_name": "All-Agent Orchestrator",
+      "prompt_context": "why did sales dip this month?",
+      "recommendation_text": "Recommended Actions (Self-Learned):\n1. **Inventory Buffers**: Maintain current stock, but set safety reorder threshold for Copper Core Grounding Wire to 10 units before festival season.\n2. **Digital Marketing**: Launch Google Search Ads for \"bulk electrical supplier India\" with a target budget of ₹12,000 to capture regional B2B demand spikes.\n3. **SEO optimization**: Update listing title tags to include \"[Product Name] - Bulk Wholesale Pack (MOQ: [MOQ] units)\" to increase organic B2B clicks.",
+      "domain": "commerce",
+      "created_at": "2026-07-18T05:40:33.233Z"
+    },
+    {
+      "id": 1784353233602,
+      "business_id": 1,
+      "agent_name": "All-Agent Orchestrator",
+      "prompt_context": "predict my sales trends and suggest next actions",
+      "recommendation_text": "Recommended Actions (Self-Learned):\n1. **Inventory Buffers**: Maintain current stock, but set safety reorder threshold for Copper Core Grounding Wire to 10 units before festival season.\n2. **Digital Marketing (Adjusted)**: Skip ad campaign spend per your previous feedback constraints. Focus entirely on organic B2B listing keyword updates.\n3. **SEO optimization**: Update listing title tags to include \"[Product Name] - Bulk Wholesale Pack (MOQ: [MOQ] units)\" to increase organic B2B clicks.",
+      "domain": "commerce",
+      "created_at": "2026-07-18T05:40:33.602Z"
+    }
+  ],
+  "corrections": [
+    {
+      "id": 1784353233351,
+      "business_id": 1,
+      "agent_name": "All-Agent Orchestrator",
+      "prompt_context": "why did sales dip this month?",
+      "original_recommendation": "Recommended Actions (Self-Learned):\n1. **Inventory Buffers**: Maintain current stock, but set safety reorder threshold for Copper Core Grounding Wire to 10 units before festival season.\n2. **Digital Marketing**: Launch Google Search Ads for \"bulk electrical supplier India\" with a target budget of ₹12,000 to capture regional B2B demand spikes.\n3. **SEO optimization**: Update listing title tags to include \"[Product Name] - Bulk Wholesale Pack (MOQ: [MOQ] units)\" to increase organic B2B clicks.",
+      "corrected_text": "We paused all active Google/Facebook ad campaigns last month because of high acquisition costs.",
+      "is_rejected": true,
+      "created_at": "2026-07-18T05:40:33.351Z"
+    }
+  ]
+}

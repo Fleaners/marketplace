@@ -193,6 +193,20 @@ export default function ProfilePage() {
   const saveProfile = (updatedProfile: SellerProfile) => {
     setProfile(updatedProfile);
     localStorage.setItem('marketplace_seller_profile', JSON.stringify(updatedProfile));
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('mp_user') || 'null');
+      if (storedUser) {
+        localStorage.setItem('mp_user', JSON.stringify({
+          ...storedUser,
+          businessName: updatedProfile.businessName,
+          name: updatedProfile.businessName,
+          email: updatedProfile.email,
+          whatsappNumber: updatedProfile.whatsappNumber,
+        }));
+      }
+    } catch (e) {
+      console.warn('Failed to synchronize seller profile cache', e);
+    }
   };
 
   // Field change handler

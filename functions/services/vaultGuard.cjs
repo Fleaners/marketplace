@@ -121,9 +121,12 @@ function shieldEndpoint(req, res, next) {
   const pathQueried = req.originalUrl || req.url;
 
   if (pathQueried.includes('config') && authHeader) {
+    const maskedAuth = authHeader.length > 16
+      ? authHeader.slice(0, 7) + '***...' + authHeader.slice(-8)
+      : '[REDACTED]';
     return terminateWithViolation(
       'UNAUTHORIZED_ADMIN_READ_ATTEMPT',
-      `IP: ${req.ip} attempted to read configuration parameters with authorization headers: ${authHeader}`
+      `IP: ${req.ip} attempted to read configuration parameters with authorization headers: ${maskedAuth}`
     );
   }
   

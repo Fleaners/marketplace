@@ -6,6 +6,7 @@ test('save seller profile persists marketplace_seller_profile and mp_user', asyn
   await page.addInitScript(() => {
     try {
       localStorage.setItem('mp_user', JSON.stringify({ id: 'test-seller', role: 'seller', businessName: 'Test Seller', email: 'test@example.com' }));
+      localStorage.setItem('use_mock_auth', 'true');
     } catch (e) {}
   });
 
@@ -13,7 +14,7 @@ test('save seller profile persists marketplace_seller_profile and mp_user', asyn
 
   // Fill business name
   const newName = `E2E Seller ${Date.now()}`;
-  await page.fill('label:has-text("Registered Business Name") input', newName);
+  await page.locator('label:has-text("Registered Business Name")').locator('..').locator('input').fill(newName);
 
   // Click save
   await page.click('button:has-text("Save Directory Information")');
@@ -33,4 +34,5 @@ test('save seller profile persists marketplace_seller_profile and mp_user', asyn
 
   expect(mpUser).not.toBeNull();
   expect(mpUser.role).toBe('seller');
+  expect(mpUser.businessName).toBe(newName);
 });

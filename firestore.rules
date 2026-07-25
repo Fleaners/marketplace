@@ -194,14 +194,21 @@ service cloud.firestore {
     }
 
     match /sellers/{sellerId} {
-      allow read: if true;
+      // Public profile fields are readable by authenticated users only
+      allow read: if isSignedIn();
       allow write: if isSignedIn() && (sellerId == request.auth.uid || isAdmin());
     }
 
     match /businesses/{businessId} {
+      // Public storefront data (shop name, category, city) is readable by all
       allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if hasBusinessId(businessId) || isAdmin();
+
+      // Sensitive business data (GST, PAN, bank details) — owner/admin only
+      match /private/{privateDoc} {
+        allow read, write: if hasBusinessId(businessId) || isAdmin();
+      }
 
       match /products/{productId} {
         allow read: if true;
@@ -209,6 +216,10 @@ service cloud.firestore {
       }
 
       match /invoices/{invoiceId} {
+        allow read, write: if hasBusinessId(businessId) || isAdmin();
+      }
+
+      match /customers/{customerId} {
         allow read, write: if hasBusinessId(businessId) || isAdmin();
       }
     }
@@ -238,6 +249,33 @@ service cloud.firestore {
       allow create: if isSignedIn() && isOwner('userId');
       allow read: if isAdmin();
       allow update, delete: if false;
+    }
+
+    // ── Auth-related collections ── server-managed, no client access ──
+    match /authRefreshTokens/{tokenId} {
+      allow read, write: if false;
+    }
+
+    match /authOtps/{otpId} {
+      allow read, write: if false;
+    }
+
+    // ── Security & audit collections ── admin read only ──
+    match /audit_logs/{logId} {
+      allow create: if false;  // written by server only
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /security_alerts/{alertId} {
+      allow create: if false;  // written by server only
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /secret_rotation_policy/{policyId} {
+      allow read: if isAdmin();
+      allow write: if false;  // managed by Cloud Functions only
     }
 
     match /{document=**} {

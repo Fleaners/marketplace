@@ -6,6 +6,8 @@ import { DashboardLayout } from '@/components/layout';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { navigationItems } from '@/lib/navigation';
+import { getFirebaseServices } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 
 interface RFQOrder {
   id: string;
@@ -34,117 +36,112 @@ export default function OrdersPage() {
 
   // Initial load
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('marketplace_rfqs');
-      if (stored) {
-        setRfqs(JSON.parse(stored));
-      } else {
-        const defaultRfqs: RFQOrder[] = [
-          {
-            id: 'RFQ-2026-001',
-            buyerName: 'Ramesh Kumar',
-            buyerCompany: 'Om Sree Enterprises',
-            productName: 'Industrial Water Pump',
-            quantity: 4,
-            unit: 'Pieces',
-            targetPrice: 13500,
-            totalValue: 54000,
-            createdAt: '2026-07-02T10:30:00Z',
-            status: 'pending',
-            whatsappNumber: '919876543210',
-            notes: 'Need standard GST invoice. Require delivery to Nagpur warehouse.',
-          },
-          {
-            id: 'RFQ-2026-002',
-            buyerName: 'Ananya Sen',
-            buyerCompany: 'Apex Builders & Co',
-            productName: 'Heavy Duty Adhesive Sealant',
-            quantity: 50,
-            unit: 'Pieces',
-            targetPrice: 420,
-            totalValue: 21000,
-            createdAt: '2026-07-01T14:22:00Z',
-            status: 'discussion',
-            whatsappNumber: '919876543210',
-            notes: 'Looking for a recurring monthly bulk supply contract. Please quote wholesale rate.',
-          },
-          {
-            id: 'RFQ-2026-003',
-            buyerName: 'Vijay Patel',
-            buyerCompany: 'Gujarat Power Grid',
-            productName: 'Copper Core Grounding Wire',
-            quantity: 500,
-            unit: 'Meters',
-            targetPrice: 1150,
-            totalValue: 575000,
-            createdAt: '2026-06-29T11:05:00Z',
-            status: 'confirmed',
-            whatsappNumber: '919876543210',
-            notes: 'Order confirmed with 10% advance deposit paid via UPI.',
-          },
-          {
-            id: 'RFQ-2026-004',
-            buyerName: 'Amit Sharma',
-            buyerCompany: 'Sharma Metal Works',
-            productName: 'Brass Coupling Joints (1/2 Inch)',
-            quantity: 200,
-            unit: 'Pieces',
-            targetPrice: 80,
-            totalValue: 16000,
-            createdAt: '2026-06-25T09:15:00Z',
-            status: 'dispatched',
-            whatsappNumber: '919876543210',
-            notes: 'Dispatched via SafeExpress. Tracking ID: EXP-998822.',
-          },
-        ];
-        localStorage.setItem('marketplace_rfqs', JSON.stringify(defaultRfqs));
-        setRfqs(defaultRfqs);
+    let unsubscribe = () => {};
+    const initFirestore = async () => {
+      try {
+        const storedUser = localStorage.getItem('mp_user');
+        const userObj = storedUser ? JSON.parse(storedUser) : null;
+        if (!userObj || !userObj.uid) return;
+
+        const services = await getFirebaseServices();
+        if (!services) return;
+        const { db } = services;
+
+        const q = query(
+          collection(db, 'inquiries'),
+          where('sellerId', '==', userObj.uid)
+        );
+
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const list: RFQOrder[] = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            const message = data.message || '';
+            let qty = Number(data.quantity) || 1;
+            let targetDate = data.requiredDate || '';
+
+            if (!data.quantity) {
+              const qtyMatch = message.match(/Quantity Required:\s*(\d+)/i);
+              if (qtyMatch) qty = parseInt(qtyMatch[1]);
+            }
+            if (!data.requiredDate) {
+              const dateMatch = message.match(/Target Date:\s*([\d-]+)/i);
+              if (dateMatch) targetDate = dateMatch[1];
+            }
+
+            list.push({
+              id: doc.id,
+              buyerName: data.buyerName || 'Valued Lead',
+              buyerCompany: data.buyerCompany || data.buyerName || 'Trade Partner',
+              productName: data.productName || 'General Product',
+              quantity: qty,
+              unit: data.unit || 'Pieces',
+              targetPrice: Number(data.targetPrice) || undefined,
+              totalValue: Number(data.totalValue) || (qty * (Number(data.price) || 0)),
+              createdAt: data.timestamp ? (data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp) : new Date().toISOString(),
+              status: data.status || 'pending',
+              whatsappNumber: data.buyerPhone || '919876543210',
+              notes: message,
+            });
+          });
+          setRfqs(list);
+          localStorage.setItem('marketplace_rfqs', JSON.stringify(list));
+        }, (err) => {
+          console.error("Firestore orders query error:", err);
+        });
+      } catch (err) {
+        console.error("Failed to load inquiries from Firestore:", err);
       }
-    } catch (e) {
-      console.error('Failed to load RFQs from storage', e);
-    }
+    };
+    initFirestore();
+    return () => unsubscribe();
   }, []);
 
-  const saveRfqsToStorage = (updated: RFQOrder[]) => {
-    setRfqs(updated);
-    localStorage.setItem('marketplace_rfqs', JSON.stringify(updated));
-  };
-
-  const handleUpdateStatus = (id: string, nextStatus: RFQOrder['status']) => {
-    const updated = rfqs.map((r) => {
-      if (r.id === id) {
-        return { ...r, status: nextStatus };
+  const handleUpdateStatus = async (id: string, nextStatus: RFQOrder['status']) => {
+    try {
+      const services = await getFirebaseServices();
+      if (!services) return;
+      const { db } = services;
+      await updateDoc(doc(db, 'inquiries', id), {
+        status: nextStatus,
+        updatedAt: new Date().toISOString()
+      });
+      if (selectedRfq && selectedRfq.id === id) {
+        setSelectedRfq({ ...selectedRfq, status: nextStatus });
       }
-      return r;
-    });
-    saveRfqsToStorage(updated);
-    if (selectedRfq && selectedRfq.id === id) {
-      setSelectedRfq({ ...selectedRfq, status: nextStatus });
+    } catch (err) {
+      console.error('Failed to update inquiry status in Firestore:', err);
     }
   };
 
-  const handleSubmitQuote = (e: React.FormEvent) => {
+  const handleSubmitQuote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRfq || !quotationPrice) return;
 
-    const priceNum = Number(quotationPrice);
-    const updated = rfqs.map((r) => {
-      if (r.id === selectedRfq.id) {
-        return {
-          ...r,
-          status: 'discussion' as const,
-          targetPrice: priceNum,
-          totalValue: priceNum * r.quantity,
-          notes: `${r.notes || ''}\n[Quotation Submitted: ₹${priceNum}/unit on ${new Date().toLocaleDateString()}]`,
-        };
-      }
-      return r;
-    });
+    try {
+      const services = await getFirebaseServices();
+      if (!services) return;
+      const { db } = services;
 
-    saveRfqsToStorage(updated);
-    setSelectedRfq(null);
-    setQuotationPrice('');
-    alert('Quotation submitted successfully! Initiating discussion with the buyer.');
+      const priceNum = Number(quotationPrice);
+      const total = priceNum * selectedRfq.quantity;
+      const newNotes = `${selectedRfq.notes || ''}\n[Quotation Submitted: ₹${priceNum}/unit on ${new Date().toLocaleDateString()}]`;
+
+      await updateDoc(doc(db, 'inquiries', selectedRfq.id), {
+        status: 'discussion',
+        targetPrice: priceNum,
+        totalValue: total,
+        message: newNotes,
+        updatedAt: new Date().toISOString()
+      });
+
+      setSelectedRfq(null);
+      setQuotationPrice('');
+      alert('Quotation submitted successfully! Initiating discussion with the buyer.');
+    } catch (err) {
+      console.error('Failed to submit quotation in Firestore:', err);
+      alert('Failed to submit quote. Please try again.');
+    }
   };
 
   // Filter products by tabs and search query

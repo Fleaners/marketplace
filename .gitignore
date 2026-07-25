@@ -5,21 +5,42 @@ yarn-debug.log*
 yarn-error.log*
 package-lock.json
 pnpm-lock.yaml
+
 .env
 .env.*
 !.env.example
+.env.encrypted
+*.dpapi
+
+# Cloud credentials and keys
+.aws/
 *.pem
 *.key
 *.p12
 *.p8
 *.cer
+*.jks
+*.keystore
+
+# Service account and OAuth files
+serviceAccount*.json
+firebase-adminsdk*.json
+googleid*.json
+*oauth*.json
+*-credentials.json
 *service-account*.json
-*firebase-admin*.json
-serviceAccount.json
+
+# Logs (may contain sensitive data)
 firebase-debug.log*
 *.log
+debug.log
+deploy-debug*.txt
+
+# Secrets directories and files
 secrets/
+**/.secrets
 *.secrets
+replacements.txt
 
 # Flutter
 .dart_tool/
@@ -45,6 +66,9 @@ backend/service-account-key.json
 # OS files
 .DS_Store
 Thumbs.db
+
+# Marketplace secrets vault
+.marketplace-secrets/
 
 # Next.js build outputs
 next_app/.next/

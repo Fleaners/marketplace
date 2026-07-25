@@ -220,15 +220,36 @@ function createRateLimitHandler(message) {
 }
 
 function redactSecrets(data) {
-  const redactKeys = ['password', 'token', 'authorization', 'jwt', 'secret', 'otp', 'cookie', 'set-cookie'];
+  const fullRedactKeys = ['password', 'token', 'authorization', 'jwt', 'secret', 'otp', 'cookie', 'set-cookie',
+    'bank_account', 'account_number', 'ifsc', 'aadhaar', 'card_number', 'cvv', 'pin',
+    'api_key', 'apikey', 'private_key', 'refresh_token', 'access_token'];
+  const partialRedactKeys = ['gst_number', 'gstin', 'pan', 'pan_number'];
+  const phoneRedactKeys = ['phone', 'phone_number', 'mobile', 'from_phone'];
+  const emailRedactKeys = ['email', 'smtp_user', 'smtp_from'];
+
   if (Array.isArray(data)) {
     return data.map((item) => redactSecrets(item));
   }
   if (data && typeof data === 'object') {
     return Object.entries(data).reduce((acc, [key, value]) => {
       const lower = key.toLowerCase();
-      if (redactKeys.some((k) => lower.includes(k))) {
+      if (fullRedactKeys.some((k) => lower.includes(k))) {
         acc[key] = '[REDACTED]';
+      } else if (partialRedactKeys.some((k) => lower === k || lower.includes(k))) {
+        // Show last 4 characters for identification (e.g., ***********1Z5)
+        const str = String(value || '');
+        acc[key] = str.length > 4 ? '*'.repeat(str.length - 4) + str.slice(-4) : '[REDACTED]';
+      } else if (phoneRedactKeys.some((k) => lower === k || lower.includes(k))) {
+        const str = String(value || '');
+        acc[key] = str.length > 4 ? '******' + str.slice(-4) : '[REDACTED]';
+      } else if (emailRedactKeys.some((k) => lower === k || lower.includes(k))) {
+        const str = String(value || '');
+        const atIdx = str.indexOf('@');
+        if (atIdx > 1) {
+          acc[key] = str[0] + '***@' + str.slice(atIdx + 1);
+        } else {
+          acc[key] = '[REDACTED]';
+        }
       } else {
         acc[key] = redactSecrets(value);
       }

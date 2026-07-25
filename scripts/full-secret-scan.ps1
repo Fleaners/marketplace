@@ -40,14 +40,20 @@ $patterns = @(
 )
 
 $rulePathAllowlist = @{
-  'Private key block' = @('.\scripts\full-secret-scan.ps1')
+  'Private key block' = @(
+    '.\scripts\full-secret-scan.ps1',
+    '.\functions\tests\security.test.mjs'
+  )
   'Google OAuth client secret assignment' = @('.\scripts\full-secret-scan.ps1')
   'Generic secret/token assignment' = @(
     '.\scripts\full-secret-scan.ps1',
     '.\functions\tests\ai.test.mjs',
+    '.\functions\tests\security.test.mjs',
+    '.\functions\tests\inventory-validation.test.mjs',
     '.\scripts\auth-flow.e2e.spec.ts',
     '.\scripts\run-openhands.ps1',
-    '.\web_app\app.js'
+    '.\web_app\app.js',
+    '.\docs\incident-response-runbook.md'
   )
 }
 

@@ -6,7 +6,7 @@
     localStorage.setItem('APP_VERSION', APP_VERSION);
     
     // Clear Service Worker registrations
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && navigator.serviceWorker) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
         for (const registration of registrations) {
           registration.unregister();
@@ -345,7 +345,9 @@ function initFirebaseAuth() {
         fillProfile();
         routeSignedInUser(profile);
         await maybeLaunchProfileWizard(profile, user);
-        await refreshBackendSessionIfNeeded();
+        refreshBackendSessionIfNeeded().catch((err) => {
+          console.warn('Background refreshBackendSessionIfNeeded failed:', err);
+        });
       } else {
         if (!currentUserProfile || currentUserProfile.uid !== user.uid) {
           currentUserProfile = null;
@@ -367,11 +369,95 @@ function initFirebaseAuth() {
   analyticsInstance = firebase.analytics ? firebase.analytics() : null;
 }
 
+/**
+ * Global Exception & Promise Rejection Monitoring
+ */
+function setupGlobalErrorMonitoring() {
+  window.addEventListener('unhandledrejection', (event) => {
+    console.warn('[Global Error Monitor] Unhandled rejection:', event.reason);
+    logClientError('unhandled_rejection', { reason: String(event.reason?.stack || event.reason) });
+  });
+
+  window.addEventListener('error', (event) => {
+    console.warn('[Global Error Monitor] Runtime error:', event.error || event.message);
+    logClientError('runtime_error', { message: event.message, filename: event.filename, lineno: event.lineno });
+  });
+}
+
+function logClientError(type, details = {}) {
+  try {
+    if (window.gtag) {
+      window.gtag('event', 'exception', {
+        description: `${type}: ${details.message || details.reason || 'Unknown'}`,
+        fatal: false,
+      });
+    }
+  } catch (e) { /* silent fallback */ }
+}
+
+/**
+ * Centralized API Client Wrapper
+ * Guarantees:
+ * 1. Automatic bearer token attachment
+ * 2. Safe JSON vs HTML response parsing (prevents Unexpected token '<' crashes)
+ * 3. Structured return { ok, status, data }
+ * 4. Production exception logging
+ */
+async function safeApiFetch(url, options = {}) {
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+  };
+
+  const backendToken = localStorage.getItem(AUTH_STORAGE_KEYS.backendToken || 'mp_backend_token');
+  if (backendToken) {
+    defaultHeaders['Authorization'] = `Bearer ${backendToken}`;
+  }
+
+  const mergedOptions = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...(options.headers || {}),
+    },
+  };
+
+  try {
+    const res = await fetch(url, mergedOptions);
+    const contentType = res.headers.get('content-type') || '';
+
+    let data = null;
+    if (contentType.includes('application/json')) {
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        console.warn(`[safeApiFetch] Failed to parse JSON from ${url}:`, jsonErr);
+      }
+    } else {
+      const text = await res.text();
+      console.warn(`[safeApiFetch] Non-JSON response (${res.status}) from ${url}: ${text.substring(0, 100)}`);
+      data = { error: true, status: res.status, message: `HTTP ${res.status}: Non-JSON response received` };
+    }
+
+    return {
+      ok: res.ok,
+      status: res.status,
+      data,
+    };
+  } catch (netErr) {
+    console.error(`[safeApiFetch] Network error for ${url}:`, netErr);
+    logClientError('safeApiFetch_network_error', { url, message: netErr.message });
+    return {
+      ok: false,
+      status: 0,
+      data: { error: true, message: netErr.message },
+    };
+  }
+}
+
 async function loadFirebasePublicConfig() {
   const fromWindow = window.MP_FIREBASE_CONFIG || null;
   if (fromWindow && fromWindow.apiKey) {
     firebaseConfig = hydrateFirebaseConfig(fromWindow);
-    // Also pick up reCAPTCHA site key if provided inline
     if (window.MP_RECAPTCHA_SITE_KEY) {
       recaptchaSiteKey = String(window.MP_RECAPTCHA_SITE_KEY).trim();
     }
@@ -379,11 +465,9 @@ async function loadFirebasePublicConfig() {
   }
 
   try {
-    const response = await fetch(`${API_URL}/api/public/config`, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) return;
-    const payload = await response.json();
+    const res = await safeApiFetch(`${API_URL}/api/public/config`);
+    if (!res.ok || !res.data || res.data.error) return;
+    const payload = res.data;
     const config = payload?.firebase || null;
     const recaptchaConfig = payload?.recaptcha || null;
     const hydratedConfig = hydrateFirebaseConfig(config || {});
@@ -502,7 +586,9 @@ async function ensureUserProfile(user, roleOverride = null, gstNumber = '', opti
     lastLogin: new Date(),
   };
 
-  await userRef.set(profileData, { merge: true });
+  userRef.set(profileData, { merge: true }).catch((err) => {
+    console.error('Error writing profile to firestore in background:', err);
+  });
   return profileData;
 }
 
@@ -551,8 +637,11 @@ async function routeSignedInUser(profile) {
   }
 
   if (profile.role === 'seller') {
-    showView('sellerDashboard');
-    await loadSellerDashboard(profile);
+    if (profile.onboardingComplete || profile.onboardingCompleted) {
+      window.location.href = '/next/dashboard';
+    } else {
+      showView('homeView');
+    }
     return;
   }
 
@@ -745,17 +834,15 @@ async function refreshBackendSessionIfNeeded() {
   if (!refreshToken) return;
 
   try {
-    const response = await fetch(`${API_URL}/api/auth/refresh`, {
+    const res = await safeApiFetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
     });
-    if (!response.ok) {
+    if (!res.ok || !res.data || res.data.error) {
       clearBackendSession();
       return;
     }
-    const payload = await response.json();
-    persistBackendSession(payload);
+    persistBackendSession(res.data);
   } catch (error) {
     // Keep existing state and retry during the next auth lifecycle event.
   }
@@ -770,18 +857,29 @@ async function exchangeFirebaseTokenForBackendSession(user, recaptchaAction = 'a
   try {
     const idToken = await user.getIdToken(true);
     const recaptchaToken = await executeRecaptchaAction(recaptchaAction);
-    const backendRes = await fetch(`${API_URL}/api/auth/login/firebase`, {
+    const res = await safeApiFetch(`${API_URL}/api/auth/login/firebase`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ idToken, recaptchaToken }),
     });
 
-    if (!backendRes.ok) return;
-    const backendData = await backendRes.json();
-    persistBackendSession(backendData);
+    if (!res.ok || !res.data || res.data.error) return;
+    persistBackendSession(res.data);
   } catch (backendAuthError) {
     console.warn('Backend Firebase login exchange failed', backendAuthError);
   }
+}
+
+function getCachedProfileIfMatching(uid) {
+  try {
+    const cached = localStorage.getItem(AUTH_STORAGE_KEYS.user) || localStorage.getItem('mp_user');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.uid === uid) {
+        return parsed;
+      }
+    }
+  } catch (e) {}
+  return null;
 }
 
 async function finalizeAuthenticatedUser(user, options = {}) {
@@ -797,13 +895,31 @@ async function finalizeAuthenticatedUser(user, options = {}) {
     await user.updateProfile({ displayName: name });
   }
 
-  const profile = await ensureUserProfile(user, roleOverride, gstNumber, {
-    createIfMissing: true,
-    extra: {
-      ...profileExtra,
-      name,
-    },
-  });
+  let profile = null;
+  if (options.useCache && profileExtra && profileExtra.uid === user.uid) {
+    profile = profileExtra;
+    // Trigger background sync/update
+    ensureUserProfile(user, roleOverride, gstNumber, {
+      createIfMissing: true,
+      extra: { ...profileExtra, name }
+    }).then((freshProfile) => {
+      if (freshProfile) {
+        currentUserProfile = freshProfile;
+        localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(freshProfile));
+        fillProfile();
+        try { renderCompletionPanels(freshProfile); } catch (e) {}
+      }
+    }).catch((err) => console.warn('Background profile revalidation failed:', err));
+  } else {
+    profile = await ensureUserProfile(user, roleOverride, gstNumber, {
+      createIfMissing: true,
+      extra: {
+        ...profileExtra,
+        name,
+      },
+    });
+  }
+
   currentUserProfile = profile;
   localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(profile));
   if (profile && profile.role === 'seller') {
@@ -833,7 +949,14 @@ async function finalizeAuthenticatedUser(user, options = {}) {
     console.error('Error in maybeLaunchProfileWizard inside finalizeAuthenticatedUser:', e);
   }
 
-  await exchangeFirebaseTokenForBackendSession(user);
+  exchangeFirebaseTokenForBackendSession(user).catch((err) => {
+    console.warn('1st backend token exchange failed, retrying in 2s...', err);
+    setTimeout(() => {
+      exchangeFirebaseTokenForBackendSession(user).catch((err2) => {
+        console.error('Backend session exchange failed after retry:', err2);
+      });
+    }, 2000);
+  });
 
   if (mode === 'register') {
     alert('Registered and signed in.');
@@ -1180,18 +1303,27 @@ async function closeProfileWizardAndPersist() {
     lastOnboardingUpdate: new Date(),
   };
 
-  if (db) {
-    const userRef = db.collection(FIRESTORE_COLLECTIONS.users).doc(currentUser.uid);
-    await userRef.set(payload, { merge: true });
+  let persistSuccess = true;
+  try {
+    if (db) {
+      const userRef = db.collection(FIRESTORE_COLLECTIONS.users).doc(currentUser.uid);
+      await userRef.set(payload, { merge: true });
+    }
+
+    const updated = await ensureUserProfile(currentUser, wizardState.role, wizardState.data.gstNumber || '', { createIfMissing: true, extra: wizardState.data });
+    updated.onboardingComplete = true;
+    updated.onboardingCompleted = true;
+    currentUserProfile = updated;
+    localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(updated));
+    renderCompletionPanels(updated);
+  } catch (persistErr) {
+    console.error('Profile wizard save failed:', persistErr);
+    persistSuccess = false;
+    // Still close the wizard — don't trap the user.
+    alert('Profile save encountered an error. Your changes may not have been saved. Please try updating your profile again from Settings.');
   }
 
-  const updated = await ensureUserProfile(currentUser, wizardState.role, wizardState.data.gstNumber || '', { createIfMissing: true, extra: wizardState.data });
-  updated.onboardingComplete = true;
-  updated.onboardingCompleted = true;
-  currentUserProfile = updated;
-  localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(updated));
-  renderCompletionPanels(updated);
-
+  // Always close the wizard modal, even on error.
   const modal = document.getElementById('profileWizardModal');
   if (modal) {
     modal.classList.add('hidden');
@@ -1201,7 +1333,7 @@ async function closeProfileWizardAndPersist() {
 
   trackEvent('profile_update', { role: wizardState.role });
 
-  if (wizardState.role === 'seller') {
+  if (persistSuccess && wizardState.role === 'seller') {
     window.location.href = '/next/dashboard';
   }
 }
@@ -1357,13 +1489,20 @@ async function signInWithGoogle() {
     const user = result.user;
     if (!user) return;
 
-    const existingProfile = await ensureUserProfile(user, null, '', { createIfMissing: false });
+    let existingProfile = getCachedProfileIfMatching(user.uid);
+    let useCache = !!existingProfile;
+
+    if (!existingProfile) {
+      existingProfile = await ensureUserProfile(user, null, '', { createIfMissing: false });
+    }
+
     if (existingProfile) {
       await finalizeAuthenticatedUser(user, {
         mode: 'login',
         roleOverride: existingProfile.role,
         gstNumber: existingProfile.gstNumber || '',
         profileExtra: existingProfile,
+        useCache,
       });
       return;
     }
@@ -1794,9 +1933,9 @@ async function fetchHybridRecommendations() {
   params.set('limit', '12');
 
   try {
-    const response = await fetch(`${API_URL}/api/recommendations/buyer?${params.toString()}`);
-    if (!response.ok) return;
-    const payload = await response.json();
+    const res = await safeApiFetch(`${API_URL}/api/recommendations/buyer?${params.toString()}`);
+    if (!res.ok || !res.data || res.data.error) return;
+    const payload = res.data;
     if (Array.isArray(payload.recommendations) && payload.recommendations.length) {
       state.recommended = payload.recommendations.map((item) => ({
         id: item.id,
@@ -2127,9 +2266,9 @@ function showBuyerTab(tabKey) {
 
 async function fetchBusinessProfileData(slug) {
   try {
-    const response = await fetch(`${API_URL}/api/business/public/${encodeURIComponent(slug)}`);
-    if (!response.ok) return null;
-    return response.json();
+    const res = await safeApiFetch(`${API_URL}/api/business/public/${encodeURIComponent(slug)}`);
+    if (!res.ok || !res.data || res.data.error) return null;
+    return res.data;
   } catch (error) {
     return null;
   }
@@ -2850,28 +2989,36 @@ function isSameMonth(a, b) {
 }
 
 async function trackProductView(product, source = 'browse') {
-  if (!db || !currentUserProfile || !product) return;
-  await db.collection(FIRESTORE_COLLECTIONS.productViews).add({
-    productId: product.id,
-    viewerId: currentUserProfile.uid,
-    sellerId: product.sellerId || '',
-    timestamp: safeServerTimestamp(),
-    source,
-  });
+  try {
+    if (!db || !currentUserProfile || !product) return;
+    await db.collection(FIRESTORE_COLLECTIONS.productViews).add({
+      productId: product.id,
+      viewerId: currentUserProfile.uid,
+      sellerId: product.sellerId || '',
+      timestamp: safeServerTimestamp(),
+      source,
+    });
+  } catch (err) {
+    console.warn('trackProductView analytics write failed (non-fatal):', err);
+  }
 }
 
 async function trackWhatsappClick(product) {
-  if (!db || !currentUserProfile || !product) return;
-  await db.collection(FIRESTORE_COLLECTIONS.analytics).doc(currentUserProfile.uid).set({
-    whatsappClicks: safeIncrement(1),
-  }, { merge: true });
-  await db.collection(FIRESTORE_COLLECTIONS.productViews).add({
-    productId: product.id,
-    viewerId: currentUserProfile.uid,
-    sellerId: product.sellerId || '',
-    timestamp: safeServerTimestamp(),
-    source: 'whatsapp',
-  });
+  try {
+    if (!db || !currentUserProfile || !product) return;
+    await db.collection(FIRESTORE_COLLECTIONS.analytics).doc(currentUserProfile.uid).set({
+      whatsappClicks: safeIncrement(1),
+    }, { merge: true });
+    await db.collection(FIRESTORE_COLLECTIONS.productViews).add({
+      productId: product.id,
+      viewerId: currentUserProfile.uid,
+      sellerId: product.sellerId || '',
+      timestamp: safeServerTimestamp(),
+      source: 'whatsapp',
+    });
+  } catch (err) {
+    console.warn('trackWhatsappClick analytics write failed (non-fatal):', err);
+  }
 }
 
 function showMobileMenuDrawer() {
@@ -3209,7 +3356,15 @@ function attachEvents() {
       applyFilters();
     });
   }
-  if (elements.heroSearchBtn) elements.heroSearchBtn.addEventListener('click', () => elements.searchHeroForm.requestSubmit());
+  if (elements.heroSearchBtn) elements.heroSearchBtn.addEventListener('click', () => {
+    if (elements.searchHeroForm) {
+      if (typeof elements.searchHeroForm.requestSubmit === 'function') {
+        elements.searchHeroForm.requestSubmit();
+      } else {
+        elements.searchHeroForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      }
+    }
+  });
   if (elements.exploreBusinessesBtn) elements.exploreBusinessesBtn.addEventListener('click', () => {
     showBuyerTab('explore');
     scrollToSection('#verifiedBusinessesSection');
@@ -3678,7 +3833,7 @@ async function initializeAppData() {
     return;
   }
 
-
+  try {
     const [categoriesSnapshot, sellersSnapshot] = await Promise.all([
       db.collection(FIRESTORE_COLLECTIONS.categories).get(),
       db.collection(FIRESTORE_COLLECTIONS.users).where('role', '==', 'seller').limit(16).get(),
@@ -4069,25 +4224,56 @@ async function verifyPhoneOtp(otp) {
       await user.updateProfile({ displayName: pendingContext.name });
     }
 
-    await exchangeFirebaseTokenForBackendSession(user, 'auth_login_firebase');
+    exchangeFirebaseTokenForBackendSession(user, 'auth_login_firebase').catch((err) => {
+      console.warn('1st backend token exchange (phone) failed, retrying in 2s...', err);
+      setTimeout(() => {
+        exchangeFirebaseTokenForBackendSession(user, 'auth_login_firebase').catch((err2) => {
+          console.error('Backend session exchange (phone) failed after retry:', err2);
+        });
+      }, 2000);
+    });
 
-    const profile = await ensureUserProfile(
-      user,
-      pendingContext.mode === 'register' ? pendingContext.role : null,
-      pendingContext.gstNumber || '',
-      {
-        createIfMissing: true,
-        extra: {
-          mobileNumber: pendingContext.mobileNumber || pendingContext.phone || '',
-          whatsappNumber: pendingContext.whatsappNumber || '',
-          businessName: pendingContext.businessName || '',
-          category: pendingContext.category || '',
-          website: pendingContext.website || '',
-          businessRegistrationNumber: pendingContext.businessRegistrationNumber || '',
-          address: pendingContext.address || '',
+    let profile = null;
+    let useCache = false;
+    const extraFields = {
+      mobileNumber: pendingContext.mobileNumber || pendingContext.phone || '',
+      whatsappNumber: pendingContext.whatsappNumber || '',
+      businessName: pendingContext.businessName || '',
+      category: pendingContext.category || '',
+      website: pendingContext.website || '',
+      businessRegistrationNumber: pendingContext.businessRegistrationNumber || '',
+      address: pendingContext.address || '',
+    };
+
+    if (pendingContext.mode === 'login') {
+      profile = getCachedProfileIfMatching(user.uid);
+      if (profile) {
+        useCache = true;
+        ensureUserProfile(user, null, '', {
+          createIfMissing: true,
+          extra: extraFields
+        }).then((freshProfile) => {
+          if (freshProfile) {
+            currentUserProfile = freshProfile;
+            localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(freshProfile));
+            fillProfile();
+            try { renderCompletionPanels(freshProfile); } catch (e) {}
+          }
+        }).catch((err) => console.warn('Background profile revalidation failed:', err));
+      }
+    }
+
+    if (!profile) {
+      profile = await ensureUserProfile(
+        user,
+        pendingContext.mode === 'register' ? pendingContext.role : null,
+        pendingContext.gstNumber || '',
+        {
+          createIfMissing: true,
+          extra: extraFields,
         },
-      },
-    );
+      );
+    }
     currentUserProfile = profile;
     localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(profile));
     fillProfile();
@@ -4180,7 +4366,12 @@ async function handleAuthSubmit(mode, action = 'register') {
         }
 
         const result = await auth.signInWithEmailAndPassword(email, password);
-        await finalizeAuthenticatedUser(result.user, { mode: 'login', profileExtra });
+        const cachedProfile = getCachedProfileIfMatching(result.user.uid);
+        await finalizeAuthenticatedUser(result.user, {
+          mode: 'login',
+          profileExtra: cachedProfile || profileExtra,
+          useCache: !!cachedProfile,
+        });
         return;
       }
 
@@ -4301,6 +4492,7 @@ function updateAuthDrawerBehavior() {
 }
 
 async function initializeMarketplaceApp() {
+  setupGlobalErrorMonitoring();
   setupGa4();
   trackGaEvent('page_view', { page_name: 'home' });
   trackGaEvent('device_type', { device_type: getDeviceType() });
@@ -4318,6 +4510,12 @@ async function initializeMarketplaceApp() {
       const profile = JSON.parse(raw);
       if (!profile || typeof profile !== 'object') return null;
       currentUserProfile = profile;
+      if (profile.role === 'seller') {
+        if (profile.onboardingComplete || profile.onboardingCompleted) {
+          window.location.href = '/next/dashboard';
+          return profile;
+        }
+      }
       // Ensure UI reflects persisted profile immediately.
       try { fillProfile(); } catch (e) { /* best-effort */ }
       try { renderCompletionPanels(profile); } catch (e) { /* best-effort */ }
@@ -4559,6 +4757,12 @@ function initMockFirebase() {
       }));
       return { docs };
     }
+    onSnapshot(callback, onError) {
+      this.get().then(res => callback(res)).catch(err => {
+        if (onError) onError(err);
+      });
+      return () => {};
+    }
   }
 
   auth = new MockAuth();
@@ -4598,7 +4802,9 @@ function initMockFirebase() {
         fillProfile();
         routeSignedInUser(profile);
         await maybeLaunchProfileWizard(profile, user);
-        await refreshBackendSessionIfNeeded();
+        refreshBackendSessionIfNeeded().catch((err) => {
+          console.warn('Background refreshBackendSessionIfNeeded failed:', err);
+        });
       } else {
         if (!currentUserProfile || currentUserProfile.uid !== user.uid) {
           currentUserProfile = null;
@@ -5057,7 +5263,11 @@ function bindSuggestionClicks() {
         applyFilters();
       } else {
         if (elements.searchHeroForm) {
-          elements.searchHeroForm.requestSubmit();
+          if (typeof elements.searchHeroForm.requestSubmit === 'function') {
+            elements.searchHeroForm.requestSubmit();
+          } else {
+            elements.searchHeroForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          }
         }
       }
     });
@@ -5069,4 +5279,5 @@ window.openAuthDrawer = openAuthDrawer;
 window.closeAuthDrawer = closeAuthDrawer;
 window.signOutCurrentUser = signOutCurrentUser;
 window.renderCompletionPanels = renderCompletionPanels;
+window.safeApiFetch = safeApiFetch;
 

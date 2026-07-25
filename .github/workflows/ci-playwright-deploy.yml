@@ -28,8 +28,7 @@ jobs:
         id: playwright
         run: |
           mkdir -p test-results
-          npx playwright test --reporter=list || true
-          npx playwright show-report || true
+          npx playwright test --reporter=list
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/Card';
 import { ImageUploader } from '@/components/ui/ImageUploader';
 import { navigationItems } from '@/lib/navigation';
 import { Greeting } from '@/components/dashboard/Greeting';
+import { getFirebaseServices } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 interface Product {
   id: string;
@@ -85,23 +87,55 @@ function ProductsCatalog() {
 
   // Initial Seed / Fetch
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('marketplace_products');
-      if (stored) {
-        setProducts(JSON.parse(stored));
-      } else {
-        const defaultProducts: Product[] = [
-          { id: '1', name: 'Industrial Water Pump', category: 'Industrial', description: 'Heavy duty centrifugal water pump suited for high pressure flow rate industrial operations. Engineered with premium raw copper winding and dynamic balancing system.', price: 14500, moq: 2, stock: 15, sku: 'WP-IND-100', unit: 'Pieces', gst: true, delivery: '2-3 days', tags: ['Pumps', 'Heavy Duty', 'Centrifugal'], whatsapp: '919876543210', images: [] },
-          { id: '2', name: 'Heavy Duty Adhesive Sealant', category: 'Industrial', description: 'Premium grade, super high strength polyurethane adhesive sealant. Ideal for high density joints, hardware bonding, and structural sealing.', price: 450, moq: 10, stock: 3, sku: 'AD-HD-450', unit: 'Pieces', gst: true, delivery: 'Next day', tags: ['Adhesives', 'Hardware', 'Bonding'], whatsapp: '919876543210', images: [] },
-          { id: '3', name: 'Copper Core Grounding Wire', category: 'Electrical', description: 'Premium grade pure copper grounding cable designed for protective earth systems and electrical leakage prevention. Fully conforming with ISI standard certifications.', price: 1200, moq: 5, stock: 25, sku: 'EL-CC-GND', unit: 'Meters', gst: true, delivery: '3-5 days', tags: ['Electrical', 'Wiring', 'Copper'], whatsapp: '919876543210', images: [] },
-          { id: '4', name: 'Brass Coupling Joints (1/2 Inch)', category: 'Hardware', description: 'Ultra durable solid brass coupler, designed for secure hydraulic pipe connections. Corrosion resistant construction with high temperature threshold tolerance.', price: 85, moq: 20, stock: 2, sku: 'HW-BCJ-12', unit: 'Pieces', gst: false, delivery: '2-4 days', tags: ['Plumbing', 'Brass', 'Pipes'], whatsapp: '919876543210', images: [] },
-        ];
-        localStorage.setItem('marketplace_products', JSON.stringify(defaultProducts));
-        setProducts(defaultProducts);
+    let unsubscribe = () => {};
+    const initFirestore = async () => {
+      try {
+        const storedUser = localStorage.getItem('mp_user');
+        const userObj = storedUser ? JSON.parse(storedUser) : null;
+        if (!userObj || !userObj.uid) return;
+
+        const services = await getFirebaseServices();
+        if (!services) return;
+        const { db } = services;
+
+        const q = query(
+          collection(db, 'products'),
+          where('sellerId', '==', userObj.uid)
+        );
+
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const list: Product[] = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            list.push({
+              id: doc.id,
+              name: data.name || '',
+              category: data.category || 'General',
+              description: data.description || '',
+              price: Number(data.price) || 0,
+              moq: Number(data.moq) || 1,
+              stock: Number(data.stock) || 0,
+              sku: data.sku || '',
+              unit: data.unit || 'Pieces',
+              gst: !!data.gst,
+              delivery: data.delivery || '3-5 days',
+              tags: data.features || [],
+              whatsapp: data.whatsapp || '',
+              images: Array.isArray(data.images) ? data.images : (data.image ? [data.image] : []),
+              archived: !!data.archived,
+            });
+          });
+          setProducts(list);
+          localStorage.setItem('marketplace_products', JSON.stringify(list));
+        }, (err) => {
+          console.error("Firestore onSnapshot error:", err);
+        });
+      } catch (err) {
+        console.error("Failed to load products from Firestore:", err);
       }
-    } catch (e) {
-      console.error('Failed to load products from storage', e);
-    }
+    };
+    initFirestore();
+    return () => unsubscribe();
   }, []);
 
   // Handle URL Parameter to trigger drawer
@@ -113,12 +147,6 @@ function ProductsCatalog() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenNewForm]);
-
-  // Save products
-  const saveProductsToStorage = (updatedList: Product[]) => {
-    setProducts(updatedList);
-    localStorage.setItem('marketplace_products', JSON.stringify(updatedList));
-  };
 
   // Form State Triggers
   const openAddForm = () => {
@@ -195,13 +223,24 @@ function ProductsCatalog() {
   };
 
   // Save product (Add or Edit)
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const targetProduct: Product = {
-      id: editingProduct ? editingProduct.id : Date.now().toString(),
+    const storedUser = localStorage.getItem('mp_user');
+    const userObj = storedUser ? JSON.parse(storedUser) : null;
+    if (!userObj || !(userObj.uid || userObj.id)) {
+      alert('Session expired. Please log in.');
+      return;
+    }
+
+    const targetId = editingProduct ? editingProduct.id : `local-${Date.now()}`;
+    const productPayload = {
+      id: targetId,
+      sellerId: userObj.uid || userObj.id,
+      seller: userObj.businessName || userObj.name || 'Gaurav Enterprise',
       name: formName,
+      title: formName,
       category: formCategory,
       description: formDescription,
       price: Number(formPrice),
@@ -211,42 +250,112 @@ function ProductsCatalog() {
       unit: formUnit,
       gst: formGst,
       delivery: formDelivery,
-      whatsapp: formWhatsapp,
-      tags: formTags,
+      whatsapp: formWhatsapp || userObj.whatsappNumber || userObj.mobileNumber || '919876543210',
       images: formImages,
-      archived: editingProduct ? editingProduct.archived : false,
+      archived: editingProduct ? !!editingProduct.archived : false,
+      features: formTags || [],
+      tags: formTags || [],
+      specifications: {
+        brand: 'General',
+        model: formSku,
+      },
+      analytics: {
+        views: 0,
+        orders: 0
+      },
+      updatedAt: new Date().toISOString()
     };
 
-    let updatedProducts: Product[];
-    if (editingProduct) {
-      updatedProducts = products.map((p) => (p.id === editingProduct.id ? targetProduct : p));
-    } else {
-      updatedProducts = [targetProduct, ...products];
-    }
+    const syncLocalProducts = () => {
+      const cached = JSON.parse(localStorage.getItem('marketplace_products') || '[]');
+      const nextProducts = Array.isArray(cached)
+        ? cached.filter((product: Product) => product.id !== targetId)
+        : [];
+      nextProducts.unshift(productPayload);
+      localStorage.setItem('marketplace_products', JSON.stringify(nextProducts));
+      setProducts(nextProducts);
+    };
 
-    saveProductsToStorage(updatedProducts);
-    setIsFormOpen(false);
+    try {
+      const services = await getFirebaseServices();
+      if (!services) {
+        syncLocalProducts();
+        setIsFormOpen(false);
+        return;
+      }
+      const { db } = services;
+
+      await setDoc(doc(db, 'products', targetId), productPayload, { merge: true });
+      syncLocalProducts();
+      setIsFormOpen(false);
+    } catch (err) {
+      console.error('Failed to save product in Firestore:', err);
+      syncLocalProducts();
+      setIsFormOpen(false);
+    }
   };
 
   // Duplicate product
-  const handleDuplicateProduct = (prod: Product) => {
-    const duplicated: Product = {
-      ...prod,
-      id: Date.now().toString(),
-      name: `${prod.name} (Copy)`,
-      sku: `${prod.sku}-COPY-${Math.floor(100 + Math.random() * 900)}`,
-      stock: 0, // Reset stock for copies to prevent inventory inflation
-    };
-    const updated = [duplicated, ...products];
-    saveProductsToStorage(updated);
+  const handleDuplicateProduct = async (prod: Product) => {
+    try {
+      const storedUser = localStorage.getItem('mp_user');
+      const userObj = storedUser ? JSON.parse(storedUser) : null;
+      if (!userObj || !userObj.uid) return;
+
+      const services = await getFirebaseServices();
+      if (!services) return;
+      const { db } = services;
+
+      const targetId = doc(collection(db, 'products')).id;
+
+      const duplicatedPayload = {
+        sellerId: userObj.uid,
+        seller: userObj.businessName || userObj.name || 'Gaurav Enterprise',
+        name: `${prod.name} (Copy)`,
+        title: `${prod.name} (Copy)`,
+        category: prod.category,
+        description: prod.description || '',
+        price: Number(prod.price) || 0,
+        stock: 0, // Reset stock for copies
+        moq: Number(prod.moq) || 1,
+        sku: `${prod.sku}-COPY-${Math.floor(100 + Math.random() * 900)}`,
+        unit: prod.unit || 'Pieces',
+        gst: !!prod.gst,
+        delivery: prod.delivery || '3-5 days',
+        whatsapp: prod.whatsapp || userObj.whatsappNumber || userObj.mobileNumber || '919876543210',
+        images: prod.images || [],
+        archived: false,
+        features: prod.tags || [],
+        specifications: {
+          brand: 'General',
+          model: `${prod.sku}-COPY`,
+        },
+        analytics: {
+          views: 0,
+          orders: 0
+        },
+        updatedAt: new Date().toISOString()
+      };
+
+      await setDoc(doc(db, 'products', targetId), duplicatedPayload);
+    } catch (err) {
+      console.error('Failed to duplicate product in Firestore:', err);
+    }
   };
 
   // Toggle Archive
-  const handleToggleArchive = (prod: Product) => {
-    const updated = products.map((p) =>
-      p.id === prod.id ? { ...p, archived: !p.archived } : p
-    );
-    saveProductsToStorage(updated);
+  const handleToggleArchive = async (prod: Product) => {
+    try {
+      const services = await getFirebaseServices();
+      if (!services) return;
+      const { db } = services;
+      await updateDoc(doc(db, 'products', prod.id), {
+        archived: !prod.archived,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Failed to toggle archive status in Firestore:', err);
+    }
   };
 
   // Delete product Trigger
@@ -254,11 +363,17 @@ function ProductsCatalog() {
     setDeleteConfirmId(id);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (deleteConfirmId) {
-      const updated = products.filter((p) => p.id !== deleteConfirmId);
-      saveProductsToStorage(updated);
-      setDeleteConfirmId(null);
+      try {
+        const services = await getFirebaseServices();
+        if (!services) return;
+        const { db } = services;
+        await deleteDoc(doc(db, 'products', deleteConfirmId));
+        setDeleteConfirmId(null);
+      } catch (err) {
+        console.error('Failed to delete product from Firestore:', err);
+      }
     }
   };
 

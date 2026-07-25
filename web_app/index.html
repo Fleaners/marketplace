@@ -29,17 +29,10 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <!-- Firebase public config: Web API keys are public by design (enforced by Firebase Security Rules). -->
+  <!-- Firebase config loaded at runtime from /api/public/config — no inline secrets -->
   <script>
-    window.MP_FIREBASE_CONFIG = {
-      apiKey: "AIzaSyChPAYRigFB8AIZMzFysYi_ZOgp3alRkiM",
-      authDomain: "marketplace-store-fef91.firebaseapp.com",
-      projectId: "marketplace-store-fef91",
-      storageBucket: "marketplace-store-fef91.firebasestorage.app",
-      messagingSenderId: "360203367218",
-      appId: "1:360203367218:web:e5e846e0c7954843ef5d2b"
-    };
-    window.MP_RECAPTCHA_SITE_KEY = "6LeKAUAtAAAAADildvEO4seiMOu3oS3Fnh8kS18X";
+    window.MP_FIREBASE_CONFIG = null;
+    window.MP_RECAPTCHA_SITE_KEY = null;
   </script>
 
   <script type="application/ld+json">
@@ -56,7 +49,7 @@
       }
     }
   </script>
-  <script defer src="app.js?v=20260702-brand-refresh"></script>
+  <script defer src="app.js?v=20260723-qa-fix"></script>
 </head>
 <body>
   <div class="page-shell">

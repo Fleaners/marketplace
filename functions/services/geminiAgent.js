@@ -1,3 +1,7 @@
+let lastSuccessfulCallTimestamp = null;
+let lastError = null;
+let lastErrorTimestamp = null;
+
 function getGeminiConfig() {
   const apiKey = process.env.GEMINI_API_KEY || process.env.MP_GEMINI_API_KEY;
   if (!apiKey) {
@@ -171,6 +175,74 @@ ${testSection}
 - Double-check invoice GSTIN compliance for Amit Construction leads.`;
 }
 
+export function fallbackStage1(prompt) {
+  const lower = prompt.toLowerCase();
+  const domains = [];
+  let product = null;
+  let sku = null;
+
+  if (lower.includes('stock') || lower.includes('sales') || lower.includes('performance') || lower.includes('grow') || lower.includes('doing')) {
+    domains.push('business_insights');
+  }
+  if (lower.includes('news') || lower.includes('trend') || lower.includes('market news')) {
+    domains.push('news');
+  }
+  if (lower.includes('competitor') || lower.includes('research') || lower.includes('demand')) {
+    domains.push('market_research');
+  }
+  if (lower.includes('seo') || lower.includes('ad') || lower.includes('marketing') || lower.includes('campaign')) {
+    domains.push('marketing_seo');
+  }
+  if (lower.includes('invoice') || lower.includes('revenue') || lower.includes('profit') || lower.includes('cash flow')) {
+    domains.push('business_analysis');
+  }
+
+  // Extract common mock products from database to populate slot
+  if (lower.includes('water pump') || lower.includes('pump')) {
+    product = 'Industrial Water Pump';
+    sku = 'WP-IND-100';
+  } else if (lower.includes('adhesive') || lower.includes('sealant')) {
+    product = 'Heavy Duty Adhesive Sealant';
+    sku = 'AD-HD-450';
+  } else if (lower.includes('grounding wire') || lower.includes('wire') || lower.includes('copper')) {
+    product = 'Copper Core Grounding Wire';
+    sku = 'EL-CC-GND';
+  } else if (lower.includes('coupling') || lower.includes('joints')) {
+    product = 'Brass Coupling Joints (1/2 Inch)';
+    sku = 'HW-BCJ-12';
+  }
+
+  // Filter out-of-scope queries (general knowledge, personal, code)
+  const unrelatedKeywords = [
+    'weather', 'recipe', 'movie', 'code', 'javascript', 'hello', 'who are you', 'how are you',
+    'capital of', 'write a function', 'python', 'meaning of life'
+  ];
+  const isUnrelated = unrelatedKeywords.some(kw => lower.includes(kw));
+
+  if (isUnrelated || domains.length === 0) {
+    return {
+      inScope: false,
+      categories: [],
+      slots: { dateRange: 'last 30 days', product: null, sku: null, competitor: null, channel: null },
+      explanation: 'Unrelated query or general knowledge question.',
+      redirectSuggestion: 'I am your CTO/CFO business advisor. I can only assist you with business insights, market news, business analysis, market research, and digital marketing/SEO.'
+    };
+  }
+
+  return {
+    inScope: true,
+    categories: domains,
+    slots: {
+      dateRange: 'last 30 days',
+      product,
+      sku,
+      competitor: lower.includes('competitor') ? 'Apex Wholesalers' : null,
+      channel: lower.includes('facebook') ? 'Facebook Ads' : lower.includes('google') ? 'Google Ads' : null
+    },
+    explanation: 'Valid business or marketing query.'
+  };
+}
+
 export async function askGemini(prompt, systemInstruction = '', options = {}) {
   const trimmedPrompt = typeof prompt === 'string' ? prompt.trim() : '';
   if (!trimmedPrompt) {
@@ -181,7 +253,7 @@ export async function askGemini(prompt, systemInstruction = '', options = {}) {
   if (config) {
     try {
       const { apiKey } = config;
-      const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+      const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
 
       const body = {
         contents: [
@@ -191,7 +263,7 @@ export async function askGemini(prompt, systemInstruction = '', options = {}) {
         ],
         generationConfig: {
           temperature: options.temperature ?? 0.2,
-          maxOutputTokens: options.maxOutputTokens ?? 1000,
+          maxOutputTokens: options.maxOutputTokens ?? 2048,
         },
       };
 
@@ -215,20 +287,91 @@ export async function askGemini(prompt, systemInstruction = '', options = {}) {
         const candidate = payload.candidates?.[0];
         const answer = candidate?.content?.parts?.[0]?.text || '';
         if (answer.trim()) {
+          lastSuccessfulCallTimestamp = new Date().toISOString();
           return {
             answer: answer.trim(),
-            model: 'gemini-1.5-flash',
+            model: 'gemini-1.5-pro',
           };
         }
       }
+      const errMsg = payload.error?.message || response.statusText || 'Unknown API response error';
+      lastError = errMsg;
+      lastErrorTimestamp = new Date().toISOString();
       console.warn('Gemini request failed, falling back to dynamic simulated assistant:', payload);
     } catch (apiError) {
+      lastError = apiError.message || String(apiError);
+      lastErrorTimestamp = new Date().toISOString();
       console.warn('Gemini API connection error, falling back to dynamic simulated assistant:', apiError);
     }
+  } else {
+    lastError = 'Gemini API Key is missing or not configured.';
+    lastErrorTimestamp = new Date().toISOString();
+  }
+
+  // Handle stage 1 fallback if in simulated/offline mode
+  if (systemInstruction && systemInstruction.includes('B2B Intent Parser')) {
+    return {
+      answer: JSON.stringify(fallbackStage1(trimmedPrompt)),
+      model: 'simulated-stage-1'
+    };
   }
 
   return {
     answer: getDynamicSimulatedResponse(trimmedPrompt),
     model: 'simulated-retail-assistant',
+  };
+}
+
+export async function checkGeminiApiHealth() {
+  const config = getGeminiConfig();
+  if (!config) {
+    const err = 'Gemini API Key is missing or not configured.';
+    lastError = err;
+    lastErrorTimestamp = new Date().toISOString();
+    return { status: 'degraded', error: err };
+  }
+
+  try {
+    const { apiKey } = config;
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
+    const body = {
+      contents: [{ parts: [{ text: 'ping' }] }],
+      generationConfig: { maxOutputTokens: 5 },
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (response.ok && payload.candidates?.[0]?.content?.parts?.[0]?.text) {
+      lastSuccessfulCallTimestamp = new Date().toISOString();
+      return { status: 'ok' };
+    } else {
+      const errMsg = payload.error?.message || response.statusText || 'Unknown API Error';
+      lastError = errMsg;
+      lastErrorTimestamp = new Date().toISOString();
+      return { status: 'degraded', error: errMsg };
+    }
+  } catch (err) {
+    const errMsg = err.message || String(err);
+    lastError = errMsg;
+    lastErrorTimestamp = new Date().toISOString();
+    return { status: 'degraded', error: errMsg };
+  }
+}
+
+export function getGeminiDiagnostics() {
+  const config = getGeminiConfig();
+  return {
+    apiKeyConfigured: !!config?.apiKey,
+    lastSuccessfulCallTimestamp,
+    lastError,
+    lastErrorTimestamp,
   };
 }

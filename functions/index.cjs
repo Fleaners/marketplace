@@ -1,7 +1,16 @@
 const functions = require('firebase-functions/v1');
-require('dotenv').config();
 const { initializeApp } = require('firebase-admin/app');
 const express = require('express');
+
+// ── Secret Loading ──
+// Production: load from Google Secret Manager
+// Development: fallback to local .env file via dotenv
+const isProduction = (process.env.NODE_ENV || 'production') === 'production';
+if (!isProduction) {
+  require('dotenv').config();
+}
+// Secret Manager is loaded lazily — see secretManager.cjs
+// It populates process.env.* on first access when SM values are needed
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');

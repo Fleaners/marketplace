@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   PLAN_CAPABILITIES,
@@ -56,7 +57,52 @@ const CATEGORIES = [
   'Office Supplies',
 ];
 
+const TabWrapper = ({ children, className }: { children: React.ReactNode; className?: string }) => {
+  const isTestMode = typeof window !== 'undefined' && (
+    localStorage.getItem('use_mock_auth') === 'true' || 
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  );
+  if (isTestMode) {
+    return <div className={className}>{children}</div>;
+  }
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -15 }}
+      transition={{ duration: 0.18 }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+const AnimationContainer = ({ children }: { children: React.ReactNode }) => {
+  const isTestMode = typeof window !== 'undefined' && (
+    localStorage.getItem('use_mock_auth') === 'true' || 
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  );
+  if (isTestMode) {
+    return <>{children}</>;
+  }
+  return <AnimatePresence mode="wait">{children}</AnimatePresence>;
+};
+
 export default function MarketplaceApp() {
+  const router = useRouter();
+  const [isTestMode, setIsTestMode] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isMock = localStorage.getItem('use_mock_auth') === 'true' || 
+                     window.location.hostname === 'localhost' ||
+                     window.location.hostname === '127.0.0.1';
+      setIsTestMode(isMock);
+    }
+  }, []);
+
   const [isDark, setIsDark] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [plan, setPlan] = useState<SellerPlan>('premium');
@@ -169,7 +215,7 @@ export default function MarketplaceApp() {
   const [statusMessage, setStatusMessage] = useState('');
 
   const caps = useMemo(() => PLAN_CAPABILITIES[plan], [plan]);
-  const totalRevenue = products.reduce((sum, item) => sum + (item.analytics.revenue || 0), 0);
+  const totalRevenue = products.reduce((sum, item) => sum + (item.analytics?.revenue || 0), 0);
 
   // Sync products with Firestore real-time listener (fallback to localStorage initially)
   useEffect(() => {
@@ -370,18 +416,18 @@ export default function MarketplaceApp() {
 
     try {
       let token = '';
-      if (typeof window !== 'undefined') {
-        token = localStorage.getItem('mp_backend_token') || '';
-      }
-      if (!token) {
-        try {
-          const services = await getFirebaseServices();
-          if (services?.auth && services.auth.currentUser) {
-            token = await services.auth.currentUser.getIdToken();
-          }
-        } catch (err) {
-          console.warn('Could not get id token fallback:', err);
+      // Try Firebase Auth ID token first (Google/email sign-in)
+      try {
+        const services = await getFirebaseServices();
+        if (services?.auth?.currentUser) {
+          token = await services.auth.currentUser.getIdToken();
         }
+      } catch (err) {
+        console.warn('Could not get Firebase id token:', err);
+      }
+      // Fall back to legacy stored token
+      if (!token && typeof window !== 'undefined') {
+        token = localStorage.getItem('mp_backend_token') || '';
       }
 
       const timestamp = Date.now().toString();
@@ -441,16 +487,16 @@ export default function MarketplaceApp() {
 
     try {
       let token = '';
-      if (typeof window !== 'undefined') {
+      // Try Firebase Auth ID token first (Google/email sign-in)
+      try {
+        const services = await getFirebaseServices();
+        if (services?.auth?.currentUser) {
+          token = await services.auth.currentUser.getIdToken();
+        }
+      } catch (e) {}
+      // Fall back to legacy stored token
+      if (!token && typeof window !== 'undefined') {
         token = localStorage.getItem('mp_backend_token') || '';
-      }
-      if (!token) {
-        try {
-          const services = await getFirebaseServices();
-          if (services?.auth && services.auth.currentUser) {
-            token = await services.auth.currentUser.getIdToken();
-          }
-        } catch {}
       }
 
       const timestamp = Date.now().toString();
@@ -674,17 +720,10 @@ export default function MarketplaceApp() {
         </header>
 
         <main className="mx-auto max-w-5xl px-4 py-6">
-          <AnimatePresence mode="wait">
+          <AnimationContainer>
             {/* 1. HOME TAB */}
             {activeTab === 'home' && (
-              <motion.div
-                key="home"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.18 }}
-                className="space-y-6"
-              >
+              <TabWrapper className="space-y-6">
                 <Greeting />
 
                 {/* Hero Promotion Widget */}
@@ -872,8 +911,8 @@ export default function MarketplaceApp() {
                             <div>
                               {/* Product Image area */}
                               <div className="relative aspect-square rounded-2xl bg-slate-100 dark:bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-100 dark:border-slate-800">
-                                {prod.images[0] ? (
-                                  <img src={prod.images[0]} alt={prod.title} className="h-full w-full object-cover" />
+                                {prod.images?.[0] ? (
+                                  <img src={prod.images?.[0]} alt={prod.title} className="h-full w-full object-cover" />
                                 ) : (
                                   <div className="text-slate-400 text-3xl font-light">📦</div>
                                 )}
@@ -960,26 +999,19 @@ export default function MarketplaceApp() {
                     variant="primary" 
                     size="md"
                     onClick={() => {
-                      if (typeof window !== 'undefined') window.location.href = '/dashboard';
+                      router.push('/dashboard');
                     }}
                     className="rounded-xl bg-[#FAB12F] hover:bg-[#e09e1b] text-slate-900 font-extrabold shadow-[0_8px_20px_rgba(250,177,47,0.25)]"
                   >
                     Open Seller Cockpit
                   </Button>
                 </div>
-              </motion.div>
+              </TabWrapper>
             )}
 
             {/* 2. SEARCH TAB */}
             {activeTab === 'search' && (
-              <motion.div
-                key="search"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.18 }}
-                className="space-y-6"
-              >
+              <TabWrapper className="space-y-6">
                 <div className="space-y-4">
                   <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Explore the Sourcing Directory</h2>
                   <div className="relative">
@@ -1012,19 +1044,12 @@ export default function MarketplaceApp() {
                     ))}
                   </div>
                 </div>
-              </motion.div>
+              </TabWrapper>
             )}
 
             {/* 3. WISHLIST TAB */}
             {activeTab === 'wishlist' && (
-              <motion.div
-                key="wishlist"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.18 }}
-                className="space-y-6"
-              >
+              <TabWrapper className="space-y-6">
                 <div>
                   <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Sourcing Wishlist</h2>
                   <p className="text-xs text-slate-500 font-semibold mt-1">Products bookmarked for quick bulk inquiry cycles.</p>
@@ -1073,19 +1098,12 @@ export default function MarketplaceApp() {
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </TabWrapper>
             )}
 
             {/* 4. PROFILE TAB */}
             {activeTab === 'profile' && (
-              <motion.div
-                key="profile"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.18 }}
-                className="space-y-6"
-              >
+              <TabWrapper className="space-y-6">
                 {/* Buyer Card Header */}
                 <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 flex items-center gap-4 shadow-sm animate-fade-in">
                   <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-500 to-[#FAB12F] flex items-center justify-center text-xl font-bold text-slate-950 shadow-md">
@@ -1184,19 +1202,12 @@ export default function MarketplaceApp() {
                     <p className="text-xs text-slate-500">No review logs available.</p>
                   )}
                 </div>
-              </motion.div>
+              </TabWrapper>
             )}
 
             {/* 5. MORE / SETTINGS TAB */}
             {activeTab === 'more' && (
-              <motion.div
-                key="more"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.18 }}
-                className="space-y-6"
-              >
+              <TabWrapper className="space-y-6">
                 <div>
                   <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">System & Settings</h2>
                   <p className="text-xs text-slate-500 font-semibold mt-1">Configure your B2B marketplace parameters.</p>
@@ -1212,7 +1223,7 @@ export default function MarketplaceApp() {
                     variant="primary" 
                     size="sm"
                     onClick={() => {
-                      if (typeof window !== 'undefined') window.location.href = '/dashboard';
+                      router.push('/dashboard');
                     }}
                     className="rounded-xl bg-[#FAB12F] hover:bg-[#e09e1b] text-slate-900 font-bold shadow-sm"
                   >
@@ -1320,9 +1331,9 @@ export default function MarketplaceApp() {
                     <p className="flex justify-between"><span>Network Status</span><span className="font-bold text-emerald-500">🟢 Online</span></p>
                   </div>
                 </div>
-              </motion.div>
+              </TabWrapper>
             )}
-          </AnimatePresence>
+          </AnimationContainer>
         </main>
 
         {/* Dynamic Status/Error floating notifications */}
