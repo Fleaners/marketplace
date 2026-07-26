@@ -1,78 +1,36 @@
 --- SMOKE TEST RUN START ---
-REQUEST: GET http://localhost:8081/
+REQUEST: GET https://marketplace-store-fef91.web.app/
+REQUEST: GET https://marketplace-store-fef91.web.app/assets/toast.css
+REQUEST: GET https://marketplace-store-fef91.web.app/styles.css?v=20260702-brand-refresh
 REQUEST: GET https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap
-REQUEST: GET http://localhost:8081/styles.css?v=20260702-brand-refresh
-REQUEST: GET https://www.google.com/recaptcha/enterprise.js
-REQUEST: GET http://localhost:8081/assets/toast.css
-REQUEST: GET https://accounts.google.com/gsi/client
-REQUEST: GET https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js
 REQUEST: GET https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js
-REQUEST: GET http://localhost:8081/app.js?v=20260723-qa-fix
-REQUEST: GET http://localhost:8081/assets/marketplace-store-logo.svg
 REQUEST: GET https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js
+REQUEST: GET https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js
+REQUEST: GET https://www.google.com/recaptcha/enterprise.js
+REQUEST: GET https://accounts.google.com/gsi/client
+REQUEST: GET https://marketplace-store-fef91.web.app/app.js?v=20260723-qa-fix
+REQUEST: GET https://marketplace-store-fef91.web.app/assets/marketplace-store-logo.svg
+CONSOLE [info] at https://www.google.com/recaptcha/enterprise.js:0:0
+Text: This document requires 'TrustedScriptURL' assignment. The policy is report-only, so the violation has been logged but no further action has been taken.
+
 REQUEST: GET https://www.gstatic.com/recaptcha/releases/A7KpaEASfhDcK0nXxgQEyyYv/recaptcha__en.js
-REQUEST: GET https://fonts.gstatic.com/s/sora/v17/xMQ9uFFYT72X5wkB_18qmnndmSdSnh2BAfO5mnuyOo1lfiQwV6-x.woff2
 REQUEST: GET https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2
-CONSOLE [log] at http://localhost:8081/app.js?v=20260723-qa-fix:4645:10
-Text: Initializing Mock Firebase for local testing...
-
-CONSOLE [log] at http://localhost:8081/app.js?v=20260723-qa-fix:4693:14
-Text: Mock sending OTP to +919999999999
-
-CONSOLE [log] at http://localhost:8081/app.js?v=20260723-qa-fix:4708:14
-Text: Mock signInWithPopup with provider {setCustomParameters: }
-
-REQUEST: GET http://localhost:8081/next/dashboard
-REQUEST: GET http://localhost:8081/next/_next/static/css/681b4642a8ab2453.css
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/fd9d1056-5d5b8e0b238c0110.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/webpack-50b07ca4855fa66b.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/main-app-b4dc06ad3d15a0ef.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/117-769afdd0198a621a.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/bc9e92e6-6e027dfae99f46de.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/69806262-67966f76e4d10f22.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/648-74f7997b09caa0e3.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/351-249b7b08e277855a.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/app/(dashboard)/dashboard/page-a28313418cfda2e4.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/app/(dashboard)/dashboard/error-d991fbd6882e2bb9.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/853-f5b5c17e8f5dac2e.js
-REQUEST: GET http://localhost:8081/assets/Inter-Regular.woff2
-REQUEST: GET http://localhost:8081/assets/Inter-Bold.woff2
-REQUEST: GET http://localhost:8081/assets/fonts.css
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/app/error-f71190ddf57bdcfd.js
-REQUEST: GET http://localhost:8081/assets/Inter-SemiBold.woff2
-REQUEST: GET http://localhost:8081/assets/Inter-Medium.woff2
-REQUEST: GET http://localhost:8081/assets/Inter-ExtraBold.woff2
-REQUEST: GET http://localhost:8081/version.json?t=1785085318407
-REQUEST: GET http://localhost:8081/next/dashboard/products/index.txt?_rsc=j0zz3
-REQUEST: GET http://localhost:8081/next/dashboard/orders/index.txt?_rsc=j0zz3
-REQUEST: GET http://localhost:8081/next/dashboard/leads/index.txt?_rsc=j0zz3
-REQUEST: GET http://localhost:8081/next/dashboard/analytics/index.txt?_rsc=j0zz3
-REQUEST: GET http://localhost:8081/next/dashboard/ai-insights/index.txt?_rsc=j0zz3
-REQUEST: GET http://localhost:8081/next/dashboard/advertising/index.txt?_rsc=j0zz3
-REQUEST: GET http://localhost:8081/next/dashboard/inventory/index.txt?_rsc=j0zz3
-REQUEST: GET http://localhost:8081/next/dashboard/reviews/index.txt?_rsc=j0zz3
-REQUEST: GET http://localhost:8081/next/index.html?clear_cache_ts=1785085320182
-REQUEST: GET http://localhost:8081/next/_next/static/css/681b4642a8ab2453.css
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/fd9d1056-5d5b8e0b238c0110.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/webpack-50b07ca4855fa66b.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/117-769afdd0198a621a.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/853-f5b5c17e8f5dac2e.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/69806262-67966f76e4d10f22.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/bc9e92e6-6e027dfae99f46de.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/main-app-b4dc06ad3d15a0ef.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/app/page-a6cb07a63cfff0d6.js
-REQUEST: GET http://localhost:8081/next/_next/static/chunks/app/error-f71190ddf57bdcfd.js
-REQUEST: GET http://localhost:8081/assets/Inter-Regular.woff2
-REQUEST: GET http://localhost:8081/assets/Inter-Bold.woff2
-REQUEST: GET http://localhost:8081/assets/fonts.css
-REQUEST: GET http://localhost:8081/assets/Inter-SemiBold.woff2
-REQUEST: GET http://localhost:8081/assets/Inter-ExtraBold.woff2
-REQUEST: GET http://localhost:8081/assets/Inter-Medium.woff2
-REQUEST: GET http://localhost:8081/version.json?t=1785085320627
-REQUEST: POST https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fmarketplace-store-fef91%2Fdatabases%2F(default)&RID=19563&CVER=22&X-HTTP-Session-Id=gsessionid&zx=mjqaudd3jt1q&t=1
-CONSOLE [warning] at http://localhost:8081/next/_next/static/chunks/app/page-a6cb07a63cfff0d6.js:0:4326
-Text: compressImage failed, falling back to original file: InvalidStateError: The source image could not be decoded.
-
-REQUEST: GET blob:http://localhost:8081/5899852e-e35a-4939-8a43-e8d13a9bd463
-REQUEST: POST https://marketplace-store-fef91.web.app/api/ai/analyze
-REQUEST: POST https://firestore.googleapis.com/google.firestore.v1.Firestore/Write/channel?VER=8&database=projects%2Fmarketplace-store-fef91%2Fdatabases%2F(default)&RID=35741&CVER=22&X-HTTP-Session-Id=gsessionid&zx=fgvtlgoaen1t&t=1
+REQUEST: GET https://fonts.gstatic.com/s/sora/v17/xMQ9uFFYT72X5wkB_18qmnndmSdSnh2BAfO5mnuyOo1lfiQwV6-x.woff2
+REQUEST: GET https://marketplace-store-fef91.web.app/api/public/config
+REQUEST: GET https://marketplace-store-fef91.web.app/next/index.html?clear_cache_ts=1785089196005
+REQUEST: GET https://marketplace-store-fef91.web.app/next/_next/static/chunks/webpack-50b07ca4855fa66b.js
+REQUEST: GET https://marketplace-store-fef91.web.app/next/_next/static/chunks/fd9d1056-5d5b8e0b238c0110.js
+REQUEST: GET https://marketplace-store-fef91.web.app/next/_next/static/css/681b4642a8ab2453.css
+REQUEST: GET https://marketplace-store-fef91.web.app/next/_next/static/chunks/117-769afdd0198a621a.js
+REQUEST: GET https://marketplace-store-fef91.web.app/next/_next/static/chunks/main-app-b4dc06ad3d15a0ef.js
+REQUEST: GET https://marketplace-store-fef91.web.app/next/_next/static/chunks/bc9e92e6-6e027dfae99f46de.js
+REQUEST: GET https://marketplace-store-fef91.web.app/next/_next/static/chunks/69806262-67966f76e4d10f22.js
+REQUEST: GET https://marketplace-store-fef91.web.app/next/_next/static/chunks/853-f5b5c17e8f5dac2e.js
+REQUEST: GET https://marketplace-store-fef91.web.app/next/_next/static/chunks/app/page-a6cb07a63cfff0d6.js
+REQUEST: GET https://marketplace-store-fef91.web.app/next/_next/static/chunks/app/error-f71190ddf57bdcfd.js
+REQUEST: GET https://marketplace-store-fef91.web.app/assets/Inter-Regular.woff2
+REQUEST: GET https://marketplace-store-fef91.web.app/assets/Inter-SemiBold.woff2
+REQUEST: GET https://marketplace-store-fef91.web.app/assets/Inter-Bold.woff2
+REQUEST: GET https://marketplace-store-fef91.web.app/assets/fonts.css
+REQUEST: GET https://marketplace-store-fef91.web.app/assets/Inter-ExtraBold.woff2
+REQUEST: GET https://marketplace-store-fef91.web.app/assets/Inter-Medium.woff2

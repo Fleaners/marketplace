@@ -60,7 +60,7 @@ test('measure existing user login latency', async ({ page }) => {
   await expect(page.locator('#authDrawer')).toBeVisible();
 
   const startLoginTime = Date.now();
-  await page.locator('#authGoogle').click();
+  await page.locator('#authGoogle').evaluate((el) => (el as HTMLButtonElement).click());
 
   // Wait for /next/dashboard page and check if it is interactive
   await expect(page).toHaveURL(/\/next\/dashboard/);
