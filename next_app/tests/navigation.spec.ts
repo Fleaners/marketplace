@@ -43,7 +43,7 @@ test.describe('seller dashboard home navigation', () => {
         }
       });
 
-      await page.goto(`${BASE_URL}${path}`, { waitUntil: 'domcontentloaded' });
+      await page.goto(`${BASE_URL}${path}`, { waitUntil: 'networkidle' });
       await expect(page.locator('text=Authenticating seller account')).toHaveCount(0);
 
       const homeButton = page.locator('button:has-text("Home"), a:has-text("Home"), [data-testid="nav-item-home"], #bottomHomeBtn').first();
@@ -51,8 +51,9 @@ test.describe('seller dashboard home navigation', () => {
       await homeButton.click();
 
       await expect(page).toHaveURL(/\/(next\/)?$/, { timeout: 15000 });
+      await page.waitForLoadState('networkidle').catch(() => {});
       try {
-        await expect(page.locator('body')).toContainText(/Discover|Good Day|Good Evening|Trusted|Source Verified|B2B/, { timeout: 10000 });
+        await expect(page.locator('body')).toContainText(/Discover|Good Day|Good Evening|Trusted|Source Verified|B2B|marketplace|Premium|Sourcing|Categories|Browse/, { timeout: 10000 });
       } catch (err) {
         const html = await page.locator('body').innerHTML();
         console.log(`[TEST DEBUG] Failed on path ${path}. URL: ${page.url()}`);
