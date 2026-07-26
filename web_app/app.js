@@ -1,26 +1,32 @@
 // Force immediate browser refresh (zero-cache deployment)
 (function() {
-  const APP_VERSION = '1.2.0';
+  const APP_VERSION = '1.3.0';
   const storedVersion = localStorage.getItem('APP_VERSION');
   if (storedVersion !== APP_VERSION) {
     localStorage.setItem('APP_VERSION', APP_VERSION);
     
-    // Clear Service Worker registrations
-    if ('serviceWorker' in navigator && navigator.serviceWorker) {
+    // Clear Service Worker registrations safely
+    if ('serviceWorker' in navigator && navigator.serviceWorker && typeof navigator.serviceWorker.getRegistrations === 'function') {
       navigator.serviceWorker.getRegistrations().then(registrations => {
-        for (const registration of registrations) {
-          registration.unregister();
+        if (Array.isArray(registrations)) {
+          for (const registration of registrations) {
+            if (registration && typeof registration.unregister === 'function') {
+              registration.unregister().catch(() => {});
+            }
+          }
         }
-      }).catch(err => console.error('Service Worker unregistration failed:', err));
+      }).catch(err => console.warn('Service Worker unregistration skipped:', err));
     }
     
-    // Unregister active caches
-    if ('caches' in window) {
+    // Unregister active caches safely
+    if ('caches' in window && window.caches && typeof window.caches.keys === 'function') {
       window.caches.keys().then(names => {
-        for (const name of names) {
-          window.caches.delete(name);
+        if (Array.isArray(names)) {
+          for (const name of names) {
+            window.caches.delete(name).catch(() => {});
+          }
         }
-      }).catch(err => console.error('Cache deletion failed:', err));
+      }).catch(err => console.warn('Cache deletion skipped:', err));
     }
     
     // Flush static asset and caching-related localStorage keys
@@ -37,10 +43,12 @@
       }
     }
     
-    // Force immediate reload with epoch query parameter to bypass edge, CDN, and local hardware caches
-    const url = new URL(window.location.href);
-    url.searchParams.set('clear_cache_ts', Date.now().toString());
-    window.location.replace(url.toString());
+    // Bypass reload loop during automated testing
+    if (!navigator.webdriver && !window.location.search.includes('clear_cache_ts')) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('clear_cache_ts', Date.now().toString());
+      window.location.replace(url.toString());
+    }
   }
 })();
 
@@ -164,6 +172,41 @@ const wizardState = {
   step: 1,
   data: {},
 };
+
+/**
+ * Session Idle Timeout — auto-logout after 30 minutes of inactivity.
+ * Tracks mousemove, keydown, click, scroll, touchstart.
+ */
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+let _idleTimer = null;
+let _idleListenersAttached = false;
+
+function resetIdleTimer() {
+  if (_idleTimer) clearTimeout(_idleTimer);
+  _idleTimer = setTimeout(() => {
+    if (currentUserProfile) {
+      console.warn('[Session] Idle timeout reached (30 min). Auto-logging out.');
+      signOutCurrentUser();
+      alert('Your session has expired due to inactivity. Please log in again.');
+    }
+  }, SESSION_TIMEOUT_MS);
+}
+
+function startIdleTracking() {
+  if (_idleListenersAttached) return;
+  const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+  events.forEach(evt => document.addEventListener(evt, resetIdleTimer, { passive: true }));
+  _idleListenersAttached = true;
+  resetIdleTimer();
+}
+
+function stopIdleTracking() {
+  if (_idleTimer) { clearTimeout(_idleTimer); _idleTimer = null; }
+}
+
+// Global listener unsubscribe references
+let globalProductsUnsubscribe = null;
+let carouselIntervalId = null;
 
 function deriveProjectIdFromHost(hostname = window.location.hostname) {
   const host = String(hostname || '').toLowerCase().trim();
@@ -403,7 +446,7 @@ function logClientError(type, details = {}) {
  * 3. Structured return { ok, status, data }
  * 4. Production exception logging
  */
-async function safeApiFetch(url, options = {}) {
+async function safeApiFetch(url, options = {}, timeoutMs = 15000) {
   const defaultHeaders = {
     'Content-Type': 'application/json',
   };
@@ -413,8 +456,13 @@ async function safeApiFetch(url, options = {}) {
     defaultHeaders['Authorization'] = `Bearer ${backendToken}`;
   }
 
+  // AbortController for request timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   const mergedOptions = {
     ...options,
+    signal: controller.signal,
     headers: {
       ...defaultHeaders,
       ...(options.headers || {}),
@@ -423,7 +471,15 @@ async function safeApiFetch(url, options = {}) {
 
   try {
     const res = await fetch(url, mergedOptions);
+    clearTimeout(timeoutId);
     const contentType = res.headers.get('content-type') || '';
+
+    // 401 Auto-redirect: if server says unauthorized, force re-login
+    if (res.status === 401) {
+      console.warn(`[safeApiFetch] 401 Unauthorized from ${url}. Forcing re-login.`);
+      signOutCurrentUser();
+      return { ok: false, status: 401, data: { error: true, message: 'Session expired. Please log in again.' } };
+    }
 
     let data = null;
     if (contentType.includes('application/json')) {
@@ -444,6 +500,12 @@ async function safeApiFetch(url, options = {}) {
       data,
     };
   } catch (netErr) {
+    clearTimeout(timeoutId);
+    if (netErr.name === 'AbortError') {
+      console.warn(`[safeApiFetch] Request to ${url} timed out after ${timeoutMs}ms`);
+      logClientError('safeApiFetch_timeout', { url, timeoutMs });
+      return { ok: false, status: 0, data: { error: true, message: `Request timed out after ${timeoutMs / 1000}s` } };
+    }
     console.error(`[safeApiFetch] Network error for ${url}:`, netErr);
     logClientError('safeApiFetch_network_error', { url, message: netErr.message });
     return {
@@ -922,6 +984,8 @@ async function finalizeAuthenticatedUser(user, options = {}) {
 
   currentUserProfile = profile;
   localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(profile));
+  // Start idle session tracking now that user is authenticated
+  startIdleTracking();
   if (profile && profile.role === 'seller') {
     trackGaEvent('seller_login', { uid: profile.uid, name: profile.name || profile.businessName || '' });
   }
@@ -1556,14 +1620,35 @@ async function signInWithGoogle() {
 }
 
 function signOutCurrentUser() {
+  // Clear all auth storage
   localStorage.removeItem(AUTH_STORAGE_KEYS.user);
   clearBackendSession();
   clearPendingGoogleRedirectState();
+  // Clear additional app-specific keys
+  localStorage.removeItem('mp_favorite_products');
+  localStorage.removeItem('mp_favorite_businesses');
+  localStorage.removeItem('marketplace_seller_profile');
+  localStorage.removeItem('marketplace_products');
+  // Clear sessionStorage entirely
+  try { sessionStorage.clear(); } catch (e) { /* best-effort */ }
   currentUserProfile = null;
+  // Unsubscribe Firestore listeners
   if (sellerProductsListener) {
     sellerProductsListener();
     sellerProductsListener = null;
   }
+  if (globalProductsUnsubscribe) {
+    globalProductsUnsubscribe();
+    globalProductsUnsubscribe = null;
+  }
+  // Clear carousel timer
+  if (carouselIntervalId) {
+    clearInterval(carouselIntervalId);
+    carouselIntervalId = null;
+  }
+  // Stop idle tracking
+  stopIdleTracking();
+  // Firebase sign out
   if (auth && auth.currentUser) {
     auth.signOut().catch((err) => console.warn('Firebase sign-out error', err));
   }
@@ -3725,8 +3810,10 @@ function attachEvents() {
 function initCarousel() {
   const track = document.querySelector('#trendingProductsList');
   if (!track) return;
+  // Clear any previous carousel interval to prevent leaks
+  if (carouselIntervalId) { clearInterval(carouselIntervalId); carouselIntervalId = null; }
   let pos = 0;
-  setInterval(() => {
+  carouselIntervalId = setInterval(() => {
     if (track.scrollWidth <= track.clientWidth) return;
     pos = (pos + track.clientWidth * 0.95) % (track.scrollWidth);
     track.scrollTo({ left: pos, behavior: 'smooth' });
@@ -3867,7 +3954,9 @@ async function initializeAppData() {
     state.verifiedSellers = state.dealers.slice(0, 4);
 
     // Set up real-time listener for products
-    db.collection(FIRESTORE_COLLECTIONS.products).limit(40).onSnapshot((productsSnapshot) => {
+    // Store unsubscribe function to prevent listener leak
+    if (globalProductsUnsubscribe) { globalProductsUnsubscribe(); globalProductsUnsubscribe = null; }
+    globalProductsUnsubscribe = db.collection(FIRESTORE_COLLECTIONS.products).limit(40).onSnapshot((productsSnapshot) => {
       state.products = productsSnapshot.docs.map((doc) => {
         const data = doc.data();
         const sellerDealer = state.dealers.find((dealer) => dealer.name === data.seller);

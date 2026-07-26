@@ -45,23 +45,29 @@ export default function RootLayout({
 }) {
   const cacheBusterScript = `
     (function() {
-      var APP_VERSION = '1.2.0';
+      var APP_VERSION = '1.3.0';
       var storedVersion = localStorage.getItem('APP_VERSION');
       if (storedVersion !== APP_VERSION) {
         localStorage.setItem('APP_VERSION', APP_VERSION);
-        if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator && navigator.serviceWorker && typeof navigator.serviceWorker.getRegistrations === 'function') {
           navigator.serviceWorker.getRegistrations().then(function(regs) {
-            for (var i = 0; i < regs.length; i++) {
-              regs[i].unregister();
+            if (Array.isArray(regs)) {
+              for (var i = 0; i < regs.length; i++) {
+                if (regs[i] && typeof regs[i].unregister === 'function') {
+                  regs[i].unregister().catch(function() {});
+                }
+              }
             }
-          }).catch(function(err) { console.error(err); });
+          }).catch(function(err) {});
         }
-        if ('caches' in window) {
+        if ('caches' in window && window.caches && typeof window.caches.keys === 'function') {
           window.caches.keys().then(function(names) {
-            for (var i = 0; i < names.length; i++) {
-              window.caches.delete(names[i]);
+            if (Array.isArray(names)) {
+              for (var i = 0; i < names.length; i++) {
+                window.caches.delete(names[i]).catch(function() {});
+              }
             }
-          }).catch(function(err) { console.error(err); });
+          }).catch(function(err) {});
         }
         for (var i = localStorage.length - 1; i >= 0; i--) {
           var key = localStorage.key(i);
@@ -75,9 +81,11 @@ export default function RootLayout({
             localStorage.removeItem(key);
           }
         }
-        var url = new URL(window.location.href);
-        url.searchParams.set('clear_cache_ts', Date.now().toString());
-        window.location.replace(url.toString());
+        if (!navigator.webdriver && window.location.search.indexOf('clear_cache_ts') === -1) {
+          var url = new URL(window.location.href);
+          url.searchParams.set('clear_cache_ts', Date.now().toString());
+          window.location.replace(url.toString());
+        }
       }
     })();
   `;

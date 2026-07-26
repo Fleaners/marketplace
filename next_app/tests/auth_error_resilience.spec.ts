@@ -188,4 +188,68 @@ test.describe('Auth Error Resilience Tests', () => {
       console.log('[PASS] safeApiFetch handled non-JSON HTML rewrite response cleanly without crashing JSON parsing');
     }
   });
+
+  test('6. Logout clears all auth storage keys', async ({ page }) => {
+    // Login first
+    await page.addInitScript(() => {
+      localStorage.setItem('use_mock_auth', 'true');
+      localStorage.setItem('mp_user', JSON.stringify({ uid: 'test-uid', role: 'buyer', name: 'Test' }));
+      localStorage.setItem('mp_backend_token', 'fake-token');
+      localStorage.setItem('mp_backend_refresh_token', 'fake-refresh');
+      localStorage.setItem('mp_favorite_products', '["p1"]');
+      localStorage.setItem('mp_favorite_businesses', '["b1"]');
+    });
+
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+
+    // Now sign out
+    await page.evaluate(() => {
+      // @ts-ignore
+      if (typeof window.signOutCurrentUser === 'function') {
+        // @ts-ignore
+        window.signOutCurrentUser();
+      }
+    });
+
+    await page.waitForTimeout(500);
+
+    // Verify all auth keys are cleared
+    const storageState = await page.evaluate(() => ({
+      mp_user: localStorage.getItem('mp_user'),
+      mp_backend_token: localStorage.getItem('mp_backend_token'),
+      mp_backend_refresh_token: localStorage.getItem('mp_backend_refresh_token'),
+      mp_favorite_products: localStorage.getItem('mp_favorite_products'),
+      mp_favorite_businesses: localStorage.getItem('mp_favorite_businesses'),
+    }));
+
+    expect(storageState.mp_user).toBeNull();
+    expect(storageState.mp_backend_token).toBeNull();
+    expect(storageState.mp_backend_refresh_token).toBeNull();
+    expect(storageState.mp_favorite_products).toBeNull();
+    expect(storageState.mp_favorite_businesses).toBeNull();
+    console.log('[PASS] Logout cleared all auth storage keys');
+  });
+
+  test('7. safeApiFetch handles timeout gracefully via AbortController', async ({ page }) => {
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+
+    const result = await page.evaluate(async () => {
+      // @ts-ignore
+      if (typeof window.safeApiFetch !== 'function') return { skipped: true };
+
+      // Use a very short timeout (100ms) against a real endpoint to trigger abort
+      // @ts-ignore
+      const res = await window.safeApiFetch('https://httpbin.org/delay/10', {}, 100);
+      return { ok: res.ok, status: res.status, message: res.data?.message || '', hasError: !!res.data?.error };
+    });
+
+    if (result.skipped) {
+      console.log('[SKIP] safeApiFetch not exposed on window');
+    } else {
+      expect(result.ok).toBeFalsy();
+      expect(result.hasError).toBeTruthy();
+      expect(result.message).toContain('timed out');
+      console.log('[PASS] safeApiFetch timeout fired and returned structured error');
+    }
+  });
 });
