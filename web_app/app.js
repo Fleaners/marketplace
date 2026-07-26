@@ -3467,6 +3467,29 @@ function attachEvents() {
   if (elements.navSellerBtnSecondary) elements.navSellerBtnSecondary.addEventListener('click', () => handleTopButton('sell'));
   if (elements.navDashboardBtn) elements.navDashboardBtn.addEventListener('click', () => handleTopButton('profile'));
   if (elements.navLoginBtn) elements.navLoginBtn.addEventListener('click', handleLoginButton);
+
+  // Centralized Header Event Delegation — guarantees login, register, logout, and nav buttons work regardless of innerHTML dynamic updates
+  document.addEventListener('click', (e) => {
+    const loginBtn = e.target.closest('#navLoginBtn');
+    if (loginBtn) {
+      e.preventDefault();
+      openAuthDrawer('login');
+      return;
+    }
+    const logoutBtn = e.target.closest('#navLogoutBtn');
+    if (logoutBtn) {
+      e.preventDefault();
+      signOutCurrentUser();
+      alert('Logged out');
+      return;
+    }
+    const sellerBtn = e.target.closest('#navSellerBtn, #navBecomeSellerBtn');
+    if (sellerBtn) {
+      e.preventDefault();
+      openAuthDrawer('register');
+      return;
+    }
+  });
   const sellerAddProductBtnSecondary = document.getElementById('sellerAddProductBtnSecondary');
   if (sellerAddProductBtnSecondary) {
     sellerAddProductBtnSecondary.addEventListener('click', () => handleTopButton('sell'));
